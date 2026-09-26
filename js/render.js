@@ -38,6 +38,7 @@ function applyEvents(evs, world = true) {
       case 'team': FX.team = { t: 0, heroes: e.heroes }; break;
       case 'go': FX.go = 4; Audio.sfx('confirm'); break;
       case 'shock': break;
+      case 'uncage': FX.parts.push({ k: 'ring', x: e.x, y: e.y - 70, r: 140, life: 0.5, max: 0.5, c: '#c07bff', world }); for (let i = 0; i < 16; i++) FX.parts.push({ k: 'fire', x: e.x + rand(-50, 50), y: e.y - rand(0, 150), vx: rand(-60, 60), vy: rand(-160, -40), life: 0.6, max: 0.6, c: '#c07bff', s: 6, world }); break;
       case 'morph': FX.parts.push({ k: 'column', x: e.x, y: e.y, c: e.c, life: 1.1, max: 1.1, world }); break;
     }
   }
@@ -54,7 +55,7 @@ function stepFX(dt) {
   FX.shake = Math.max(0, FX.shake - dt * 40);
   FX.flash = Math.max(0, FX.flash - dt * 2.2);
   FX.go = Math.max(0, FX.go - dt);
-  if (FX.team) { FX.team.t += dt; if (FX.team.t > 1.6) FX.team = null; }
+  if (FX.team) { FX.team.t += dt; if (FX.team.t > TEAM_LEN) FX.team = null; }
 }
 
 function drawParts(cam, layer) {
@@ -172,6 +173,31 @@ function drawWeaponOn(o, x, y) {
   g.restore();
 }
 
+/* personal weapon held in the hand: grip anchor of the weapon on the fist of the frame */
+function handPos(key, sc) {
+  const fr = frameOf('fighters', key);
+  if (!fr) return [20 * sc, -80 * sc];
+  const f = +key.split('_')[1];
+  if (f === 5) return [(fr[2] - fr[4]) * sc - 14 * sc, -fr[5] * sc * 0.64];
+  if (f === 6) return [12 * sc, -fr[5] * sc * 0.62];
+  if (f === 4) return [16 * sc, -fr[5] * sc * 0.78];
+  return [20 * sc, -fr[5] * sc * 0.52];
+}
+function drawSigWeapon(key, frameKey, x, y, face, sc, rot, glow, t) {
+  const fw = frameOf('items', key);
+  if (!fw) return;
+  const [hx, hy] = handPos(frameKey, sc);
+  g.save();
+  g.translate(x, y); g.scale(face, 1); g.translate(hx, hy); g.rotate(rot || 0);
+  if (glow) {
+    g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.45 + Math.sin(t * 30) * 0.15;
+    const grd = g.createLinearGradient(0, 0, fw[2], 0); grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(1, glow);
+    g.fillStyle = grd; g.fillRect(-fw[4], -fw[5] - 6, fw[2] + 12, fw[3] + 12); g.restore();
+  }
+  g.drawImage(IMG.items, fw[0], fw[1], fw[2], fw[3], -fw[4], -fw[5], fw[2], fw[3]);
+  g.restore();
+}
+
 function drawDrawable(o, cam, t) {
   const x = o.x - cam, y = o.y, z = o.z || 0;
   if (o.sh2) { // projectiles
@@ -218,13 +244,24 @@ function drawDrawable(o, cam, t) {
   if (o.gh) for (let i = 2; i >= 1; i--) spr(o.s, o.f, x - o.fc * i * 22, y - z, { scale: o.sc, face: o.fc, alpha: 0.18 * (3 - i), rot: o.r });
   const opt = { scale: o.sc, face: o.fc, rot: o.r, alpha: o.a !== undefined ? o.a : 1 };
   if (o.ti) opt.img = tinted(o.s, o.f, o.ti, 'source-atop', 0.62);
-  if (o.fl) opt.flash = 0.42;
+  if (o.fl) { if (o.pl) opt.flash = 0.4; else opt.img = tinted(o.s, o.f, o.ti ? '#ff60ff' : '#ff3a24', 'source-atop', 0.34); }
   // lying bodies: shift so the body rests on the floor line
   let ox = 0;
   if (o.r && Math.abs(o.r) > 1) ox = o.fc * 10;
   if (o.dim) opt.alpha *= 1;
   spr(o.s, o.f, x + ox, y - z, opt);
+  if (o.cg) {
+    // hostages locked in a cage of Veil energy
+    g.save(); g.globalCompositeOperation = 'lighter';
+    const fl = 0.55 + Math.sin(t * 13 + o.i) * 0.2;
+    g.fillStyle = `rgba(150,70,255,${0.18 * fl})`; g.fillRect(x - 52, y - 150, 104, 152);
+    g.fillStyle = `rgba(200,140,255,${0.85 * fl})`;
+    for (let bx = -48; bx <= 48; bx += 16) g.fillRect(x + bx, y - 150, 3, 152);
+    g.fillRect(x - 52, y - 154, 104, 5); g.fillRect(x - 52, y - 2, 104, 5);
+    g.restore();
+  }
   if (o.wp) drawWeaponOn(o, x, y - z);
+  if (o.sw) drawSigWeapon(o.sw, o.f, x + ox, y - z, o.fc, o.sc, o.sr, o.au || o.pc, t);
   if (o.gd) {
     g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35 + Math.sin(t * 16) * 0.15; g.fillStyle = '#bfe6ff';
     g.beginPath(); g.ellipse(x + o.fc * 55, y - 120, 18, 90, 0, 0, 7); g.fill(); g.restore();
@@ -234,15 +271,137 @@ function drawDrawable(o, cam, t) {
   if (o.pl && Game.showTags) txt(o.pl + 'P', x, y - (o.s === 'people' ? 150 : 160) - z, 15, o.pc || '#fff', 'center', 900);
 }
 
+/* ---------- chapter 2: fighting on the roof of the moving convoy ---------- */
+const TRAIN = { clack: 0, lastT: 0 };
+function trainAmount(v) {
+  const L = LEVELS[v.lv];
+  if (!L || !L.train) return 0;
+  return clamp((v.cam - (L.train - 700)) / 220, 0, 1);
+}
+function drawTrain(cam, t, a, portal) {
+  g.save();
+  g.globalAlpha = a;
+  // landscape rushing past (the far layer of the station art, scrolled fast)
+  g.save(); g.beginPath(); g.rect(0, 0, W, HORIZON); g.clip();
+  // far layer: only the sky and the industrial skyline of the station art (no parked wagons), tiled
+  {
+    const img = IMG.rail, sh = 285, dh = 400, sc = dh / sh, tw = img.width * sc;
+    const off = cam * 0.35 + t * 620;
+    for (let i = Math.floor(off / tw); i * tw - off < W; i++) {
+      const x = i * tw - off;
+      g.save();
+      if (i % 2) { g.translate(x + tw, 0); g.scale(-1, 1); g.drawImage(img, 0, 0, img.width, sh, 0, 0, tw, dh); }
+      else g.drawImage(img, 0, 0, img.width, sh, x, 0, tw, dh);
+      g.restore();
+    }
+    const fog = g.createLinearGradient(0, 300, 0, HORIZON);
+    fog.addColorStop(0, 'rgba(10,16,34,0)'); fog.addColorStop(1, 'rgba(10,16,34,.9)');
+    g.fillStyle = fog; g.fillRect(0, 300, W, HORIZON - 300);
+  }
+  // mid-distance silhouettes (hills, sheds, trees, pylons) rushing past faster than the far layer
+  const hsh = (n) => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
+  const midOff = cam * 0.7 + t * 1250, step = 90;
+  for (let i = Math.floor(midOff / step) - 1; i * step - midOff < W + step; i++) {
+    const x = i * step - midOff, r1 = hsh(i), r2 = hsh(i + 91);
+    const hgt = 60 + r1 * 140;
+    g.fillStyle = '#0c1222';
+    if (r2 < 0.35) { g.beginPath(); g.moveTo(x, HORIZON); g.lineTo(x + step / 2, HORIZON - hgt - 30); g.lineTo(x + step, HORIZON); g.fill(); }          // tree / hill
+    else if (r2 < 0.7) { g.fillRect(x + 8, HORIZON - hgt, step - 16, hgt); g.fillStyle = 'rgba(255,190,90,.55)'; if (r1 > 0.4) g.fillRect(x + 20, HORIZON - hgt + 16, 8, 6); }   // shed with a lit window
+    else { g.fillRect(x + step / 2 - 3, HORIZON - hgt - 60, 6, hgt + 60); g.fillRect(x + step / 2 - 26, HORIZON - hgt - 56, 52, 5); }   // pylon
+  }
+  g.fillStyle = '#080c16'; g.fillRect(0, HORIZON - 26, W, 26);
+  // motion blur streaks
+  g.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 26; i++) {
+    const y = 250 + (i * 37) % 210, len = 120 + (i * 53) % 260;
+    const x = W - ((t * (900 + (i % 5) * 180) + i * 211) % (W + len + 200));
+    g.fillStyle = `rgba(255,${190 - (i % 3) * 40},120,${0.08 + (i % 4) * 0.03})`;
+    g.fillRect(x, y, len, 2);
+  }
+  g.globalCompositeOperation = 'source-over';
+  // the Veil portal ahead, getting closer during the boss fight
+  if (portal > 0) {
+    const r = 40 + portal * 260;
+    rift(1060, 180, clamp(portal * 2, 0.35, 1), t);
+    glowAt(1060, 180, r * 1.4, '#9a3aff', 0.25 + portal * 0.35);
+  }
+  g.fillStyle = 'rgba(6,8,20,.25)'; g.fillRect(0, 0, W, HORIZON);
+  g.restore();
+  // the roof of the wagons (walkable floor), moving with the camera
+  const top = HORIZON, h = H - HORIZON;
+  const grd = g.createLinearGradient(0, top, 0, H);
+  grd.addColorStop(0, '#2a3446'); grd.addColorStop(0.08, '#5a6a80'); grd.addColorStop(0.5, '#46546a'); grd.addColorStop(1, '#2c3646');
+  g.fillStyle = grd; g.fillRect(0, top, W, h);
+  // longitudinal ribs
+  for (let i = 0; i < 7; i++) {
+    const y = top + 26 + i * 34 + i * i * 1.5;
+    g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(0, y, W, 3);
+    g.fillStyle = 'rgba(190,210,235,.16)'; g.fillRect(0, y - 2, W, 2);
+  }
+  // transverse panel seams + rivets (perspective: slanted)
+  const seam = 96;
+  for (let x = -((cam) % seam) - seam; x < W + seam; x += seam) {
+    g.strokeStyle = 'rgba(10,14,22,.55)'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(x + 20, top + 6); g.lineTo(x - 30, H); g.stroke();
+    g.fillStyle = 'rgba(210,225,240,.35)';
+    for (let k = 0; k < 6; k++) { const yy = top + 20 + k * 42, xx = x + 20 - (yy - top) / h * 50 + 6; g.fillRect(xx, yy, 3, 3); }
+  }
+  // open gaps between the wagons (same geometry as the simulation: gapLeft/GAP_W)
+  for (let wx = Math.floor(cam / WAGON) * WAGON - WAGON; wx < cam + W + WAGON; wx += WAGON) {
+    if (!trainOn(LEVELS[1], wx + 60)) continue;
+    const x = wx - cam + 40;
+    const poly = () => { g.beginPath(); g.moveTo(x, top); g.lineTo(x + GAP_W, top); g.lineTo(x + GAP_W - GAP_SLANT, H); g.lineTo(x - GAP_SLANT, H); g.closePath(); };
+    g.save(); poly(); g.clip();
+    g.fillStyle = '#0a0806'; g.fillRect(x - 80, top, GAP_W + 120, h);
+    // the track rushing below: blurred sleepers and rails
+    for (let yy = top + ((t * 1400) % 26); yy < H; yy += 26) { g.fillStyle = 'rgba(110,80,50,.55)'; g.fillRect(x - 80, yy, GAP_W + 120, 8); }
+    g.fillStyle = 'rgba(190,200,215,.5)'; g.fillRect(x - 80, top + 60, GAP_W + 120, 3); g.fillRect(x - 80, top + 180, GAP_W + 120, 3);
+    // coupling
+    g.fillStyle = '#2a2a30'; g.fillRect(x - 60, top + 118, GAP_W + 80, 14);
+    g.restore();
+    // wagon end walls (depth): dark faces on both sides of the gap
+    g.fillStyle = '#1a212c'; g.beginPath(); g.moveTo(x, top); g.lineTo(x + 12, top); g.lineTo(x - GAP_SLANT + 12, H); g.lineTo(x - GAP_SLANT, H); g.fill();
+    g.fillStyle = '#39465a'; g.beginPath(); g.moveTo(x + GAP_W - 10, top); g.lineTo(x + GAP_W, top); g.lineTo(x + GAP_W - GAP_SLANT, H); g.lineTo(x + GAP_W - GAP_SLANT - 10, H); g.fill();
+    // hazard stripes on the edges
+    g.fillStyle = '#e0b020';
+    for (let k = 0; k < 8; k++) { const yy = top + k * 32; const off = (yy - top) / h * GAP_SLANT; g.fillRect(x - 14 - off, yy + 4, 12, 14); g.fillRect(x + GAP_W + 2 - off, yy + 4, 12, 14); }
+  }
+  // roof edge light strip
+  g.fillStyle = '#0a0e16'; g.fillRect(0, top - 4, W, 8);
+  g.fillStyle = 'rgba(255,190,90,.6)'; for (let x = -((cam * 1) % 60); x < W; x += 60) g.fillRect(x, top - 2, 20, 3);
+  g.restore();
+  // clack-clack of the rails
+  if (a > 0.5 && t - TRAIN.lastT > 0.46) { TRAIN.lastT = t; Audio.noise(0.04, 0.05, 900); Audio.noise(0.04, 0.045, 900, 0.09); }
+}
+function drawTrainForeground(cam, t, a) {
+  // catenary poles whizzing past in the foreground, overhead wires
+  g.save(); g.globalAlpha = a;
+  g.strokeStyle = 'rgba(20,24,32,.85)'; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(0, 46 + Math.sin(t * 7) * 2); g.quadraticCurveTo(W / 2, 64, W, 46 + Math.sin(t * 7 + 1) * 2); g.stroke();
+  const period = 2.4, k = (t % period) / period;
+  const x = W + 200 - k * (W + 800);
+  if (x > -200 && x < W + 200) {
+    g.fillStyle = 'rgba(8,10,16,.9)';
+    g.fillRect(x, 0, 38, H);
+    g.fillRect(x - 160, 40, 360, 16);
+    g.fillStyle = 'rgba(8,10,16,.35)'; g.fillRect(x + 38, 0, 90, H);   // motion blur
+    g.fillStyle = 'rgba(255,200,120,.8)'; g.fillRect(x + 8, 70, 22, 10);
+  }
+  g.restore();
+}
+
 function renderStage(v) {
   const t = v.t;
   const cam = v.cam;
+  const tr = trainAmount(v);
   g.save();
   if (FX.shake) g.translate(rand(-1, 1) * FX.shake, rand(-1, 1) * FX.shake);
-  drawStageBackdrop(v.bg, cam);
+  if (tr < 1) drawStageBackdrop(v.bg, cam);
+  if (tr > 0) { drawTrain(cam, t, tr, v.hud.portal || 0); g.translate(Math.sin(t * 23) * tr * 1.2, Math.abs(Math.sin(t * 11)) * tr * 1.5); }
   const list = v.d.slice().sort((a, b) => (a.y - b.y) || ((a.z || 0) - (b.z || 0)));
   for (const o of list) drawDrawable(o, cam, t);
   drawParts(cam);
+  if (tr > 0) drawTrainForeground(cam, t, tr);
   g.restore();
   drawHUD(v.hud, t);
   drawTeamPose();
@@ -264,90 +423,177 @@ function drawPortrait(hero, x, y, s = 0.52, dim = false) {
   g.strokeStyle = HEROES[hero].color; g.lineWidth = 2; g.strokeRect(x - 34, y - 34, 68, 68);
 }
 
+/* key names for the on-screen hints, depending on the device of each local player */
+function keyName(device, action) {
+  const kb = { punch: 'J', kick: 'K', jump: 'SPAZIO', special: 'L', dodge: 'SHIFT', team: 'I' };
+  const kbA = { punch: 'F', kick: 'G', jump: 'SPAZIO', special: 'R', dodge: 'SHIFT', team: 'T' };
+  const kbB = { punch: 'K', kick: 'L', jump: 'I', special: 'O', dodge: 'SHIFT DX', team: 'P' };
+  const pad = { punch: 'X', kick: 'Y', jump: 'A', special: 'B', dodge: 'RB', team: 'LB' };
+  if (!device || device === 'remote') return kb[action] + '/' + pad[action];
+  if (device.startsWith('pad')) return pad[action];
+  if (device === 'kb' || !Game.local.twoKeyboards) return kb[action];
+  return (device === 'kbA' ? kbA : kbB)[action];
+}
+const HUDFX = { trail: [] };
 function drawHUD(h, t) {
   const n = h.p.length;
-  const pw = n <= 2 ? 360 : 300;
+  const pw = n <= 2 ? 380 : 298;
   h.p.forEach((p, i) => {
     const hero = HEROES[p.h];
-    const x = n <= 2 ? (i === 0 ? 20 : W - pw - 20) : 16 + i * (pw + 12);
-    const y = 16;
-    g.fillStyle = 'rgba(4,10,20,.78)'; g.fillRect(x, y, pw, 92);
-    g.fillStyle = hero.color; g.fillRect(x, y, 4, 92);
-    drawPortrait(p.h, x + 46, y + 46, 0.52, !!p.out);
-    txt(`${i + 1}P ${hero.name}`, x + 88, y + 24, 17, hero.color, 'left', 900);
-    txt(String(p.sc).padStart(7, '0'), x + pw - 12, y + 24, 16, '#f3c27a', 'right', 800);
+    const x = n <= 2 ? (i === 0 ? 18 : W - pw - 18) : 14 + i * (pw + 12);
+    const y = 14;
+    panel(x, y, pw, 92, hero.color);
+    drawPortrait(p.h, x + 50, y + 46, 0.52, !!p.out);
+    ptxt(`${i + 1}P`, x + 92, y + 24, 12, hero.color);
+    ptxt(hero.name, x + 128, y + 24, 12, '#f4f7fa');
+    ptxt(String(p.sc).padStart(7, '0'), x + pw - 14, y + 24, 12, '#ffd27a', 'right');
     if (p.out) {
-      txt(Math.floor(t * 2) % 2 ? 'PREMI PUGNO PER CONTINUARE' : '', x + 88, y + 58, 13, '#ffe3a0', 'left', 800);
+      if (Math.floor(t * 2) % 2) ptxt('PREMI ' + keyName(Game.players[i] && Game.players[i].device, 'punch'), x + 92, y + 62, 10, '#ffe3a0');
+      ptxt('PER CONTINUARE', x + 92, y + 80, 9, '#9fb4c8');
       return;
     }
-    bar(x + 88, y + 36, pw - 104, 14, p.hp / p.mx, p.hp / p.mx < 0.3 ? '#ff6b5a' : '#6fe0a8');
-    bar(x + 88, y + 58, pw - 150, 7, p.en / 100, p.en >= 40 ? '#69c0ff' : '#3d6f9a');
-    for (let k = 0; k < Math.min(5, p.lv); k++) { g.fillStyle = hero.color; g.beginPath(); g.arc(x + pw - 52 + k * 11, y + 62, 4, 0, 7); g.fill(); }
+    const v = p.hp / p.mx;
+    const tr = HUDFX.trail[i] = Math.max(v, (HUDFX.trail[i] ?? v) - 0.004);
+    segBar(x + 92, y + 36, pw - 108, 16, v, tr, v < 0.3 ? (Math.floor(t * 6) % 2 ? '#ff6b5a' : '#ffb35a') : '#58e0a0', 14);
+    // energy: marks show how many specials are ready
+    segBar(x + 92, y + 62, pw - 170, 8, p.en / 100, 0, p.en >= 40 ? '#5fc2ff' : '#3d6f9a', 5);
+    for (let k = 0; k < Math.min(5, p.lv); k++) {
+      const lx = x + pw - 64 + k * 13, ly = y + 66;
+      g.fillStyle = '#05070c'; g.fillRect(lx - 5, ly - 5, 11, 11);
+      g.fillStyle = hero.color; g.fillRect(lx - 4, ly - 4, 9, 9);
+      g.fillStyle = '#05070c'; g.fillRect(lx - 3, ly - 1, 7, 3);
+    }
     if (p.wp) {
       const f = frameOf('items', p.wp);
-      if (f) g.drawImage(IMG.items, f[0], f[1], f[2], f[3], x + 88, y + 70, f[2] * 0.7, f[3] * 0.7);
-      txt('×' + p.wu, x + 88 + f[2] * 0.7 + 8, y + 84, 12, '#dfe8f0', 'left', 800);
+      if (f) g.drawImage(IMG.items, f[0], f[1], f[2], f[3], x + 92, y + 74, f[2] * 0.6, f[3] * 0.6);
     }
-    if (p.cb > 1) txt(`${p.cb} COLPI`, x + pw - 12, y + 86, 14, '#fff1c6', 'right', 900);
+    if (p.cb > 1) ptxt(`${p.cb} COLPI!`, x + pw - 14, y + 88, 11, Math.floor(t * 10) % 2 ? '#fff1c6' : '#ffb03a', 'right');
   });
   // team meter
-  const tx = W / 2 - 170, ty = H - 40;
-  g.fillStyle = 'rgba(4,10,20,.7)'; g.fillRect(tx - 10, ty - 22, 360, 38);
   const full = h.team >= 100;
-  txt(full ? 'COLPO DI SQUADRA PRONTO!' : 'BARRA SQUADRA', W / 2, ty - 6, 12, full ? (Math.floor(t * 6) % 2 ? '#fff' : '#ffd35a') : '#b8c8d7', 'center', 900);
-  const grd = g.createLinearGradient(tx, 0, tx + 340, 0);
+  const tx = W / 2 - 180, ty = H - 34;
+  panel(tx - 14, ty - 26, 388, 44, full ? '#ffd35a' : '#8f7cff', 0.8);
+  const grd = g.createLinearGradient(tx, 0, tx + 360, 0);
   HEROES.forEach((hh, i) => grd.addColorStop(i / 4, hh.color));
-  bar(tx, ty, 340, 8, h.team / 100, full ? grd : '#8f7cff');
+  if (full) {
+    const keys = Game.online === 'client' ? keyName(Game.lastDevice || 'kb', 'team') : [...new Set(Game.players.filter((p) => p.device !== 'gone').map((p) => keyName(p.device, 'team')))].join(' / ') || 'I / LB';
+    ptxt(Math.floor(t * 4) % 2 ? `COLPO DI SQUADRA! PREMI ${keys}` : 'COLPO DI SQUADRA PRONTO!', W / 2, ty - 8, 10, Math.floor(t * 4) % 2 ? '#ffffff' : '#ffd35a', 'center');
+  } else ptxt('BARRA SQUADRA', W / 2, ty - 8, 9, '#b8c8d7', 'center');
+  segBar(tx, ty, 360, 9, h.team / 100, 0, full ? '#ffd35a' : '#9d8cff', 10);
+  if (full) { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.5 + Math.sin(t * 10) * 0.3; g.fillStyle = grd; g.fillRect(tx, ty, 360, 9); g.restore(); }
   // boss
   if (h.boss) {
-    const bx = W / 2 - 260, by = H - 112;
-    g.fillStyle = 'rgba(20,4,10,.75)'; g.fillRect(bx - 12, by - 8, 544, 58);
-    txt(h.boss.n, bx, by + 14, 20, '#ffbe75', 'left', 900);
-    txt(h.boss.t, bx + 520, by + 14, 12, '#e8a0a0', 'right', 800);
-    bar(bx, by + 26, 520, 12, h.boss.hp / h.boss.mx, '#ef6a4a', '#3a0f14');
-    if (h.boss.g) txt('IN GUARDIA · COLPISCI ALLE SPALLE', W / 2, by - 16, 14, '#bfe6ff', 'center', 900);
-  }
+    const bx = W / 2 - 280, by = H - 118;
+    panel(bx - 14, by - 10, 588, 60, '#ff5a3a', 0.85);
+    ptxt(h.boss.n, bx, by + 12, 14, '#ffbe75');
+    ptxt(h.boss.t, bx + 560, by + 12, 8, '#e8a0a0', 'right');
+    const bv = h.boss.hp / h.boss.mx;
+    HUDFX.boss = Math.max(bv, (HUDFX.boss ?? bv) - 0.003);
+    segBar(bx, by + 24, 560, 14, bv, HUDFX.boss, '#ff6a3a', 20);
+    if (h.boss.g) ptxt('IN GUARDIA · COLPISCI ALLE SPALLE', W / 2, by - 20, 10, '#bfe6ff', 'center');
+  } else HUDFX.boss = undefined;
   if (h.ban && h.ban.k > 0) {
     const a = clamp(Math.min(h.ban.k * 3, (h.ban.e || 0) * 4), 0, 1);
-    g.globalAlpha = a;
-    g.fillStyle = h.ban.b ? 'rgba(40,6,12,.85)' : 'rgba(4,14,26,.82)';
-    g.fillRect(0, 250, W, h.ban.s ? 108 : 78);
-    g.fillStyle = h.ban.b ? '#ff6a4a' : '#ffcf7a'; g.fillRect(0, 250, W, 3); g.fillRect(0, 250 + (h.ban.s ? 105 : 75), W, 3);
-    txt(h.ban.t, W / 2, 302, 40, h.ban.b ? '#ffd0b0' : '#f5dcad', 'center', 900);
-    if (h.ban.s) txt(h.ban.s, W / 2, 338, 18, '#e8eef4', 'center', 800);
-    g.globalAlpha = 1;
+    const slide = (1 - clamp((h.ban.e || 0) * 5, 0, 1)) * W;
+    g.save(); g.globalAlpha = a;
+    g.fillStyle = h.ban.b ? 'rgba(40,6,12,.88)' : 'rgba(4,14,26,.86)';
+    g.fillRect(-slide, 250, W, h.ban.s ? 112 : 84);
+    g.fillStyle = h.ban.b ? '#ff6a4a' : '#ffcf7a'; g.fillRect(-slide, 250, W, 4); g.fillRect(slide, 250 + (h.ban.s ? 108 : 80), W, 4);
+    ptitle(h.ban.t, W / 2 - slide, 308, h.ban.t.length > 22 ? 22 : 30, h.ban.b ? '#ffe0d0' : '#fff6d6', h.ban.b ? '#ff6a3a' : '#ffb03a');
+    if (h.ban.s) ptxt(h.ban.s, W / 2 + slide, 342, 11, '#e8eef4', 'center');
+    g.restore();
   }
   if (h.go && Math.floor(t * 3) % 2) {
-    txt('AVANTI', W - 150, 380, 30, '#ffe0a0', 'center', 900);
-    g.fillStyle = '#ffe0a0'; g.beginPath(); g.moveTo(W - 90, 350); g.lineTo(W - 50, 370); g.lineTo(W - 90, 390); g.fill();
+    ptitle('AVANTI', W - 170, 385, 24, '#fff6d6', '#ffb03a');
+    g.fillStyle = '#05070c'; g.beginPath(); g.moveTo(W - 86, 348); g.lineTo(W - 38, 372); g.lineTo(W - 86, 396); g.fill();
+    g.fillStyle = '#ffcf5a'; g.beginPath(); g.moveTo(W - 90, 352); g.lineTo(W - 46, 372); g.lineTo(W - 90, 392); g.fill();
   }
 }
 
+/* COLPO DI SQUADRA: the whole team gathers, the five weapons fly together
+   into the Cannone Primordiale and it fires across the screen (2.6 s) */
+const TEAM_LEN = 2.6;
 function drawTeamPose() {
   if (!FX.team) return;
   const k = FX.team.t;
-  const a = clamp(Math.min(k * 4, (1.6 - k) * 4), 0, 1);
+  const fade = clamp(Math.min(k * 5, (TEAM_LEN - k) * 5), 0, 1);
+  const players = FX.team.heroes.length ? FX.team.heroes : [0];
+  const order = [...players, ...[0, 1, 2, 3, 4].filter((h) => !players.includes(h))];   // players first, then the others join
+  const leader = order[0];
+  const slots = [2, 1, 3, 0, 4];            // leader in the middle
+  const pos = (i) => [W / 2 + (slots[i] - 2) * 170, 600];
   g.save();
-  g.globalAlpha = a * 0.75; g.fillStyle = '#05070c'; g.fillRect(0, 0, W, H);
-  g.globalAlpha = a;
-  const hs = FX.team.heroes.length ? FX.team.heroes : [0];
-  const all = hs.length === 1 ? [hs[0]] : hs;
-  // coloured rays behind the heroes (tokusatsu explosion)
+  g.globalAlpha = fade * 0.88; g.fillStyle = '#04060c'; g.fillRect(0, 0, W, H);
+  // coloured rays behind (tokusatsu explosion)
   g.globalCompositeOperation = 'lighter';
-  all.forEach((hid, i) => {
-    const cx = W / 2 + (i - (all.length - 1) / 2) * 190;
-    g.fillStyle = HEROES[hid].color; g.globalAlpha = a * 0.5;
-    g.beginPath(); g.moveTo(cx, 560);
-    for (let j = 0; j <= 10; j++) { const ang = -Math.PI + j / 10 * Math.PI; g.lineTo(cx + Math.cos(ang) * (500 + k * 300), 560 + Math.sin(ang) * (500 + k * 200)); }
+  order.forEach((hid, i) => {
+    const [cx] = pos(i);
+    g.fillStyle = HEROES[hid].color; g.globalAlpha = fade * 0.32;
+    g.beginPath(); g.moveTo(cx, 620);
+    const spread = 0.28;
+    g.lineTo(cx + Math.cos(-Math.PI / 2 - spread) * 1200, 620 + Math.sin(-Math.PI / 2 - spread) * 1200);
+    g.lineTo(cx + Math.cos(-Math.PI / 2 + spread) * 1200, 620 + Math.sin(-Math.PI / 2 + spread) * 1200);
     g.fill();
   });
-  g.globalCompositeOperation = 'source-over'; g.globalAlpha = a;
-  all.forEach((hid, i) => {
-    const cx = W / 2 + (i - (all.length - 1) / 2) * 190;
-    spr('fighters', HEROES[hid].id + (k < 0.4 ? '_0' : '_4'), cx, 600, { scale: 1.45, face: i < all.length / 2 ? 1 : -1 });
+  g.globalCompositeOperation = 'source-over'; g.globalAlpha = fade;
+  // rangers slide into the line-up
+  order.forEach((hid, i) => {
+    const [tx, ty] = pos(i);
+    const arrive = clamp((k - i * 0.06) / 0.35, 0, 1);
+    const x = lerp(i % 2 ? W + 120 : -120, tx, 1 - Math.pow(1 - arrive, 3));
+    const f = k < 0.45 ? 1 : k < 1.1 ? 4 : i === 0 ? 5 : 0;
+    drawShadow(x, ty, 40);
+    spr('fighters', `${HEROES[hid].id}_${f}`, x, ty, { scale: 1.2, face: 1, alpha: i < players.length ? 1 : 0.92 });
+    // weapons raised over the heads, then flying to the centre
+    const fw = frameOf('items', 'w_' + HEROES[hid].id);
+    if (k > 0.45 && k < 1.55) {
+      const fly = clamp((k - 1.1) / 0.45, 0, 1);
+      const wx = lerp(x + 10, W / 2, fly * fly), wy = lerp(ty - 250, 250, fly * fly);
+      g.save(); g.translate(wx, wy); g.rotate(-Math.PI / 2 + fly * Math.PI / 2 + (hid === 3 ? Math.PI / 2 : 0) * (1 - fly));
+      g.globalCompositeOperation = 'lighter'; g.globalAlpha = fade * 0.6; g.fillStyle = HEROES[hid].color;
+      g.beginPath(); g.arc(0, 0, 50, 0, 7); g.fill();
+      g.globalCompositeOperation = 'source-over'; g.globalAlpha = fade;
+      g.drawImage(IMG.items, fw[0], fw[1], fw[2], fw[3], -fw[4] * 1.2, -fw[5] * 1.2, fw[2] * 1.2, fw[3] * 1.2);
+      g.restore();
+    }
   });
-  txt('PRIMAL SENTINELS!', W / 2, 150, 58, '#fff4d0', 'center', 900);
-  txt('COLPO DI SQUADRA', W / 2, 190, 20, '#ffd35a', 'center', 900);
+  // the cannon forms, the leader aims it
+  if (k > 1.5) {
+    const fc = frameOf('items', 'w_cannon');
+    const [lx, ly] = pos(0);
+    const cx = lx + 40, cy = ly - 118;
+    const form = clamp((k - 1.5) / 0.15, 0, 1);
+    if (k < 1.65) { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = (1 - form) * fade; g.fillStyle = '#fff'; g.beginPath(); g.arc(W / 2, 250, 160 * (1 - form) + 40, 0, 7); g.fill(); g.restore(); }
+    const sc = 1.5;
+    const recoil = k > 2.0 ? Math.sin(Math.min(1, (k - 2.0) * 6) * Math.PI) * 14 : 0;
+    g.save(); g.translate(cx - recoil, cy); g.scale(sc, sc);
+    g.drawImage(IMG.items, fc[0], fc[1], fc[2], fc[3], -fc[4], -fc[5], fc[2], fc[3]);
+    g.restore();
+    const mx = cx + (fc[2] - fc[4]) * sc - 6, my = cy - fc[5] * sc + 22 * sc;
+    if (k < 2.0) {
+      // charging: five colours spiral into the muzzle
+      g.save(); g.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 5; i++) {
+        const a = k * 14 + i * 1.256, r = 90 * (2.0 - k) + 10;
+        g.fillStyle = HEROES[i].color; g.globalAlpha = fade;
+        g.beginPath(); g.arc(mx + Math.cos(a) * r, my + Math.sin(a) * r, 9, 0, 7); g.fill();
+      }
+      g.globalAlpha = fade * clamp((k - 1.6) * 2.5, 0, 1); g.fillStyle = '#fff'; g.beginPath(); g.arc(mx, my, 10 + (k - 1.6) * 60, 0, 7); g.fill();
+      g.restore();
+    } else {
+      // FIRE
+      const f = clamp(1 - (k - 2.0) / 0.6, 0, 1);
+      g.save(); g.globalCompositeOperation = 'lighter';
+      const bw = 70 * f + 20;
+      HEROES.forEach((h, i) => { g.globalAlpha = fade * 0.55; g.fillStyle = h.color; g.fillRect(mx, my - bw + i * bw * 0.4, W, bw * 0.4); });
+      g.globalAlpha = fade; g.fillStyle = '#ffffff'; g.fillRect(mx, my - bw * 0.35, W, bw * 0.7);
+      g.beginPath(); g.arc(mx, my, bw * 1.3, 0, 7); g.fill();
+      g.restore();
+    }
+  }
+  const title = k < 1.5 ? 'COLPO DI SQUADRA!' : 'CANNONE PRIMORDIALE!';
+  ptitle(title, W / 2, 120, k < 1.5 ? 34 : 40, '#fff6d6', k < 1.5 ? '#ffb03a' : '#ff6a3a');
+  if (k < 1.5) ptxt('PRIMAL SENTINELS', W / 2, 160, 14, '#9fe8ff', 'center');
   g.restore();
 }
 
@@ -401,30 +647,28 @@ function renderGiant(v) {
 }
 
 function drawGiantHUD(h, t) {
-  g.fillStyle = 'rgba(4,10,20,.8)'; g.fillRect(16, 16, 520, 96); g.fillRect(W - 536, 16, 520, 96);
-  txt(h.tn, 30, 44, 22, '#ffd35a', 'left', 900);
-  bar(30, 56, 490, 16, h.thp / h.tmx, '#6fe0a8');
-  txt('ENERGIA', 30, 96, 12, '#9fc8ea', 'left', 800);
-  bar(100, 86, 200, 8, h.ten / 100, h.ten >= 50 ? '#69c0ff' : '#3d6f9a');
-  // pilots
-  h.p.forEach((p, i) => {
-    const x = 340 + i * 46;
-    g.globalAlpha = p.act ? 1 : 0.55;
-    drawPortrait(p.h, x + 17, 92, 0.3);
-    g.globalAlpha = 1;
-  });
-  txt(h.en, W - 30, 44, 22, '#ffbe75', 'right', 900);
-  bar(W - 520, 56, 490, 16, h.ehp / h.emx, '#ef6a4a', '#3a0f14');
-  txt('EQUILIBRIO', W - 520, 96, 12, '#f0c0a0', 'left', 800);
-  bar(W - 430, 86, 250, 8, h.bal / 100, h.stg ? '#fff1a6' : '#f0a05a', '#2a1a10');
-  g.fillStyle = 'rgba(4,10,20,.72)'; g.fillRect(W / 2 - 430, H - 44, 860, 30);
-  txt(`PUGNO: ${h.moves[0]}  ·  CALCIO: ${h.moves[1]}  ·  SCHIVATA (TIENI): PARATA  ·  SALTO: PASSO  ·  SPECIALE: ${h.stg ? h.moves[2] : 'COLPO TITANICO (50)'}`, W / 2, H - 24, 13, h.stg && Math.floor(t * 6) % 2 ? '#fff1a6' : '#c8d6e4', 'center', 800);
+  panel(16, 14, 530, 100, '#ffd35a'); panel(W - 546, 14, 530, 100, '#ff5a3a');
+  ptxt(h.tn, 32, 42, 14, '#ffd35a');
+  const tv = h.thp / h.tmx; HUDFX.gt = Math.max(tv, (HUDFX.gt ?? tv) - 0.003);
+  segBar(32, 54, 496, 16, tv, HUDFX.gt, '#58e0a0', 16);
+  ptxt('ENERGIA', 32, 96, 8, '#9fc8ea');
+  segBar(100, 88, 200, 8, h.ten / 100, 0, h.ten >= 50 ? '#5fc2ff' : '#3d6f9a', 2);
+  h.p.forEach((p, i) => { g.globalAlpha = p.act ? 1 : 0.5; drawPortrait(p.h, 352 + i * 44, 96, 0.3); g.globalAlpha = 1; });
+  ptxt(h.en, W - 32, 42, 14, '#ffbe75', 'right');
+  const ev = h.ehp / h.emx; HUDFX.ge = Math.max(ev, (HUDFX.ge ?? ev) - 0.003);
+  segBar(W - 528, 54, 496, 16, ev, HUDFX.ge, '#ff6a3a', 16);
+  ptxt('EQUILIBRIO', W - 528, 96, 8, '#f0c0a0');
+  segBar(W - 430, 88, 250, 8, h.bal / 100, 0, h.stg ? '#fff1a6' : '#f0a05a', 5);
+  panel(W / 2 - 470, H - 50, 940, 36, '#6fd8d3', 0.8);
+  const k = (a) => keyName(Game.players[0] && Game.players[0].device, a);
+  ptxt(`${k('punch')} ${h.moves[0]} · ${k('kick')} ${h.moves[1]} · TIENI ${k('dodge')} PARATA · ${k('jump')} PASSO · ${k('special')} ${h.stg ? h.moves[2] : 'COLPO TITANICO'}`, W / 2, H - 27, 9, h.stg && Math.floor(t * 6) % 2 ? '#fff1a6' : '#c8d6e4', 'center');
   if (h.ban && h.ban.k > 0) {
     const a = clamp(Math.min(h.ban.k * 3, (h.ban.e || 0) * 4), 0, 1);
-    g.globalAlpha = a;
-    g.fillStyle = 'rgba(30,10,40,.85)'; g.fillRect(0, 250, W, 108);
-    txt(h.ban.t, W / 2, 302, 44, '#ffe6a0', 'center', 900);
-    txt(h.ban.s, W / 2, 340, 20, '#f0d0ff', 'center', 800);
-    g.globalAlpha = 1;
+    g.save(); g.globalAlpha = a;
+    g.fillStyle = 'rgba(30,10,40,.88)'; g.fillRect(0, 250, W, 112);
+    g.fillStyle = '#ffd35a'; g.fillRect(0, 250, W, 4); g.fillRect(0, 358, W, 4);
+    ptitle(h.ban.t, W / 2, 310, 32, '#fff6d6', '#ffb03a');
+    ptxt(h.ban.s, W / 2, 344, 12, '#f0d0ff', 'center');
+    g.restore();
   }
 }

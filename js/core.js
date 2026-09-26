@@ -40,7 +40,8 @@ function spr(sheet, key, x, y, opt = {}) {
   if (opt.rot) g.rotate(opt.rot);
   g.scale(face * s * (opt.sx || 1), s * (opt.sy || 1));
   if (opt.alpha !== undefined) g.globalAlpha *= opt.alpha;
-  const sx = opt.tint ? 0 : f[0], sy = opt.tint ? 0 : f[1];
+  const own = !!(opt.img || opt.tint);   // tinted copies are cut to the frame
+  const sx = own ? 0 : f[0], sy = own ? 0 : f[1];
   g.drawImage(img, sx, sy, f[2], f[3], -f[4], -f[5], f[2], f[3]);
   if (opt.flash) {
     g.globalCompositeOperation = 'lighter';
@@ -71,18 +72,53 @@ function tinted(sheet, key, color, mode = 'source-atop', strength = 0.62) {
 function flashImg(sheet, key) { return tinted(sheet, key, '#ffffff', 'source-atop', 1); }
 
 /* ---------- text helpers ---------- */
-const FONT = '"Trebuchet MS", "Segoe UI", system-ui, sans-serif';
+const FONT = 'Pixelify, "Trebuchet MS", system-ui, sans-serif';
+const PXFONT = 'PressStart, Pixelify, monospace';
+/* arcade text: dark outline + drop shadow, pixel font */
+const noLig = (t) => String(t).replace(/f(?=[filt])/g, 'f\u200c');   // the pixel font has broken fi/fl ligatures
 function txt(t, x, y, size = 18, color = '#eef6ff', align = 'left', weight = 800) {
-  g.font = `${weight} ${size}px ${FONT}`;
+  t = noLig(t);
+  g.font = `${weight >= 700 ? 700 : 500} ${Math.round(size * 1.12)}px ${FONT}`;
   g.textAlign = align;
-  g.fillStyle = '#050a12';
-  g.fillText(t, x + 2, y + 2);
+  g.lineJoin = 'round';
+  g.lineWidth = Math.max(3, size / 5);
+  g.strokeStyle = '#05070c';
+  g.fillStyle = '#05070c';
+  g.fillText(t, x + 2, y + 3);
+  g.strokeText(t, x, y);
   g.fillStyle = color;
   g.fillText(t, x, y);
 }
+/* Press Start 2P: numbers, labels, titles */
+function ptxt(t, x, y, size = 12, color = '#eef6ff', align = 'left', shadow = true) {
+  g.font = `400 ${size}px ${PXFONT}`;
+  g.textAlign = align;
+  g.lineJoin = 'miter';
+  if (shadow) {
+    g.fillStyle = '#05070c';
+    g.fillText(t, x + Math.max(2, size / 6), y + Math.max(2, size / 6));
+    g.lineWidth = Math.max(2, size / 4);
+    g.strokeStyle = '#05070c';
+    g.strokeText(t, x, y);
+  }
+  g.fillStyle = color;
+  g.fillText(t, x, y);
+}
+/* vertical-gradient Press Start title (metallic) */
+function ptitle(t, x, y, size, c1 = '#fff6d6', c2 = '#ffb03a', align = 'center') {
+  g.font = `400 ${size}px ${PXFONT}`;
+  g.textAlign = align;
+  g.lineJoin = 'miter';
+  g.fillStyle = '#05070c';
+  g.fillText(t, x + size / 7, y + size / 7);
+  g.lineWidth = size / 3.2; g.strokeStyle = '#05070c'; g.strokeText(t, x, y);
+  const grd = g.createLinearGradient(0, y - size, 0, y);
+  grd.addColorStop(0, c1); grd.addColorStop(0.55, c1); grd.addColorStop(0.56, c2); grd.addColorStop(1, c2);
+  g.fillStyle = grd; g.fillText(t, x, y);
+}
 function wrapText(t, maxW, size) {
-  g.font = `700 ${size}px ${FONT}`;
-  const words = t.split(' '), lines = [];
+  g.font = `700 ${Math.round(size * 1.12)}px ${FONT}`;
+  const words = noLig(t).split(' '), lines = [];
   let cur = '';
   for (const w of words) {
     const test = cur ? cur + ' ' + w : w;
@@ -91,6 +127,43 @@ function wrapText(t, maxW, size) {
   if (cur) lines.push(cur);
   return lines;
 }
+
+/* the logo with a moving shine and pulsing Hearts */
+const logoFx = { c: null, x: null };
+function drawLogo(cx, cy, scale, t, alpha = 1) {
+  const img = IMG.logo;
+  if (!img) return;
+  if (!logoFx.c) { logoFx.c = document.createElement('canvas'); logoFx.c.width = img.width; logoFx.c.height = img.height; logoFx.x = logoFx.c.getContext('2d'); }
+  const x = logoFx.x;
+  x.globalCompositeOperation = 'source-over';
+  x.clearRect(0, 0, img.width, img.height);
+  x.drawImage(img, 0, 0);
+  // shine sweep every 4 seconds
+  const k = (t % 4) / 1.1;
+  if (k < 1) {
+    x.globalCompositeOperation = 'source-atop';
+    const sx = -300 + k * (img.width + 600);
+    const grd = x.createLinearGradient(sx - 90, 0, sx + 90, 0);
+    grd.addColorStop(0, 'rgba(255,255,255,0)'); grd.addColorStop(0.5, 'rgba(255,255,255,.75)'); grd.addColorStop(1, 'rgba(255,255,255,0)');
+    x.save(); x.transform(1, 0, -0.45, 1, 0, 0); x.fillStyle = grd; x.fillRect(sx - 120 + img.height * 0.45 * 0, 0, 240 + img.height, img.height); x.restore();
+  }
+  const w = img.width * scale, h = img.height * scale;
+  g.save();
+  g.globalAlpha *= alpha;
+  g.drawImage(logoFx.c, cx - w / 2, cy - h / 2, w, h);
+  // Hearts pulse one after another
+  g.globalCompositeOperation = 'lighter';
+  for (const [i, c] of LOGO.cores.entries()) {
+    const p = 0.5 + 0.5 * Math.sin(t * 3 - i * 0.9);
+    const gx = cx - w / 2 + c[0] * scale, gy = cy - h / 2 + c[1] * scale, r = c[2] * scale * (1.6 + p * 0.9);
+    const grd = g.createRadialGradient(gx, gy, 1, gx, gy, r);
+    grd.addColorStop(0, c[3]); grd.addColorStop(1, 'rgba(0,0,0,0)');
+    g.globalAlpha = alpha * (0.35 + p * 0.45);
+    g.fillStyle = grd; g.fillRect(gx - r, gy - r, r * 2, r * 2);
+  }
+  g.restore();
+}
+
 function bar(x, y, w, h, v, color, back = '#0d1a26') {
   g.fillStyle = '#02060c';
   g.fillRect(x - 2, y - 2, w + 4, h + 4);
@@ -98,8 +171,36 @@ function bar(x, y, w, h, v, color, back = '#0d1a26') {
   g.fillRect(x, y, w, h);
   g.fillStyle = color;
   g.fillRect(x, y, w * clamp(v, 0, 1), h);
-  g.fillStyle = 'rgba(255,255,255,.25)';
+  g.fillStyle = 'rgba(255,255,255,.28)';
   g.fillRect(x, y, w * clamp(v, 0, 1), Math.max(1, h / 4));
+}
+/* arcade life bar: segments + delayed "damage" trail */
+function segBar(x, y, w, h, v, trail, color, seg = 12) {
+  g.fillStyle = '#02060c'; g.fillRect(x - 3, y - 3, w + 6, h + 6);
+  g.fillStyle = '#16222e'; g.fillRect(x, y, w, h);
+  if (trail > v) { g.fillStyle = '#ff3a2e'; g.fillRect(x + w * clamp(v, 0, 1), y, w * (clamp(trail, 0, 1) - clamp(v, 0, 1)), h); }
+  const grd = g.createLinearGradient(0, y, 0, y + h);
+  grd.addColorStop(0, '#ffffff'); grd.addColorStop(0.25, color); grd.addColorStop(1, color);
+  g.fillStyle = grd; g.fillRect(x, y, w * clamp(v, 0, 1), h);
+  g.fillStyle = 'rgba(0,0,0,.45)';
+  for (let i = 1; i < seg; i++) g.fillRect(x + Math.round(w * i / seg) - 1, y, 2, h);
+  g.strokeStyle = 'rgba(255,255,255,.18)'; g.lineWidth = 1; g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+}
+/* bevelled metal panel */
+function panel(x, y, w, h, accent = '#6fd8d3', alpha = 0.86) {
+  g.save();
+  g.globalAlpha *= alpha;
+  const grd = g.createLinearGradient(0, y, 0, y + h);
+  grd.addColorStop(0, '#1b2a3c'); grd.addColorStop(1, '#070d16');
+  g.fillStyle = '#02050a'; g.fillRect(x - 3, y - 3, w + 6, h + 6);
+  g.fillStyle = grd; g.fillRect(x, y, w, h);
+  g.fillStyle = 'rgba(255,255,255,.14)'; g.fillRect(x, y, w, 2);
+  g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(x, y + h - 2, w, 2);
+  g.fillStyle = accent; g.fillRect(x, y, 6, h); g.fillRect(x, y, w, 3);
+  // corner rivets
+  g.fillStyle = '#8fa3b8';
+  for (const [rx, ry] of [[x + w - 7, y + 7], [x + w - 7, y + h - 7]]) g.fillRect(rx - 2, ry - 2, 4, 4);
+  g.restore();
 }
 
 /* ---------- background tiling with mirrored repeats ---------- */

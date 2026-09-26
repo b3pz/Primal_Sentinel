@@ -6,15 +6,15 @@
 
 const HEROES = [
   { id: 'ignis', name: 'IGNIS', civil: 'Marco', role: 'Equilibrato', color: '#ff5b4f', glow: '#ff8a5a', power: 1.0, speed: 250, hp: 120,
-    special: 'RUGGITO DI FUOCO', specialText: 'Onda di fuoco tutt\'intorno', titan: 'Tiranno rosso' },
+    special: 'RUGGITO DI FUOCO', weapon: 'SPADA ZANNA', specialText: 'Onda di fuoco tutt\'intorno', titan: 'Tiranno rosso' },
   { id: 'azur', name: 'AZUR', civil: 'Davide', role: 'Tecnico', color: '#5d9bff', glow: '#8cc4ff', power: 0.95, speed: 262, hp: 115,
-    special: 'CARICA DEL TRICORNO', specialText: 'Scatto che travolge tutto sulla linea', titan: 'Triceratopo blu' },
+    special: 'CARICA DEL TRICORNO', weapon: 'LANCIA TRICORNO', specialText: 'Scatto che travolge tutto sulla linea', titan: 'Triceratopo blu' },
   { id: 'lyra', name: 'LYRA', civil: 'Nadia', role: 'Veloce', color: '#f7d046', glow: '#ffe98a', power: 0.85, speed: 300, hp: 105,
-    special: 'ARTIGLIO FULMINEO', specialText: 'Raffica di colpi rapidissimi', titan: 'Felino giallo' },
+    special: 'ARTIGLIO FULMINEO', weapon: 'ARTIGLI FELINI', specialText: 'Raffica di colpi rapidissimi', titan: 'Felino giallo' },
   { id: 'aura', name: 'AURA', civil: 'Sofia', role: 'Distanza', color: '#ff78bb', glow: '#ffb2da', power: 0.9, speed: 268, hp: 110,
-    special: 'ALA DI LUCE', specialText: 'Lama d\'energia che attraversa lo schermo', titan: 'Pterosauro rosa' },
+    special: 'ALA DI LUCE', weapon: 'ARCO D\'ALA', specialText: 'Lama d\'energia che attraversa lo schermo', titan: 'Pterosauro rosa' },
   { id: 'onyx', name: 'ONYX', civil: 'Bruno', role: 'Potente', color: '#b9c6d4', glow: '#e3ecf5', power: 1.25, speed: 222, hp: 140,
-    special: 'ZANNA TELLURICA', specialText: 'Pugno a terra che abbatte tutti', titan: 'Mastodonte nero' },
+    special: 'ZANNA TELLURICA', weapon: 'MARTELLO ZANNA', specialText: 'Pugno a terra che abbatte tutti', titan: 'Mastodonte nero' },
 ];
 
 /* Frame convention of the fighters atlas (per character):
@@ -60,7 +60,7 @@ const ITEMS = {
 };
 
 const PROPS = {
-  crate: { hp: 2, drops: ['pizza', 'can', 'coin', 'energy', 'pipe'] },
+  crate: { hp: 2, drops: ['pizza', 'can', 'coin', 'energy', 'chicken'] },
   bin: { hp: 1, drops: ['can', 'coin', 'pizza'] },
   barrel: { hp: 1, explode: true, drops: [] },
 };
@@ -97,11 +97,11 @@ const LEVELS = [
     ],
   },
   {
-    n: 2, id: 'convoglio', title: 'IL CONVOGLIO DEI PRIGIONIERI', place: 'STAZIONE MERCI', bg: 'rail', length: 4600, music: 1,
+    n: 2, id: 'convoglio', title: 'IL CONVOGLIO DEI PRIGIONIERI', place: 'STAZIONE MERCI', bg: 'rail', length: 4600, music: 1, train: 1650,
     zones: [
       { x: 650, name: 'LO SCALO MERCI', w: [['soldier', 3], ['lancer', 2]], c: ['suit'], p: [['crate', 500, 600], ['barrel', 900, 560]] },
-      { x: 1650, name: 'I VAGONI BLINDATI', w: [['lancer', 3], ['soldier', 3], ['brute', 1]], c: ['girl', 'scientist'], p: [['crate', 1500, 650], ['crate', 1900, 540]] },
-      { x: 2700, name: 'SOPRA IL TRENO', w: [['brute', 2], ['lancer', 3], ['soldier', 2]], c: ['elder'], p: [['barrel', 2600, 620], ['bin', 3000, 540]] },
+      { x: 1650, name: 'I VAGONI DEI PRIGIONIERI', w: [['lancer', 3], ['soldier', 3], ['brute', 1]], c: ['girl', 'scientist'], p: [['crate', 1900, 650], ['crate', 2100, 540]] },
+      { x: 2700, name: 'LA LOCOMOTIVA', w: [['brute', 2], ['lancer', 3], ['soldier', 2]], c: ['elder', 'kid'], p: [['barrel', 2600, 620], ['crate', 3000, 540]] },
       { x: 3700, name: 'CENTIPEDE', boss: 'centipede', p: [] },
     ],
     weapons: [['pipe', 1200, 640], ['oar', 2400, 560]],

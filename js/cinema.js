@@ -35,6 +35,15 @@ function coverImage(name, zoom = 1, ox = 0.5, oy = 0.5, alpha = 1) {
   g.globalAlpha = 1;
 }
 
+/* map a point of an image drawn with coverImage() to screen coordinates */
+function coverPoint(name, zoom, ox, oy, px, py, wantScale) {
+  const img = IMG[name];
+  const s = Math.max(W / img.width, H / img.height) * zoom;
+  const w = img.width * s, h = img.height * s;
+  if (wantScale) return [0, s];
+  return [(W - w) * ox + px * s, (H - h) * oy + py * s];
+}
+
 function rift(cx, cy, open, t) {
   // animated tear in the sky
   g.save();
@@ -60,7 +69,7 @@ function subtitle(t) {
     const k = clamp(Math.min(t - a, b - t) * 2.5, 0, 1);
     g.globalAlpha = k;
     g.fillStyle = 'rgba(2,6,12,.72)'; g.fillRect(0, H - 118, W, 90);
-    if (head) txt(head, W / 2, H - 86, 16, '#ffcf7a', 'center', 900);
+    if (head) ptxt(head, W / 2, H - 88, 11, '#ffcf7a', 'center');
     const n = Math.floor((t - a) * 42);
     txt(body.slice(0, n), W / 2, H - 52, 24, '#f2f6fa', 'center', 700);
     g.globalAlpha = 1;
@@ -148,15 +157,30 @@ function drawIntro(t) {
   } else if (t < 38) {
     // ---------------- scene 5: the chamber of the cores ----------------
     const k = t - 31;
-    coverImage('story_cores', 1.02 + k * 0.025, 0.5, 0.45);
+    const zoom = 1.02 + k * 0.025;
+    coverImage('story_cores', zoom, 0.5, 0.45);
     g.fillStyle = 'rgba(0,10,20,.25)'; g.fillRect(0, 0, W, H);
-    const cx = [300, 470, 640, 810, 980];
+    // capsule centres measured on the artwork (image pixels): glass from y 180 to 282
+    const CAPS = [266, 354, 443, 531, 620];
+    const P = (px, py) => coverPoint('story_cores', zoom, 0.5, 0.45, px, py);
+    const [, sc] = coverPoint('story_cores', zoom, 0.5, 0.45, 0, 0, true);
     HEROES.forEach((h, i) => {
       const on = clamp((k - 0.8 - i * 0.55) * 2, 0, 1);
+      if (!on) return;
+      const [cx, cy] = P(CAPS[i], 243);
+      const [, foot] = P(CAPS[i], 280);
+      // the ranger appears inside the capsule as a hologram
+      const f = frameOf('fighters', h.id + '_0');
+      const hs = (98 * sc * 0.92) / f[3];
       g.save(); g.globalCompositeOperation = 'lighter';
-      const grd = g.createRadialGradient(cx[i], 420, 4, cx[i], 420, 160);
+      const grd = g.createRadialGradient(cx, cy, 4, cx, cy, 90 * sc / 1.6);
       grd.addColorStop(0, h.color); grd.addColorStop(1, 'rgba(0,0,0,0)');
-      g.globalAlpha = on * (0.55 + Math.sin(t * 8 + i) * 0.2); g.fillStyle = grd; g.fillRect(cx[i] - 170, 250, 340, 340);
+      g.globalAlpha = on * (0.55 + Math.sin(t * 8 + i) * 0.2); g.fillStyle = grd; g.fillRect(cx - 100 * sc, cy - 100 * sc, 200 * sc, 200 * sc);
+      g.restore();
+      spr('fighters', h.id + '_0', cx + (f[4] - f[2] / 2) * hs * 0, foot + Math.sin(t * 2 + i) * 2, { scale: hs, img: tinted('fighters', h.id + '_0', h.glow, 'source-atop', 0.45), alpha: on * (0.75 + Math.sin(t * 13 + i * 2) * 0.1) });
+      // scan lines of the hologram
+      g.save(); g.globalAlpha = 0.18 * on; g.fillStyle = '#000';
+      for (let y = foot - f[3] * hs; y < foot; y += 3) g.fillRect(cx - f[2] * hs / 2, y, f[2] * hs, 1);
       g.restore();
     });
     if (k > 4.5) {
@@ -224,11 +248,7 @@ function drawIntro(t) {
       HEROES.forEach((h, i) => { g.globalAlpha = clamp(1 - kk / 2, 0, 0.6); g.fillStyle = h.color; g.beginPath(); g.arc(xs[i], 470, 80 + kk * 260, 0, 7); g.fill(); });
       g.restore();
       const a = clamp((kk - 0.4) * 2, 0, 1);
-      g.globalAlpha = a;
-      g.fillStyle = 'rgba(2,6,12,.6)'; g.fillRect(0, 95, W, 150);
-      txt('PRIMAL SENTINELS', W / 2, 180, 72, '#fff4d0', 'center', 900);
-      txt('IL CUORE DEI TITANI', W / 2, 222, 24, '#ffcf7a', 'center', 900);
-      g.globalAlpha = 1;
+      if (a > 0) drawLogo(W / 2, 200, 0.62 + (1 - a) * 0.3, t, a);
     }
     if (k < 0.6) { g.fillStyle = `rgba(0,0,0,${1 - k / 0.6})`; g.fillRect(-20, -20, W + 40, H + 40); }
     if (t > INTRO_LEN - 1) { g.fillStyle = `rgba(0,0,0,${t - (INTRO_LEN - 1)})`; g.fillRect(-20, -20, W + 40, H + 40); }
@@ -236,7 +256,7 @@ function drawIntro(t) {
   g.restore();
   letterbox();
   subtitle(t);
-  txt('INVIO / PUGNO / A: SALTA', W - 20, 26, 12, '#8a9aac', 'right', 800);
+  ptxt('INVIO / PUGNO / A: SALTA', W - 20, 26, 8, '#8a9aac', 'right');
 }
 
 /* ---------------- chapter dialogue scenes ---------------- */
@@ -253,9 +273,9 @@ function drawDialog(v) {
   if (v.card) {
     const a = clamp(Math.min(k * 2, (2.6 - k) * 2), 0, 1);
     g.globalAlpha = a;
-    txt(`CAPITOLO ${L.n}`, W / 2, 300, 24, '#ffcf7a', 'center', 900);
-    txt(L.title, W / 2, 370, 56, '#f4f6fa', 'center', 900);
-    txt(L.place, W / 2, 412, 18, '#9fb4c8', 'center', 800);
+    ptxt(`CAPITOLO ${L.n} / 8`, W / 2, 300, 16, '#ffcf7a', 'center');
+    ptitle(L.title, W / 2, 380, L.title.length > 20 ? 30 : 40, '#fff6d6', '#ffb03a');
+    ptxt(L.place, W / 2, 425, 12, '#9fb4c8', 'center');
     g.globalAlpha = 1;
     return;
   }
@@ -279,12 +299,12 @@ function drawDialog(v) {
   g.fillStyle = 'rgba(4,10,20,.9)'; g.fillRect(60, H - 190, W - 120, 150);
   const col = sp ? sp[2] : '#ffcf7a';
   g.fillStyle = col; g.fillRect(60, H - 190, W - 120, 3);
-  if (who !== 'NARRATORE') txt(who, 90, H - 152, 22, col, 'left', 900);
+  if (who !== 'NARRATORE') ptxt(who, 90, H - 154, 14, col, 'left');
   const shown = text.slice(0, Math.floor(k * 48));
   const lines = wrapText(shown, W - 200, 24);
   lines.forEach((ln, i) => txt(ln, 90, H - (who !== 'NARRATORE' ? 112 : 140) + i * 34, 24, who === 'NARRATORE' ? '#dfe7ef' : '#f4f6fa', 'left', who === 'NARRATORE' ? 600 : 700));
   if (shown.length >= text.length && Math.floor(k * 2.5) % 2) txt('▼', W - 90, H - 60, 18, '#ffcf7a', 'center', 900);
-  txt(`${v.i + 1}/${v.lines.length} · PUGNO / INVIO per continuare · START per saltare`, W - 80, H - 12, 12, '#7e8fa2', 'right', 700);
+  ptxt(`${v.i + 1}/${v.lines.length} · PUGNO: AVANTI · START: SALTA`, W - 80, H - 14, 8, '#7e8fa2', 'right');
 }
 
 /* ---------------- ending ---------------- */
@@ -306,10 +326,14 @@ function drawEnding(t, heroes) {
   const idx = Math.floor(t / 4.2);
   const c = credits[Math.min(idx, credits.length - 1)];
   const k = t - idx * 4.2;
-  g.globalAlpha = idx >= credits.length - 1 ? 1 : clamp(Math.min(k * 2, (4.2 - k) * 2), 0, 1);
-  g.fillStyle = 'rgba(4,8,16,.55)'; g.fillRect(0, 150, W, 130);
-  txt(c[0], tx, 205, 22, '#ffcf7a', 'center', 900);
-  txt(c[1], tx, 252, 38, '#fff6e6', 'center', 900);
-  g.globalAlpha = 1;
-  if (t > 26) txt('PREMI INVIO / PUGNO PER TORNARE AL MENU', W / 2, H - 30, 16, '#fff', 'center', 800);
+  const ca = idx >= credits.length - 1 ? 1 : clamp(Math.min(k * 2, (4.2 - k) * 2), 0, 1);
+  if (idx === 0) { drawLogo(tx, 220, 0.62, t, ca); }
+  else {
+    g.globalAlpha = ca;
+    g.fillStyle = 'rgba(4,8,16,.55)'; g.fillRect(0, 150, W, 130);
+    ptxt(c[0], tx, 205, 14, '#ffcf7a', 'center');
+    ptitle(c[1], tx, 255, c[1].length > 30 ? 18 : 28, '#fff6e6', '#ffc070');
+    g.globalAlpha = 1;
+  }
+  if (t > 26 && Math.floor(t * 2) % 2) ptxt('PREMI PUGNO PER TORNARE AL MENU', W / 2, H - 30, 12, '#fff', 'center');
 }

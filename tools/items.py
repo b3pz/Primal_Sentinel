@@ -7,12 +7,13 @@ K = 2  # upscale factor (chunky arcade pixels)
 OUTL = (18, 12, 22, 255)
 
 
-def done(c, k=K, light=True):
+def done(c, k=K, light=True, keep=False):
     if light:
         c.light(0.18)
     c.outline(OUTL)
     im = c.scaled(k)
-    im, _, _ = trim(im, 0)
+    if not keep:
+        im, _, _ = trim(im, 0)
     return im
 
 
@@ -177,6 +178,99 @@ def bollard():
     return done(c)
 
 
+# ---------------- signature weapons (grip anchor is returned with the image) ----------------
+def w_sword():
+    c = Canvas(56, 16)
+    c.rect(1, 6, 9, 9, hexc('8a1a1a'))                       # grip
+    c.rect(2, 6, 3, 9, hexc('c83030'))
+    c.poly([(9, 2), (13, 3), (13, 12), (9, 13)], hexc('e0a830'))  # jaw guard
+    c.px(10, 4, hexc('fff0a0')); c.px(10, 11, hexc('fff0a0'))
+    c.poly([(13, 5), (50, 5), (55, 8), (50, 10), (13, 10)], hexc('d7e2ec'))  # blade
+    c.poly([(13, 5), (50, 5), (53, 7), (13, 7)], hexc('ffffff'))
+    c.poly([(13, 9), (50, 9), (54, 9), (50, 10), (13, 10)], hexc('ff4a3d'))
+    for x in range(18, 48, 7):
+        c.poly([(x, 10), (x + 3, 10), (x + 1, 13)], hexc('ff4a3d'))   # fang serrations
+    return done(c, keep=True), 4, 8
+
+
+def w_trident():
+    c = Canvas(72, 20)
+    c.rect(0, 9, 52, 11, hexc('2c5fc4'))
+    c.rect(0, 9, 52, 9, hexc('8cc4ff'))
+    for x in (12, 26, 40):
+        c.rect(x, 8, x + 2, 12, hexc('d7e2ec'))
+    c.poly([(52, 6), (56, 6), (56, 14), (52, 14)], hexc('d7e2ec'))
+    c.poly([(56, 9), (70, 9), (72, 10), (70, 11), (56, 11)], hexc('eaf4ff'))      # centre prong
+    c.poly([(54, 6), (56, 2), (66, 1), (60, 4), (56, 7)], hexc('c9d8e8'))          # upper prong
+    c.poly([(54, 14), (56, 18), (66, 19), (60, 16), (56, 13)], hexc('c9d8e8'))     # lower prong
+    return done(c, keep=True), 6, 10
+
+
+def w_claws():
+    c = Canvas(30, 20)
+    c.rect(1, 6, 12, 14, hexc('e0b020'))
+    c.rect(1, 6, 12, 7, hexc('fff0a0'))
+    c.rect(3, 9, 5, 11, hexc('1a1a1a'))
+    for i, y in enumerate((5, 10, 15)):
+        c.poly([(12, y - 1), (20, y - 2 - i), (29, y - 6 + i * 2), (21, y + 1), (12, y + 2)], hexc('eaf0f6'))
+        c.line([(13, y), (27, y - 5 + i * 2)], hexc('ffffff'))
+    return done(c, keep=True), 5, 10
+
+
+def w_bow():
+    c = Canvas(26, 52)
+    # wings (pink feathers) behind the bow
+    for sgn in (-1, 1):
+        c.poly([(8, 26 + sgn * 4), (1, 26 + sgn * 22), (7, 26 + sgn * 18), (11, 26 + sgn * 24), (13, 26 + sgn * 10)], hexc('ff5fae'))
+        c.poly([(9, 26 + sgn * 6), (5, 26 + sgn * 16), (11, 26 + sgn * 12)], hexc('ffb2da'))
+    # bow limb
+    pts = [(10 + 8 * (1 - ((y - 26) / 24) ** 2), y) for y in range(2, 51)]
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        c.line([(x0, y0), (x1, y1)], hexc('d7e2ec'), 3)
+    c.line([(10, 3), (10, 49)], hexc('fff4fa'))                       # string
+    c.rect(15, 22, 19, 30, hexc('b0306e'))                              # grip
+    c.poly([(19, 25), (25, 26), (19, 27)], hexc('ffffff'))               # arrow tip
+    return done(c, keep=True), 17, 26
+
+
+def w_hammer():
+    c = Canvas(60, 30)
+    c.rect(0, 13, 40, 16, hexc('3a3a44'))
+    c.rect(0, 13, 40, 13, hexc('8a94a6'))
+    for x in (6, 14):
+        c.rect(x, 12, x + 2, 17, hexc('c0c8d4'))
+    c.poly([(38, 3), (52, 3), (56, 7), (56, 23), (52, 27), (38, 27)], hexc('1c1c22'))   # head
+    c.poly([(40, 5), (52, 5), (54, 8), (40, 8)], hexc('5a6070'))
+    c.rect(44, 11, 50, 19, hexc('d9e2ec'))                                               # grey heart
+    c.px(46, 13, hexc('ffffff'))
+    c.poly([(56, 6), (59, 2), (58, 10)], hexc('eeeae0')); c.poly([(56, 24), (59, 28), (58, 20)], hexc('eeeae0'))   # tusks
+    return done(c, keep=True), 5, 15
+
+
+def w_cannon():
+    c = Canvas(110, 44)
+    # rear: hammer block, body, barrel (sword blade on top, trident prongs at the muzzle), wing fins
+    c.poly([(2, 12), (22, 10), (22, 34), (2, 32)], hexc('1c1c22'))
+    c.poly([(4, 13), (20, 11), (20, 15), (4, 17)], hexc('5a6070'))
+    c.poly([(20, 8), (70, 10), (74, 34), (20, 36)], hexc('c9d6e4'))
+    c.poly([(20, 8), (70, 10), (71, 14), (20, 13)], hexc('ffffff'))
+    c.poly([(20, 31), (73, 30), (74, 34), (20, 36)], hexc('6f8fb4'))
+    c.rect(70, 16, 96, 28, hexc('2c5fc4'))
+    c.rect(70, 16, 96, 18, hexc('8cc4ff'))
+    c.poly([(96, 13), (104, 13), (108, 22), (104, 31), (96, 31)], hexc('d7e2ec'))
+    c.poly([(98, 16), (106, 22), (98, 28)], hexc('ffffff'))
+    c.poly([(30, 8), (84, 6), (90, 4), (84, 9), (30, 11)], hexc('ff4a3d'))            # sword blade on top
+    c.poly([(40, 36), (30, 43), (52, 38)], hexc('ff5fae')); c.poly([(56, 36), (48, 43), (66, 37)], hexc('ff5fae'))   # wings
+    c.poly([(60, 30), (66, 40), (72, 30)], hexc('e0b020'))                          # claw grip
+    for i, col in enumerate(('ff4a3d', '3f86ff', 'ffd13a', 'ff5fae', 'd9e2ec')):     # five Hearts
+        x = 28 + i * 9
+        c.ell(x - 3, 19, x + 3, 25, hexc('05070c')); c.ell(x - 2, 20, x + 2, 24, hexc(col)); c.px(x - 1, 21, hexc('ffffff'))
+    return done(c, keep=True), 40, 36
+
+
+WEAPONS = {'w_ignis': w_sword, 'w_azur': w_trident, 'w_lyra': w_claws, 'w_aura': w_bow, 'w_onyx': w_hammer, 'w_cannon': w_cannon}
+
+
 ITEMS = {
     'pizza': pizza, 'chicken': chicken, 'can': can, 'energy': energy, 'coin': coin, 'gem': gem,
     'pipe': pipe, 'oar': oar, 'crate': crate, 'barrel': barrel, 'bin': bin_,
@@ -189,6 +283,9 @@ def build():
     for k, fn in ITEMS.items():
         im = fn()
         frames.append((k, im, im.width / 2, im.height))  # anchor: bottom centre
+    for k, fn in WEAPONS.items():
+        c_im, gx, gy = fn()
+        frames.append((k, c_im, gx * K + K, gy * K + K))  # anchor: grip (outline adds 1px)
     return frames
 
 

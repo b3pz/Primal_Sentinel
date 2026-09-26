@@ -1,5 +1,5 @@
 *{box-sizing:border-box}
-html,body{margin:0;background:#050c14;color:#f1f6ed;font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;height:100%;overflow:hidden}
+html,body{margin:0;background:#050c14;color:#f1f6ed;font-family:Pixelify,"Trebuchet MS","Segoe UI",system-ui,sans-serif;height:100%;overflow:hidden}
 body{display:grid;place-items:center}
 main{width:min(100vw,177.777vh);aspect-ratio:16/9;position:relative;box-shadow:0 0 100px #112637;container-type:inline-size}
 canvas{width:100%;height:100%;display:block;image-rendering:pixelated}
@@ -36,3 +36,25 @@ kbd{border:1px solid #506273;border-bottom-width:2px;border-radius:3px;padding:0
 input{padding:10px 12px;background:#102331;color:white;border:1px solid #567;border-radius:5px;font:700 18px "Trebuchet MS",system-ui;letter-spacing:.12em}
 input:focus{outline:2px solid #71e5de}
 #loading{position:absolute;inset:0;display:grid;place-items:center;background:#081522;letter-spacing:.2em;font-weight:800;text-align:center;padding:20px}
+
+/* ---- arcade look (v1.1) ---- */
+#screen.menu{background:linear-gradient(90deg,#05101bf0 0%,#05101bb0 42%,transparent 70%)}
+img.logo{width:min(46cqw,620px);height:auto;margin:-1cqw 0 1cqw -1cqw;filter:drop-shadow(0 8px 18px #000a)}
+button{font-family:PressStart,Pixelify,monospace;font-weight:400;font-size:clamp(9px,1.02cqw,14px);letter-spacing:.02em;border-radius:0;border:3px solid #05070c;box-shadow:inset 0 -5px 0 #0008,inset 0 3px 0 #ffffff22;background:#1d3046;padding:clamp(9px,1.2cqw,16px) clamp(12px,1.6cqw,22px)}
+button:focus,button:hover,button:focus-visible{background:#2c4a66;outline:3px solid #ffd35a;outline-offset:0;border-color:#05070c}
+nav.arcade button::before{content:'';display:inline-block;width:1.4em}
+nav.arcade button:focus::before{content:'▶ ';color:#ffd35a}
+button.primary{background:#e89a2c;color:#10161e}
+button.primary:focus{background:#ffc05a;color:#10161e}
+.eyebrow{font-family:PressStart,monospace;font-weight:400;letter-spacing:.12em;font-size:clamp(8px,.9cqw,12px)}
+h2{font-family:PressStart,monospace;font-weight:400;font-size:clamp(14px,2cqw,28px);line-height:1.3;text-shadow:3px 3px 0 #05070c}
+p{font-size:clamp(12px,1.3cqw,19px)}
+.footer{font-family:PressStart,monospace;font-size:clamp(7px,.7cqw,10px)}
+.chap b{font-family:PressStart,monospace;font-weight:400}
+.chap span{font-family:PressStart,monospace;font-size:clamp(8px,.85cqw,12px);line-height:1.5}
+.field{font-family:PressStart,monospace;font-weight:400;font-size:10px}
+input{font-family:PressStart,monospace;font-size:14px;border-radius:0;border:3px solid #05070c;background:#0e1b28}
+kbd{font-family:PressStart,monospace;font-size:.75em;padding:2px 5px}
+#loading{font-family:PressStart,monospace;font-weight:400;font-size:12px}
+
+body,button,input{font-variant-ligatures:none;font-feature-settings:'liga' 0}

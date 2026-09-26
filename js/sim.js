@@ -34,10 +34,22 @@ function newStage(levelIdx, players, checkpoint = 0) {
   }
   // props & weapons
   for (const z of L.zones) for (const [type, x, y] of z.p || []) S.props.push({ id: nid(), type, x, y, hp: PROPS[type].hp, shake: 0 });
-  for (const [type, x, y] of L.weapons || []) S.items.push(makeItem(type, x, y));
+  // every Sentinel now fights with a personal weapon: no more pipes on the floor
   // intro ambience: civilians fleeing across the street
   if (!checkpoint) for (let i = 0; i < 5; i++) S.civs.push(makeCiv(pick(CIVS), S.cam + W + 60 + i * 110, 505 + (i * 37) % 170, 'flee'));
   return S;
+}
+
+/* ---------- chapter 2: gaps between the wagons of the moving train ---------- */
+const WAGON = 1100, GAP_W = 104, GAP_SLANT = 50;
+function trainOn(L, x) { return !!(L && L.train && x > L.train - 560); }
+/* left edge of the gap near world x at floor depth y (slanted by perspective) */
+function gapLeft(wx, y) { return wx + 40 - (y - 465) / 255 * GAP_SLANT; }
+function inGap(L, x, y, margin = 0) {
+  if (!trainOn(L, x)) return false;
+  const wx = Math.round(x / WAGON) * WAGON;
+  const l = gapLeft(wx, y);
+  return x > l + 14 + margin && x < l + GAP_W - 14 - margin;
 }
 
 function makeItem(type, x, y, z = 0) {
@@ -59,10 +71,10 @@ function ring(S, x, y, c, r = 220, life = 0.5) { ev(S, { t: 'ring', x: Math.roun
 const MOVES = {
   jab: { dur: 0.24, hitAt: 0.07, frames: [[0.06, 4], [1, 5]], dmg: 9, reach: 104, depth: 36, snd: 'punch' },
   jab2: { dur: 0.25, hitAt: 0.07, frames: [[0.05, 4], [1, 5]], dmg: 10, reach: 108, depth: 36, snd: 'punch' },
-  fin: { dur: 0.44, hitAt: 0.13, frames: [[0.08, 4], [1, 6]], dmg: 17, reach: 132, depth: 40, knock: true, snd: 'kick', lunge: 120 },
+  fin: { dur: 0.46, hitAt: 0.15, frames: [[0.1, 4], [1, 5]], dmg: 19, reach: 158, depth: 42, knock: true, snd: 'weapon', lunge: 120, sig: true },
   kick: { dur: 0.5, hitAt: 0.17, frames: [[0.12, 4], [1, 6]], dmg: 16, reach: 136, depth: 40, knock: true, snd: 'kick', lunge: 60 },
   air: { dur: 9, hitAt: 0, frames: [[99, 6]], dmg: 15, reach: 120, depth: 44, knock: true, snd: 'kick', air: true },
-  dash: { dur: 0.38, hitAt: 0.05, frames: [[1, 5]], dmg: 16, reach: 110, depth: 42, knock: true, snd: 'punch', lunge: 420, multi: true },
+  dash: { dur: 0.38, hitAt: 0.05, frames: [[1, 5]], dmg: 17, reach: 138, depth: 42, knock: true, snd: 'weapon', lunge: 420, multi: true, sig: true },
   knee: { dur: 0.26, hitAt: 0.1, frames: [[0.08, 4], [1, 6]], dmg: 8, reach: 70, depth: 30, snd: 'kick', grab: true },
   swing: { dur: 0.34, hitAt: 0.11, frames: [[0.1, 4], [1, 5]], dmg: 11, reach: 104, depth: 42, snd: 'weapon', weapon: true },
 };
@@ -157,7 +169,11 @@ function stepPlayer(S, p, c, dt) {
     return;
   }
   const free = p.st === 'idle' || p.st === 'walk';
-
+  // chapter 2: stepping into the gap between two wagons = falling off the train
+  if (p.st !== 'fall' && p.z <= 0 && !['jump', 'drop', 'knock'].includes(p.st) && inGap(S.L, p.x, p.y)) {
+    p.st = 'fall'; p.t = 0; p.hold = 0; p.atk = null; S.falls = (S.falls || 0) + 1;
+    sfx(S, 'hurt'); floatText(S, p.x, p.y - 160, 'CADUTA!', '#ffb0a0', 20);
+  }
   // double-tap to run
   if (free && c.pressed && (c.l || c.r)) {
     const dir = dx;
@@ -280,7 +296,7 @@ function stepPlayer(S, p, c, dt) {
     case 'throw': if (p.t > 0.3) p.st = 'idle'; break;
     case 'special': stepSpecial(S, p, dt); break;
     case 'pose': {
-      if (p.t > 1.25) p.st = 'idle';
+      if (p.t > 2.6) p.st = 'idle';
       break;
     }
     case 'hurt': if (p.t > 0.32) p.st = 'idle'; break;
@@ -292,6 +308,18 @@ function stepPlayer(S, p, c, dt) {
     }
     case 'down': if (p.t > 0.7) { p.st = 'getup'; p.t = 0; } break;
     case 'getup': if (p.t > 0.3) { p.st = 'idle'; p.inv = 1.1; } break;
+    case 'fall': {
+      p.z -= 900 * dt * Math.min(1, p.t * 3);
+      if (p.t > 0.7) {
+        p.hp -= 14; p.z = 0;
+        // back on the roof of the nearest wagon, landing from above
+        const wx = Math.round(p.x / WAGON) * WAGON, l = gapLeft(wx, p.y);
+        p.x = p.x - l < GAP_W / 2 ? l - 40 : l + GAP_W + 40;
+        if (p.hp <= 0) { p.hp = 0; p.st = 'dead'; p.t = 0; p.lives--; sfx(S, 'ko'); }
+        else { p.st = 'drop'; p.t = 0; p.z = 420; p.inv = 1.8; }
+      }
+      return;
+    }
   }
   // bounds
   const lo = S.cam + 40, hi = S.camLock !== null ? S.camLock + W - 40 : Math.min(S.L.length - 40, S.cam + W - 40);
@@ -492,8 +520,8 @@ function teamAttack(S, p) {
   S.team = 0;
   sfx(S, 'team');
   ev(S, { t: 'team', heroes: alivePlayers(S).map((q) => q.hero) });
-  for (const q of alivePlayers(S)) { q.st = 'pose'; q.t = 0; q.inv = 2; q.atk = null; }
-  S.teamT = 1.25;
+  for (const q of alivePlayers(S)) { q.st = 'pose'; q.t = 0; q.inv = 3.2; q.atk = null; }
+  S.teamT = 2.6;
   S.hitstop = 0.1;
 }
 
@@ -596,6 +624,12 @@ function stepEnemy(S, e, dt) {
         for (const o of S.props) if (o.hp > 0 && Math.abs(o.x - e.x) < 50 && Math.abs(o.y - e.y) < 40) hitProp(S, o, S.players.find((q) => q.id === e.thrower));
       }
       e.x = clamp(e.x, S.cam - 40, S.cam + W + 40);
+      if (e.z <= 0 && e.t > 0.1 && inGap(S.L, e.x, e.y)) {
+        // knocked off the train!
+        e.st = 'fall'; e.t = 0; e.z = 0; if (e.hp > 0) { const q = S.players.find((pp) => pp.id === (e.thrower || e.killer)); if (q) { q.score += e.def.score + 300; q.kos++; } e.hp = 0; }
+        floatText(S, e.x, e.y - 150, 'GIÙ DAL TRENO!', '#ffe08a', 18); sfx(S, 'hurt');
+        break;
+      }
       if (e.z <= 0 && e.t > 0.1) {
         e.z = 0; e.st = e.hp > 0 ? 'down' : 'dead'; e.t = 0; shake(S, 3); sfx(S, 'heavy'); sparks(S, e.x, e.y, '#9aa0b0', 8, 'dust');
         if (e.hp <= 0 && e.def && e.def.shade) sparks(S, e.x, e.y - 60, '#b77dff', 20, 'fire');
@@ -604,7 +638,10 @@ function stepEnemy(S, e, dt) {
     }
     case 'down': if (e.t > 0.85) { e.st = 'getup'; e.t = 0; } break;
     case 'getup': if (e.t > 0.3) { e.st = 'walk'; e.t = 0; e.inv = 0.3; e.cool = 0.8; } break;
+    case 'fall': e.z -= 900 * dt * Math.min(1, e.t * 3); if (e.t > 0.8) { e.st = 'dead'; e.t = 2; } break;
   }
+  // walking enemies leap over the gaps between wagons
+  if (['walk', 'idle', 'enter'].includes(e.st)) e.z = inGap(S.L, e.x, e.y, -30) ? 55 : 0;
   if (!['knock', 'thrown', 'held', 'dead', 'enter'].includes(e.st)) {
     e.y = clamp(e.y, FLOOR_TOP, FLOOR_BOTTOM);
     if (S.camLock !== null) e.x = clamp(e.x, S.camLock + 30, S.camLock + W - 30);
@@ -710,6 +747,8 @@ function stepBoss(S, e, dt) {
     }
   }
   e.y = clamp(e.y, FLOOR_TOP + 6, FLOOR_BOTTOM);
+  if (['walk', 'idle', 'intro'].includes(e.st)) e.z = inGap(S.L, e.x, e.y, -40) ? 70 : 0;
+  else if (e.st !== 'dead') e.z = 0;
 }
 
 function bossAttack(S, e, p) {
@@ -813,12 +852,15 @@ function stepItems(S, dt) {
 function stepCivs(S, dt) {
   for (const c of S.civs) {
     c.t += dt;
-    if (c.mode === 'flee' || c.mode === 'saved') {
-      c.x += c.face * c.speed * dt;
-      if (c.mode === 'saved' && !c.said && c.t > 0.2) { c.said = true; floatText(S, c.x, c.y - 160, pick(['GRAZIE!', 'SIETE VOI!', 'EVVIVA!', 'SALVI!']), '#ffffff', 18); }
+    if (c.mode === 'flee') c.x += c.face * c.speed * dt;
+    if (c.mode === 'saved') {
+      // freed hostages stand up, thank the heroes, then walk away calmly
+      if (!c.said && c.t > 0.15) { c.said = true; floatText(S, c.x, c.y - 160, pick(['GRAZIE!', 'SIETE VOI!', 'EVVIVA!', 'SALVI!']), '#ffffff', 18); }
+      if (c.t > 1.6) { c.mode = 'leave'; c.t = 0; }
     }
+    if (c.mode === 'leave') c.x += c.face * 95 * dt;
   }
-  S.civs = S.civs.filter((c) => c.x > S.cam - 150 && c.x < S.cam + W + 400 || c.mode === 'cower');
+  S.civs = S.civs.filter((c) => c.x > S.cam - 150 && c.x < S.cam + W + 400 || c.mode === 'cower' || c.mode === 'saved');
   // ambient: during the first chapter more people flee from the invasion
   S.ambientT -= dt;
   if (S.ambientT <= 0 && S.lvl === 0 && S.zoneIdx < 3 && S.civs.length < 6) {
@@ -830,6 +872,7 @@ function stepCivs(S, dt) {
 /* ---------------- zones & waves ---------------- */
 function stepZones(S, dt) {
   const L = S.L;
+  if (L.train && !S.boarded && S.cam > L.train - 520) { S.boarded = true; S.banner = { text: 'SUL TRENO IN CORSA!', sub: 'SALTA DA UN VAGONE ALL\'ALTRO · LIBERA I PRIGIONIERI', t: 3.2 }; ev(S, { t: 'flash', c: '#ffffff', v: 0.5 }); sfx(S, 'siren'); }
   const z = L.zones[S.zoneIdx];
   if (!z) return;
   const lead = Math.max(...alivePlayers(S).map((p) => p.x), S.cam + 200);
@@ -840,11 +883,12 @@ function stepZones(S, dt) {
       S.checkpoint = S.zoneIdx;
       if (z.boss) {
         const b = spawnBoss(S, z.boss, S.camLock + W + 120, 600);
+        S.bossT0 = S.t;
         S.banner = { text: BOSSES[z.boss].name, sub: BOSSES[z.boss].title, t: 3, boss: true };
         sfx(S, 'siren');
       } else {
         spawnWave(S, z, 0);
-        for (const [i, cv] of (z.c || []).entries()) S.civs.push({ ...makeCiv(cv, S.camLock + 260 + i * 520, FLOOR_TOP + 4 + (i % 2) * 10, 'cower'), face: i % 2 ? -1 : 1 });
+        for (const [i, cv] of (z.c || []).entries()) S.civs.push({ ...makeCiv(cv, S.camLock + 260 + i * 520, FLOOR_TOP + 4 + (i % 2) * 10, 'cower'), face: i % 2 ? -1 : 1, caged: !!(L.train && z.x >= L.train) });
       }
     }
     return;
@@ -864,7 +908,7 @@ function stepZones(S, dt) {
   else if (S.wave >= z.w.length - 1 && alive === 0 && !S.enemies.some((e) => e.st === 'knock')) {
     // zone clear
     S.zoneOn = false; S.camLock = null; S.zoneIdx++;
-    for (const c of S.civs) if (c.mode === 'cower') { c.mode = 'saved'; c.face = -1; c.t = 0; c.speed = 240; for (const p of alivePlayers(S)) p.score += 300; }
+    for (const c of S.civs) if (c.mode === 'cower') { c.mode = 'saved'; c.face = -1; c.t = 0; if (c.caged) { c.caged = false; ev(S, { t: 'uncage', x: Math.round(c.x), y: Math.round(c.y) }); } for (const p of alivePlayers(S)) p.score += 300; }
     const zz = L.zones[S.zoneIdx];
     ev(S, { t: 'go' });
     for (const p of S.players) p.hp = Math.min(p.max, p.hp + 10);
@@ -923,6 +967,7 @@ function playerFrame(p) {
     case 'knock': f = 7; rot = -Math.min(1, p.t * 4) * Math.PI / 2 * 0.95; break;
     case 'down': case 'dead': f = 7; rot = -Math.PI / 2 * 0.95; break;
     case 'getup': f = 4; rot = -(1 - p.t / 0.3) * 0.6; break;
+    case 'fall': f = 7; rot = p.t * 3; break;
   }
   return [`${pre}_${f}`, rot];
 }
@@ -969,14 +1014,18 @@ function enemyFrame(e) {
     case 'knock': case 'thrown': f = 7; rot = -Math.min(1, e.t * 4) * Math.PI / 2 * 0.95; break;
     case 'down': case 'dead': f = 7; rot = -Math.PI / 2 * 0.95; break;
     case 'getup': f = 4; rot = -(1 - e.t / 0.3) * 0.6; break;
+    case 'fall': f = 7; rot = e.t * 4; break;
   }
+  if (e.z > 0 && (e.st === 'walk' || e.st === 'enter' || e.st === 'idle')) f = 4;
   return [`${pre}_${f}`, rot];
 }
 
 function civFrame(c) {
   const t = c.type;
   if (c.mode === 'cower') return `${t}_cower`;
-  if (c.mode === 'flee' || c.mode === 'saved') return `${t}_run${Math.floor(c.t * 11) % 6}`;
+  if (c.mode === 'flee') return `${t}_run${Math.floor(c.t * 11) % 6}`;
+  if (c.mode === 'saved') return c.t < 0.35 ? `${t}_idle0` : `${t}_point`;
+  if (c.mode === 'leave') return `${t}_walk${Math.floor(c.t * 7) % 6}`;
   return `${t}_idle${Math.floor(c.t * 2) % 2}`;
 }
 
@@ -985,7 +1034,7 @@ function buildView(S) {
   const r = (v) => Math.round(v);
   for (const o of S.props) if (o.hp > 0) d.push({ i: o.id, s: 'items', f: o.type, x: r(o.x + (o.shake > 0 ? Math.sin(S.t * 80) * 3 : 0)), y: r(o.y), sc: o.type === 'crate' ? 1.05 : 1.0, sh: 30 });
   for (const it of S.items) d.push({ i: it.id, s: 'items', f: it.type, x: r(it.x), y: r(it.y), z: r(it.z + (it.z === 0 && !ITEMS[it.type].weapon ? 4 + Math.sin(S.t * 4 + it.bob) * 3 : 0)), sc: ITEMS[it.type].weapon ? 1.1 : 1.15, sh: 18, a: it.life < 3 && !ITEMS[it.type].weapon ? (Math.floor(S.t * 10) % 2 ? 0.3 : 1) : 1, glow: ITEMS[it.type].weapon ? 0 : 1 });
-  for (const c of S.civs) d.push({ i: c.id, s: 'people', f: civFrame(c), x: r(c.x), y: r(c.y), fc: c.face, sc: 1, sh: 26, dim: c.mode !== 'saved' ? 0.1 : 0 });
+  for (const c of S.civs) d.push({ i: c.id, s: 'people', f: civFrame(c), x: r(c.x), y: r(c.y), fc: c.face, sc: 1, sh: 26, cg: c.caged ? 1 : 0 });
   for (const e of S.enemies) {
     if (e.st === 'gone') continue;
     const [f, rot] = enemyFrame(e);
@@ -996,6 +1045,7 @@ function buildView(S) {
     if (e.def && e.def.shade) o.ti = '#3a1466';
     if (boss && e.alpha !== undefined && e.alpha < 1) o.a = +e.alpha.toFixed(2);
     if (e.st === 'dead') o.a = boss ? 1 : +(Math.max(0, 1 - e.t / 1.1) * (Math.floor(e.t * 16) % 2 ? 0.4 : 1)).toFixed(2);
+    if (e.st === 'fall') { o.a = +Math.max(0, 1 - e.t / 0.8).toFixed(2); o.sh = 0; }
     if (boss && e.st === 'dead') { o.a = e.t > 1.8 ? +Math.max(0, 1 - (e.t - 1.8) / 0.6).toFixed(2) : 1; o.fl = Math.floor(e.t * 12) % 2; }
     if (!boss && e.hp > 0 && e.hp < e.max && e.st !== 'held') o.hb = +(e.hp / e.max).toFixed(2);
     if (e.st === 'wind' && boss && e.move === 'slam') o.tg = [r(e.tx), r(e.ty), 130];
@@ -1008,12 +1058,23 @@ function buildView(S) {
   for (const p of S.players) {
     if (p.out) continue;
     const [f, rot] = playerFrame(p);
-    const o = { i: p.id, s: 'fighters', f, x: r(p.x), y: r(p.y), z: r(p.z), fc: p.face, sc: HERO_SCALE, r: rot, sh: 36, pl: p.slot + 1, pc: HEROES[p.hero].color };
+    const o = { i: p.id, s: 'fighters', f, x: r(p.x), y: r(p.y), z: r(p.z), fc: p.face, sc: HERO_SCALE, r: rot, sh: p.st === 'fall' ? 0 : 36, pl: p.slot + 1, pc: HEROES[p.hero].color };
+    if (p.st === 'fall') o.a = +Math.max(0, 1 - p.t / 0.7).toFixed(2);
     if (p.civil) { o.s = 'people'; o.sc = 1; o.r = 0; o.f = `${HEROES[p.hero].id}C_` + (p.st === 'walk' ? 'walk' + (Math.floor(p.walk) % 6) : p.morphT > 0 ? 'raise' : 'idle' + (Math.floor(S.t * 2) % 2)); delete o.wp; }
     if (p.inv > 0 && p.st !== 'special' && p.st !== 'pose' && Math.floor(S.t * 20) % 2) o.a = 0.45;
     if (p.st === 'dead') o.a = +(Math.floor(p.t * 12) % 2 ? 0.3 : 1).toFixed(2);
     if (p.weapon) { o.wp = p.weapon.type; o.wa = p.st === 'atk' && p.atk === 'swing' && p.t > 0.1 ? 1 : 0; }
     if (p.st === 'special' || p.st === 'pose') o.au = HEROES[p.hero].glow;
+    // personal weapon visible in the finisher, the running strike and the specials
+    const hid = HEROES[p.hero].id;
+    if (p.st === 'atk' && MOVES[p.atk] && MOVES[p.atk].sig) {
+      o.sw = 'w_' + hid;
+      o.sr = p.atk === 'dash' ? 0 : +(p.t < 0.1 ? -1.5 : clamp(-1.5 + (p.t - 0.1) / 0.12 * 1.7, -1.5, 0.2)).toFixed(2);
+      if (hid === 'aura') o.sr = 0;
+    } else if (p.st === 'special') {
+      o.sw = 'w_' + hid;
+      o.sr = hid === 'ignis' ? +(p.t * 20).toFixed(2) : hid === 'onyx' ? (p.t < 0.3 ? -2.0 : 0.95) : 0;
+    }
     if (p.st === 'dodge' || p.run && p.st === 'walk' || p.st === 'special' && p.spk === 'azur') o.gh = 1;
     d.push(o);
   }
@@ -1029,6 +1090,7 @@ function buildView(S) {
       ban: S.banner ? { t: S.banner.text, s: S.banner.sub || '', k: +S.banner.t.toFixed(2), e: +((S.banner.tot || (S.banner.tot = S.banner.t)) - S.banner.t).toFixed(2), b: S.banner.boss ? 1 : 0 } : null,
       go: !S.zoneOn && S.zoneIdx < S.L.zones.length && S.zoneIdx > 0 && !S.cleared ? 1 : 0,
       lvl: S.lvl, place: S.L.place,
+      portal: S.L.train && S.bossT0 !== undefined ? +clamp((S.t - S.bossT0) / 150, 0.05, 1).toFixed(3) : 0,
     },
     ev: S.events.slice(),
   };
@@ -1040,6 +1102,7 @@ function tickCounters(S, dt) { for (const p of S.players) { p.comboHitT = Math.m
 /* team attack resolution (after the pose) */
 function stepTeam(S, dt) {
   if (!S.teamT) return;
+  if (S.teamT > 0.6 && S.teamT - dt <= 0.6) { sfx(S, 'laser'); sfx(S, 'special'); shake(S, 16); }
   S.teamT -= dt;
   if (S.teamT <= 0) {
     S.teamT = 0;

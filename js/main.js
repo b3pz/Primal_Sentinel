@@ -61,22 +61,76 @@ const Game = {
     Audio.playSong(8);
     const prog = this.progress();
     UI.show(`
-      <div class="eyebrow">UN ARCADE TOKUSATSU ORIGINALE</div>
-      <h1>PRIMAL<br><span>SENTINELS</span></h1>
-      <p class="tag">Il cuore dei titani · 8 capitoli · da 1 a 4 giocatori</p>
-      <nav class="col">
-        <button class="primary" id="play" autofocus>GIOCA · 1–4 GIOCATORI SU QUESTO PC</button>
-        <button id="online">COOPERATIVA ONLINE CON CODICE</button>
-        <button id="chapters">CAPITOLI${prog > 0 ? ` (${prog + 1}/8 sbloccati)` : ''}</button>
-        <button id="help">COMANDI</button>
+      <img class="logo" src="assets/ui/logo.png" alt="Primal Sentinels · Il cuore dei titani">
+      <nav class="col arcade">
+        <button class="primary" id="play" autofocus>GIOCA · 1-4 GIOCATORI</button>
+        <button id="online">COOPERATIVA ONLINE</button>
+        <button id="chapters">CAPITOLI${prog > 0 ? ` · ${prog + 1}/8` : ''}</button>
+        <button id="howto">COME SI GIOCA</button>
         <button id="audio">AUDIO: ${Audio.muted ? 'SPENTO' : 'ACCESO'}</button>
       </nav>
-      <div class="footer">SVILUPPATO ED IDEATO DA b3pZ · V1.0</div>`);
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.1</div>`, 'menu');
     UI.on('#play', () => { this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
     UI.on('#chapters', () => this.chapters());
-    UI.on('#help', () => this.help());
+    UI.on('#howto', () => this.howto(() => this.menu()));
     UI.on('#audio', () => { Audio.muted = !Audio.muted; this.menu(); });
+  },
+  /* title screen: logo + PREMI START, attract mode after a while */
+  title() {
+    this.mode = 'title';
+    this.back = null;
+    this.titleT = 0;
+    UI.hide();
+    Audio.playSong(8);
+  },
+  tickTitle(dt) {
+    this.titleT += dt;
+    const any = Object.keys(Input.keyEdge).length > 0 || Input.pads().some((p) => Object.values(Input.read('pad' + p.index).pressed).some(Boolean));
+    if (any && this.titleT > 0.5) { Audio.unlock(); Audio.sfx('team'); this.menu(); return; }
+    if (this.titleT > 32) { this.attract = true; this.players = []; this.mode = 'intro'; this.introT = 0; this.prevIntroT = 0; }
+  },
+  /* animated tutorial; `then` is called when the player leaves it */
+  howto(then, footer) {
+    this.mode = 'howto';
+    this.howT = 0; this.howPg = 0; this.howThen = then; this.howFooter = footer;
+    const dev = (this.players[0] && this.players[0].device) || this.lastDevice || 'kb';
+    this.howScheme = dev.startsWith('pad') ? 'pad' : this.local.twoKeyboards ? 'kb2' : 'kb';
+    UI.hide();
+    FX.team = null;
+  },
+  menuEdges() {
+    const K = Input.keyEdge;
+    const e = { l: K.ArrowLeft || K.KeyA, r: K.ArrowRight || K.KeyD, u: K.ArrowUp || K.KeyW, d: K.ArrowDown || K.KeyS, ok: K.Enter || K.KeyJ || K.KeyF || K.Space || K.Escape, any: false };
+    for (const p of Input.pads()) {
+      const b = p.buttons.map((x) => x.pressed), prev = Input.padPrev[p.index] || [];
+      const ed = (i) => b[i] && !prev[i];
+      if (ed(14)) e.l = true; if (ed(15)) e.r = true; if (ed(12)) e.u = true; if (ed(13)) e.d = true;
+      if (ed(0) || ed(2) || ed(9) || ed(1)) e.ok = true;
+    }
+    return e;
+  },
+  tickHowto(dt, ctrls) {
+    this.howT += dt;
+    const e = this.menuEdges();
+    const remoteOk = ctrls && Object.values(ctrls).some((c) => c.pressed.punch || c.pressed.start);
+    const n = HOWTO.length;
+    if (e.l) { this.howPg = (this.howPg + n - 1) % n; this.howT = 0; FX.team = null; Audio.sfx('select'); }
+    if (e.r || this.howT > HOWTO_PAGE * 1.02) { this.howPg = (this.howPg + 1) % n; this.howT = 0; FX.team = null; if (e.r) Audio.sfx('select'); }
+    if (e.u || e.d) { const i = SCHEMES.indexOf(this.howScheme); this.howScheme = SCHEMES[(i + (e.d ? 1 : SCHEMES.length - 1)) % SCHEMES.length]; Audio.sfx('select'); }
+    if ((e.ok || remoteOk) && this.howT > 0.3) {
+      FX.team = null;
+      try { localStorage.setItem('primal-tutorial-seen', '1'); } catch (err) {}
+      Audio.sfx('confirm');
+      const then = this.howThen; this.howThen = null; then && then();
+    }
+  },
+  tutorialSeen() { try { return !!localStorage.getItem('primal-tutorial-seen'); } catch (e) { return true; } },
+  playCine(id, then) {
+    this.mode = 'cine';
+    this.cine = { id, t: 0, prev: 0 };
+    this.afterCine = then;
+    UI.hide();
   },
   progress() { try { return Math.min(7, +(localStorage.getItem(SAVE_KEY) || 0)); } catch (e) { return 0; } },
   saveProgress(i) { try { if (i > this.progress()) localStorage.setItem(SAVE_KEY, String(Math.min(7, i))); } catch (e) {} },
@@ -377,9 +431,10 @@ const Game = {
     this.levelClear();
   },
   levelClear() {
-    const L = LEVELS[this.levelIdx];
     this.saveProgress(this.levelIdx + 1);
-    this.dialog(L.outro, () => {
+    Audio.playSong(8);
+    // an animated cinematic tells what happens between this chapter and the next
+    this.playCine(this.levelIdx, () => {
       if (this.levelIdx >= LEVELS.length - 1) { this.mode = 'ending'; this.endT = 0; Audio.playSong(8); }
       else this.chapterStart(this.levelIdx + 1);
     });
@@ -407,10 +462,10 @@ const Game = {
     this.back = () => this.resume();
     if (this.online === 'host') this.broadcastView({ m: 'pause' });
     UI.show(`<span class="eyebrow">PAUSA</span><h2>Porto Aurora può aspettare.</h2>
-      <nav class="col"><button class="primary" id="resume" autofocus>RIPRENDI</button><button id="retry">RICOMINCIA LA ZONA</button><button id="help">COMANDI</button><button id="audio">AUDIO: ${Audio.muted ? 'SPENTO' : 'ACCESO'}</button><button id="menu">ESCI AL MENU</button></nav>`, 'center');
+      <nav class="col"><button class="primary" id="resume" autofocus>RIPRENDI</button><button id="retry">RICOMINCIA LA ZONA</button><button id="help">COME SI GIOCA</button><button id="audio">AUDIO: ${Audio.muted ? 'SPENTO' : 'ACCESO'}</button><button id="menu">ESCI AL MENU</button></nav>`, 'center');
     UI.on('#resume', () => this.resume());
     UI.on('#retry', () => { UI.hide(); if (this.pausedFrom === 'giant') { this.G = newGiant(this.levelIdx, this.simPlayers()); this.mode = 'giant'; } else this.enterStage(this.levelIdx, this.S.checkpoint); });
-    UI.on('#help', () => { alert('1P tastiera: WASD, J pugno, K calcio, Spazio salto, L speciale, Shift schivata, I squadra.\n2 giocatori: 1P WASD+F/G/Spazio/R/Shift/T · 2P frecce+K/L/I/O/Shift dx/P (o tastierino numerico).\nController: X pugno, Y calcio, A salto, B speciale, RB schivata, LB squadra.'); });
+    UI.on('#help', () => { const from = this.pausedFrom; this.howto(() => { this.mode = from; this.pause(); this.pausedFrom = from; }); });
     UI.on('#audio', () => { Audio.muted = !Audio.muted; this.pause(); this.pausedFrom = this.pausedFrom === 'pause' ? 'stage' : this.pausedFrom; });
     UI.on('#menu', () => this.menu());
   },
@@ -447,7 +502,11 @@ const Game = {
         this.prevIntroT = this.introT;
         this.introT += dt;
         introSounds(this.prevIntroT, this.introT);
-        if (this.introT > INTRO_LEN || (this.introT > 0.6 && (this.anyPress(c, 'punch', 'start', 'jump') || Input.keyEdge.Enter))) this.chapterStart(0);
+        if (this.introT > INTRO_LEN || (this.introT > 0.6 && (this.anyPress(c, 'punch', 'start', 'jump') || Input.keyEdge.Enter || (this.attract && Object.keys(Input.keyEdge).length)))) {
+          if (this.attract) { this.attract = false; this.title(); break; }
+          if (!this.tutorialSeen()) this.howto(() => this.chapterStart(0), 'PUGNO / INVIO: INIZIA LA PARTITA · ◀ ▶ PAGINA');
+          else this.chapterStart(0);
+        }
         break;
       }
       case 'dlg': {
@@ -485,6 +544,15 @@ const Game = {
         else if (this.G.result === 'lose') { this.G.result = null; this.gameOver('giant'); }
         break;
       }
+      case 'howto': this.tickHowto(dt, this.controls()); break;
+      case 'cine': {
+        const c = this.controls();
+        const cn = this.cine;
+        cn.prev = cn.t; cn.t += dt;
+        cineSounds(cn.id, cn.prev, cn.t);
+        if (cn.t > cineLength(cn.id) || (cn.t > 0.8 && (this.anyPress(c, 'punch', 'start', 'jump') || Input.keyEdge.Enter))) { const then = this.afterCine; this.afterCine = null; then && then(); }
+        break;
+      }
       case 'ending': {
         const c = this.controls();
         this.endT += dt;
@@ -502,6 +570,8 @@ const Game = {
       case 'giant': return buildGiantView(this.G);
       case 'dlg': { const l = this.dlg.lines[this.dlg.i]; return { m: 'dlg', lv: this.levelIdx, lines: this.dlg.lines.map((x) => x.card ? ['', ''] : x), card: l && l.card ? 1 : 0, i: this.dlg.i, t: +this.dlg.t.toFixed(2), heroes: this.players.map((p) => p.hero) }; }
       case 'intro': return { m: 'intro', t: +this.introT.toFixed(2) };
+      case 'howto': return { m: 'howto', t: +this.howT.toFixed(2), pg: this.howPg, sc: this.howScheme, f: this.howFooter || '' };
+      case 'cine': return { m: 'cine', id: this.cine.id, t: +this.cine.t.toFixed(2) };
       case 'ending': return { m: 'ending', t: +this.endT.toFixed(2), heroes: this.players.map((p) => p.hero) };
       case 'pause': return { m: 'pause' };
       case 'over': return { m: 'over' };
@@ -522,6 +592,16 @@ const Game = {
         if (this.online === 'client') { introSounds(this._cIntroT || 0, v.t); this._cIntroT = v.t; }
         drawIntro(v.t); break;
       case 'ending': drawEnding(v.t, v.heroes); break;
+      case 'howto': {
+        const scheme = this.online === 'client' ? ((this.lastDevice || 'kb').startsWith('pad') ? 'pad' : 'kb') : v.sc;
+        const hero = (this.players[0] && this.players[0].hero) || 0;
+        this.howT = v.t;
+        drawHowto(v.pg, v.t, scheme, this.online === 'client' ? (Net.lobby.find((p) => p.id === Net.myId) || { hero: 0 }).hero : hero, { footer: v.f || undefined });
+        break;
+      }
+      case 'cine':
+        if (this.online === 'client') { cineSounds(v.id, this._cCineT ?? v.t, v.t); this._cCineT = v.t; }
+        drawChapterCine(v.id, v.t); break;
       case 'pause': case 'over': {
         if (this.lastDrawn && this.lastDrawn.m !== 'pause' && this.lastDrawn.m !== 'over') this.draw(this.lastDrawn);
         if (this.online === 'client') {
@@ -532,8 +612,28 @@ const Game = {
         return;
       }
     }
-    if (v.m !== 'pause' && v.m !== 'over') this.lastDrawn = v;
+    if (v.m !== 'pause' && v.m !== 'over') {
+      if (this.lastDrawn && this.lastDrawn.m !== v.m) this.wipeT = 0;
+      this.lastDrawn = v;
+    }
+    this.drawWipe();
   },
+  /* tokusatsu wipe: five coloured diagonal bands slide away revealing the new scene */
+  drawWipe() {
+    if (this.wipeT === undefined || this.wipeT > 0.55) return;
+    const k = this.wipeT / 0.55;
+    const E = -350 + k * (W + 1000);     // reveal edge sweeping to the right
+    g.save();
+    g.fillStyle = '#05070c';
+    g.beginPath(); g.moveTo(E + 300, 0); g.lineTo(W + 400, 0); g.lineTo(W + 400, H); g.lineTo(E, H); g.fill();
+    HEROES.forEach((h, i) => {
+      const x = E - (i + 1) * 46;
+      g.fillStyle = h.color;
+      g.beginPath(); g.moveTo(x + 300, 0); g.lineTo(x + 346, 0); g.lineTo(x + 46, H); g.lineTo(x, H); g.fill();
+    });
+    g.restore();
+  },
+
 };
 
 /* ---------------- main loop ---------------- */
@@ -548,7 +648,9 @@ function frame(ts) {
   if (Input.keyEdge.KeyM && !UI.typing()) Audio.muted = !Audio.muted;
 
   UI.nav();
-  if (Game.mode === 'lobby') { Game.tickLobby(dt); Game.draw(null); Game.drawLobby(false); }
+  if (Game.wipeT !== undefined) Game.wipeT += dt;
+  if (Game.mode === 'title') { Game.tickTitle(dt); g.setTransform(1, 0, 0, 1, 0, 0); drawTitle(Game.titleT); }
+  else if (Game.mode === 'lobby') { Game.tickLobby(dt); Game.draw(null); Game.drawLobby(false); }
   else if (Game.mode === 'netlobby') { Game.tickNetLobby(dt); g.setTransform(1, 0, 0, 1, 0, 0); Game.drawLobby(true); }
   else if (Game.mode === 'client') {
     // online guest: send controls, draw what the host sends
@@ -603,11 +705,11 @@ const IMAGES = [
   ['items', 'assets/sprites/items.png'], ['people', 'assets/sprites/people.png'],
   ['port', 'assets/bg/port.jpg'], ['harbor', 'assets/bg/harbor.jpg'], ['rail', 'assets/bg/rail.jpg'], ['park', 'assets/bg/park.jpg'],
   ['theater', 'assets/bg/theater.jpg'], ['siege', 'assets/bg/siege.jpg'], ['graveyard', 'assets/bg/graveyard.jpg'], ['veil', 'assets/bg/veil.jpg'],
-  ['dawn', 'assets/bg/dawn.jpg'], ['story_cores', 'assets/bg/story_cores.jpg'],
+  ['dawn', 'assets/bg/dawn.jpg'], ['story_cores', 'assets/bg/story_cores.jpg'], ['logo', 'assets/ui/logo.png'],
 ];
-loadImages(IMAGES).then(() => {
+Promise.all([loadFonts(), loadImages(IMAGES)]).then(() => {
   document.querySelector('#loading').remove();
-  Game.menu();
+  Game.title();
   requestAnimationFrame(frame);
 }).catch((src) => {
   document.querySelector('#loading').textContent = 'File mancante: ' + src + ' — estrai tutto lo ZIP prima di aprire index.html.';
@@ -620,3 +722,27 @@ window.gameStatus = () => ({
   zone: Game.S ? Game.S.zoneIdx : 0, enemies: Game.S ? Game.S.enemies.filter((e) => e.hp > 0).length : 0,
   giant: Game.G ? { thp: Game.G.pl.hp, ehp: Game.G.en.hp } : null,
 });
+
+/* ---------------- title screen ---------------- */
+function drawTitle(t) {
+  drawStageBackdrop('port', 300 + t * 25);
+  const grd = g.createLinearGradient(0, 0, 0, H);
+  grd.addColorStop(0, 'rgba(3,6,16,.75)'); grd.addColorStop(0.6, 'rgba(3,6,16,.35)'); grd.addColorStop(1, 'rgba(3,6,16,.85)');
+  g.fillStyle = grd; g.fillRect(0, 0, W, H);
+  // heroes line-up with coloured back-lights
+  HEROES.forEach((h, i) => {
+    const x = 240 + i * 200, y = 700;
+    glowAt(x, y - 80, 150, h.color, 0.25 + 0.1 * Math.sin(t * 2 + i));
+    drawShadow(x, y, 40);
+    spr('fighters', `${h.id}_${Math.floor(t * 1.2 + i * 1.7) % 9 === 0 ? 4 : 0}`, x, y, { scale: 1.05, face: i < 2 ? 1 : i === 2 ? 1 : -1 });
+  });
+  // logo drops in with a bounce, then a flash
+  const k = clamp(t / 0.8, 0, 1);
+  const bounce = k < 1 ? (1 - Math.pow(1 - k, 3)) : 1;
+  const y = lerp(-320, 225, bounce) + (k >= 1 ? Math.sin(Math.min(1, (t - 0.8) * 4) * Math.PI) * -12 * Math.max(0, 1 - (t - 0.8) * 2) : 0);
+  drawLogo(W / 2, y, 0.74, t);
+  if (t > 0.8 && t < 1.2) { g.fillStyle = `rgba(255,255,255,${(1.2 - t) * 2})`; g.fillRect(0, 0, W, H); }
+  if (t > 1.3 && Math.floor(t * 2.2) % 2 === 0) ptitle('PREMI START', W / 2, 452, 24, '#ffffff', '#ffd35a');
+  ptxt('© 2026 b3pZ · 1-4 GIOCATORI · COOPERATIVA ONLINE', W / 2, 486, 9, '#9fb4c8', 'center');
+  ptxt('CREDITI  99', W - 24, H - 16, 9, '#6f8aa2', 'right');
+}

@@ -1,5 +1,5 @@
 # PRIMAL SENTINELS — Il cuore dei titani
-Ideato e sviluppato da b3pZ. Build 1.0: campagna completa in 8 capitoli, da 1 a 4 giocatori.
+Ideato e sviluppato da b3pZ. Build 1.1: campagna completa in 8 capitoli, da 1 a 4 giocatori.
 
 ## Avvio
 Estrai tutto lo ZIP e apri `index.html` con Chrome, Edge o Firefox (Mac o Windows).
@@ -26,11 +26,17 @@ Non serve installare nulla. Per GitHub Pages pubblica il contenuto della cartell
 | Colpo di squadra | I | T | P / Num4 | LB |
 | Pausa | Esc / Invio | Esc | Invio | Start |
 
-Doppio tocco avanti: corsa (pugno in corsa = carica). Cammina contro un nemico stordito
-per **afferrarlo**: pugno = ginocchiate, calcio = lancio (travolge gli altri nemici).
-Pugno sopra un'arma per raccoglierla. I fusti rossi esplodono. Lo speciale costa 40 di
-energia; senza energia costa un po' di vita, come nei cabinati. La barra squadra si riempie
-colpendo: quando è piena, il colpo di squadra fa la posa tokusatsu e colpisce tutto lo schermo.
+Il tutorial animato **COME SI GIOCA** (dal menu, dalla pausa e automaticamente la prima volta
+prima del capitolo 1) mostra ogni mossa con i tasti che si illuminano, per tastiera, controller e
+due giocatori sulla stessa tastiera.
+
+Ogni ranger ha la sua arma: Ignis la Spada Zanna, Azur la Lancia Tricorno, Lyra gli Artigli Felini,
+Aura l'Arco d'Ala, Onyx il Martello Zanna. Si vedono nel terzo pugno della combo, nel pugno in corsa
+(doppio tocco avanti) e nella mossa speciale. Cammina contro un nemico stordito per **afferrarlo**:
+pugno = ginocchiate, calcio = lancio (travolge gli altri nemici). I fusti rossi esplodono.
+Lo speciale costa 40 di energia; senza energia costa un po' di vita, come nei cabinati.
+La barra squadra si riempie colpendo: quando è piena lo schermo indica il tasto, e il colpo di
+squadra riunisce i cinque ranger, le loro armi si uniscono nel Cannone Primordiale e sparano insieme.
 
 **Duelli giganti** (capitoli 3, 5 e 8): tutti i giocatori pilotano insieme il titano o Concordia.
 Pugno e calcio attaccano, schivata tenuta premuta para, salto fa un passo rapido.
@@ -42,16 +48,22 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
   Mastice, Centipede (si divide), Trivor (trivella e si interra), Mimesi (copie oscure
   degli eroi), Kharon (parata e onde di spada), il Custode (sfere e rinforzi),
   Kharon liberato, Vespera (raggio, teletrasporto, evocazioni).
+- Capitolo 2 sul treno in corsa: il paesaggio scorre, passano i pali, tra un vagone e l'altro ci
+  sono buchi da saltare (chi cade perde vita; i nemici scaraventati lì volano giù dal treno);
+  i prigionieri sono chiusi in gabbie d'energia e il portale del Velo si avvicina durante il boss.
 - 3 duelli giganti: Tiranno rosso contro Trivor, Concordia contro Mastice risorto,
   Concordia Alba contro Vespera Eclisse.
-- Intro animata di circa un minuto, saltabile: il lungomare con i civili, il terremoto,
+- Intro animata di circa un minuto, saltabile (con i ranger che appaiono dentro le cinque capsule): il lungomare con i civili, il terremoto,
   la frattura nel cielo, i soldati che escono dalle vetrine, Vespera oltre il Velo, la camera
   dei Cuori e i cinque protagonisti in borghese che si trasformano.
 - Capitolo 1: si comincia in abiti civili e la prima trasformazione si fa premendo speciale.
-- Dialoghi prima, durante e dopo ogni capitolo, con i personaggi in scena. Finale con i titoli di coda.
+- Cinematiche animate tra un capitolo e l'altro (e prima dei titoli di coda) che raccontano come
+  prosegue la storia; dialoghi all'inizio dei capitoli e prima dei duelli giganti.
+- Schermata del titolo con il logo, menu da cabinato, font pixel, HUD con barre a segmenti,
+  transizioni a tendina colorata tra le scene.
 - Sprite ritagliati di nuovo seguendo la sagoma: calci, pugni, spade e magie non sono più tagliati.
-- Nuovi asset: pizza, pollo arrosto, bibita, cella d'energia, moneta, frammento di Cuore,
-  tubo d'acciaio, remo, casse, fusti esplosivi, bidoni, schegge; 9 tipi di civili animati;
+- Nuovi asset: logo, le cinque armi dei ranger e il Cannone Primordiale, pizza, pollo arrosto,
+  bibita, cella d'energia, moneta, frammento di Cuore, casse, fusti esplosivi, bidoni, schegge; 9 tipi di civili animati;
   i 5 eroi in borghese (camminata, corsa, posa, trasformazione); due nuove varianti di soldato.
 - Musica e suoni sintetizzati, diversi per ogni capitolo.
 
@@ -78,4 +90,5 @@ Server di incontro personale (facoltativo): `index.html?peer=indirizzo:porta`.
 `index.html`, `style.css` · `js/`: gioco (dati, motore, rendering, cinematiche, rete)
 `assets/sprites`: atlanti ritagliati · `assets/bg`: fondali · `assets/source`: tavole originali
 `vendor/peerjs.min.js`: libreria di rete · `tools/`: script Python che rigenerano gli asset
+`assets/fonts`: font pixel con licenza libera SIL OFL (Press Start 2P, Pixelify Sans, Bungee)
 `artbook.html`: catalogo visivo · `ASSET_STATUS.md`: inventario.
