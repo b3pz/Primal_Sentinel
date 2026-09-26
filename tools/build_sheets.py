@@ -65,6 +65,10 @@ for f in fr:
             out[..., 2] = np.where(m, 40, lum * 0.62)
             return out
         frames.append((f'brute_{f["col"]}', recolor(img, brute), f['ax'], f['ay']))
+# weapon poses from the generated sheet (frames 8..15)
+from build_hd import armed_frames
+idle_h = {k.split('_')[0]: im.height for k, im, ax, ay in frames if k.endswith('_0') and k.split('_')[0] in ('ignis', 'azur', 'lyra', 'aura', 'onyx')}
+frames += armed_frames(idle_h)
 save('fighters', frames)
 
 # ---------------- bosses ----------------

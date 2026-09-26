@@ -71,10 +71,10 @@ function ring(S, x, y, c, r = 220, life = 0.5) { ev(S, { t: 'ring', x: Math.roun
 const MOVES = {
   jab: { dur: 0.24, hitAt: 0.07, frames: [[0.06, 4], [1, 5]], dmg: 9, reach: 104, depth: 36, snd: 'punch' },
   jab2: { dur: 0.32, hitAt: 0.1, frames: [[0.06, 4], [1, 6]], dmg: 11, reach: 124, depth: 38, snd: 'kick' },
-  fin: { dur: 0.46, hitAt: 0.15, frames: [[0.1, 4], [1, 5]], dmg: 19, reach: 158, depth: 42, knock: true, snd: 'weapon', lunge: 120, sig: true },
-  shoot: { dur: 0.3, hitAt: 0.06, frames: [[0.05, 4], [1, 5]], dmg: 0, reach: 0, depth: 0, snd: null, gun: true },
+  fin: { dur: 0.46, hitAt: 0.15, frames: [[0.12, 8], [1, 9]], dmg: 19, reach: 158, depth: 42, knock: true, snd: 'weapon', lunge: 120, sig: true },
+  shoot: { dur: 0.3, hitAt: 0.06, frames: [[1, 11]], dmg: 0, reach: 0, depth: 0, snd: null, gun: true },
   air: { dur: 9, hitAt: 0, frames: [[99, 6]], dmg: 15, reach: 120, depth: 44, knock: true, snd: 'kick', air: true },
-  dash: { dur: 0.38, hitAt: 0.05, frames: [[1, 5]], dmg: 17, reach: 138, depth: 42, knock: true, snd: 'weapon', lunge: 420, multi: true, sig: true },
+  dash: { dur: 0.38, hitAt: 0.05, frames: [[1, 9]], dmg: 17, reach: 138, depth: 42, knock: true, snd: 'weapon', lunge: 420, multi: true, sig: true },
   knee: { dur: 0.26, hitAt: 0.1, frames: [[0.08, 4], [1, 6]], dmg: 8, reach: 70, depth: 30, snd: 'kick', grab: true },
   swing: { dur: 0.34, hitAt: 0.11, frames: [[0.1, 4], [1, 5]], dmg: 11, reach: 104, depth: 42, snd: 'weapon', weapon: true },
 };
@@ -965,27 +965,27 @@ function playerFrame(p) {
   let f = 0, rot = 0;
   switch (p.st) {
     case 'walk': f = [1, 2, 3, 2][Math.floor(p.walk) % 4]; break;
-    case 'jump': f = p.atk === 'air' ? 6 : 4; break;
+    case 'jump': f = p.atk === 'air' ? 6 : 12; break;
     case 'land': f = 4; break;
-    case 'drop': f = 4; break;
+    case 'drop': f = 12; break;
     case 'dodge': f = 1; break;
     case 'atk': {
       if (p.atk === 'pickup') { f = 4; break; }
       const m = MOVES[p.atk]; f = m.frames.find(([t]) => p.t < t)?.[1] ?? m.frames[m.frames.length - 1][1];
       break;
     }
-    case 'grab': f = 4; break;
-    case 'grabatk': f = p.t > 0.08 ? 6 : 4; break;
+    case 'grab': case 'grabatk': f = 15; break;
     case 'throw': f = 5; break;
     case 'special': {
       const k = p.spk;
-      f = k === 'azur' ? 5 : k === 'lyra' ? (Math.floor(p.t / 0.08) % 2 ? 5 : 6) : k === 'onyx' ? (p.t < 0.3 ? 4 : 5) : p.t < 0.18 ? 4 : 5;
+      // weapon poses of the generated sheet: 8 wind-up · 9 strike · 10 special
+      f = k === 'azur' ? 10 : k === 'lyra' ? (Math.floor(p.t / 0.08) % 2 ? 9 : 10) : k === 'onyx' ? (p.t < 0.3 ? 10 : 9) : k === 'aura' ? (p.t < 0.3 ? 10 : 9) : p.t < 0.16 ? 8 : 10;
       break;
     }
     case 'pose': f = p.t < 0.3 ? 0 : 4; break;
     case 'hurt': f = 7; break;
-    case 'knock': f = 7; rot = -Math.min(1, p.t * 4) * Math.PI / 2 * 0.95; break;
-    case 'down': case 'dead': f = 7; rot = -Math.PI / 2 * 0.95; break;
+    case 'knock': f = p.t < 0.12 ? 7 : 13; break;
+    case 'down': case 'dead': f = 14; break;
     case 'getup': f = 4; rot = -(1 - p.t / 0.3) * 0.6; break;
     case 'fall': f = 7; rot = p.t * 3; break;
   }
@@ -1044,7 +1044,7 @@ function civFrame(c) {
   const t = c.type;
   if (c.mode === 'cower') return `${t}_cower`;
   if (c.mode === 'flee') return `${t}_run${Math.floor(c.t * 11) % 6}`;
-  if (c.mode === 'saved') return c.t < 0.35 ? `${t}_idle0` : `${t}_point`;
+  if (c.mode === 'saved') return c.t < 0.35 ? `${t}_idle0` : `${t}_thank`;
   if (c.mode === 'leave') return `${t}_walk${Math.floor(c.t * 7) % 6}`;
   return `${t}_idle${Math.floor(c.t * 2) % 2}`;
 }
@@ -1062,6 +1062,7 @@ function buildView(S) {
     const sc = boss ? e.B.scale : e.def.scale * (e.def.villain ? 1 : 1);
     const o = { i: e.id, s: boss || e.def.villain ? 'bosses' : 'fighters', f, x: r(e.x), y: r(e.y), z: r(e.z || 0), fc: e.face, sc, r: rot, sh: boss ? 90 : 36 };
     if (e.flash > 0) o.fl = 1;
+    if (e.st === 'held') { o.a = 0; o.sh = 0; }
     if (e.def && e.def.shade) o.ti = '#3a1466';
     if (boss && e.alpha !== undefined && e.alpha < 1) o.a = +e.alpha.toFixed(2);
     if (e.st === 'dead') o.a = boss ? 1 : +(Math.max(0, 1 - e.t / 1.1) * (Math.floor(e.t * 16) % 2 ? 0.4 : 1)).toFixed(2);
@@ -1096,12 +1097,11 @@ function buildView(S) {
     if (p.st === 'special' || p.st === 'pose') o.au = HEROES[p.hero].glow;
     // personal weapon visible in the finisher, the running strike and the specials
     const hid = HEROES[p.hero].id;
-    if (p.st === 'atk' && p.atk === 'shoot') { o.sw = 'w_gun'; o.sr = 0; }
-    else if (p.st === 'atk' && MOVES[p.atk] && MOVES[p.atk].sig) {
+    if (false) {
       o.sw = 'w_' + hid;
       o.sr = p.atk === 'dash' ? 0 : +(p.t < 0.1 ? -1.5 : clamp(-1.5 + (p.t - 0.1) / 0.12 * 1.7, -1.5, 0.2)).toFixed(2);
       if (hid === 'aura') o.sr = 0;
-    } else if (p.st === 'special') {
+    } else if (false) {
       o.sw = 'w_' + hid;
       o.sr = hid === 'ignis' ? +clamp(-1.6 + p.t / 0.16 * 1.9, -1.6, 0.3).toFixed(2) : hid === 'onyx' ? (p.t < 0.3 ? -2.0 : 0.95) : 0;
     }

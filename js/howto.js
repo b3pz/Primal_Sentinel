@@ -83,8 +83,8 @@ const HOWTO = [
     title: 'PRESE E LANCI', cap: (k) => `NEMICO STORDITO (SCRITTA PRESA!): ${k.punch} LO AFFERRI · ${k.punch} GINOCCHIATE · INDIETRO + ${k.punch} LO LANCI ALLE SPALLE · ${k.jump} LO LANCI IN AVANTI`,
     run(t) {
       let f = 0, lit = [], x = 440, face = 1, enemy = { f: 7, x: 520, face: -1, tag: t < 1.2 }, enemy2 = { f: 0, x: 250 };
-      if (t > 1.2) { f = 4; enemy.x = x + 52; lit = t < 1.35 ? ['punch'] : []; }
-      [1.8, 2.4].forEach((b) => { if (t > b && t < b + 0.26) { f = t > b + 0.08 ? 6 : 4; lit = ['punch']; } });
+      if (t > 1.2 && t < 3.1) { f = 4; enemy.x = x + 52; enemy.hide = true; lit = t < 1.35 ? ['punch'] : []; }
+      [1.8, 2.4].forEach((b) => { if (t > b && t < b + 0.26) { lit = ['punch']; } });
       if (t > 3.1) {
         face = -1; lit = t < 3.3 ? ['left', 'punch'] : [];
         const k = clamp((t - 3.1) / 0.7, 0, 1);
@@ -92,7 +92,7 @@ const HOWTO = [
         enemy.x = x - 52 - k * 150; enemy.z = Math.sin(k * Math.PI) * 90; enemy.rot = k * 1.5; enemy.face = 1;
         if (k >= 1) { enemy2.f = 7; enemy2.rot = clamp((t - 3.8) * 4, 0, 1.5); enemy2.x = 250 - clamp((t - 3.8) * 150, 0, 60); }
       }
-      return { x, y: 580, face, f, lit, enemy, enemy2, note: t > 1.2 && t < 3.1 ? 'PRESO!' : t > 3.2 && t < 4.6 ? 'LANCIO ALLE SPALLE!' : '' };
+      return { x, y: 580, face, f, lit, enemy, enemy2, grab: t > 1.2 && t < 3.1, note: t > 1.2 && t < 3.1 ? 'PRESO!' : t > 3.2 && t < 4.6 ? 'LANCIO ALLE SPALLE!' : '' };
     },
   },
   {
@@ -227,17 +227,21 @@ function roundRect(x, y, w, h, r) {
 /* ---------- drawing the demo stage ---------- */
 function puppet(heroIdx, s) {
   const id = HEROES[heroIdx].id;
-  const key = `${id}_${s.f || 0}`;
+  let f = s.f || 0;
+  if (s.gun) f = 11;
+  else if (s.weapon !== null && s.weapon !== undefined) f = s.fx ? (s.f === 4 ? 8 : 10) : (s.weapon < -0.5 ? 8 : 9);
+  else if (s.z > 0 && f === 4) f = 12;
+  if (f === 4 && s.grab) f = 15;
+  const key = `${id}_${f}`;
   const z = s.z || 0;
   drawShadow(s.x, s.y, 36, z);
   if (s.ghost) for (let i = 2; i >= 1; i--) spr('fighters', key, s.x - s.face * i * 24, s.y - z, { scale: 1.0, face: s.face, alpha: 0.2 * (3 - i) });
   spr('fighters', key, s.x, s.y - z, { scale: 1.0, face: s.face });
   if (s.weapon !== null && s.weapon !== undefined) drawSigWeapon('w_' + id, key, s.x, s.y - z, s.face, 1.0, s.weapon, HEROES[heroIdx].glow, Game.howT || 0);
-  if (s.gun) drawSigWeapon('w_gun', key, s.x, s.y - z, s.face, 1.0, 0, null, 0);
   for (const bx of s.bolts || []) { g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = HEROES[heroIdx].glow; g.fillRect(bx - 40, s.y - 108, 50, 10); g.fillStyle = '#fff'; g.fillRect(bx - 20, s.y - 105, 26, 4); g.restore(); }
 }
 function enemyPuppet(e, y = 580, key = 'soldier') {
-  if (!e) return;
+  if (!e || e.hide) return;
   const z = e.z || 0;
   drawShadow(e.x, y, 36, z);
   spr('fighters', `${key}_${e.f || 0}`, e.x + (e.rot ? -10 : 0), y - z, { scale: 1.0, face: e.face || -1, rot: e.rot || 0 });

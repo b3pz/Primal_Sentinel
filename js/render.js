@@ -199,6 +199,7 @@ function handPos(key, sc) {
   return [20 * sc, -fr[5] * sc * 0.52];
 }
 function drawSigWeapon(key, frameKey, x, y, face, sc, rot, glow, t) {
+  if (+frameKey.split('_')[1] >= 8) return;   // weapon already in the sprite
   const fw = frameOf('items', key);
   if (!fw) return;
   const [hx, hy] = handPos(frameKey, sc);
@@ -569,7 +570,7 @@ function drawTeamPose() {
     const [tx, ty] = pos(i);
     const arrive = clamp((k - i * 0.06) / 0.35, 0, 1);
     const x = lerp(i % 2 ? W + 120 : -120, tx, 1 - Math.pow(1 - arrive, 3));
-    const f = k < 0.45 ? 1 : k < 1.1 ? 4 : i === 0 ? 5 : 0;
+    const f = k < 0.45 ? 1 : k < 1.1 ? 8 : i === 0 ? 11 : 0;
     drawShadow(x, ty, 40);
     spr('fighters', `${HEROES[hid].id}_${f}`, x, ty, { scale: 1.2, face: 1, alpha: i < players.length ? 1 : 0.92 });
     // weapons raised over the heads, then flying to the centre
@@ -577,11 +578,11 @@ function drawTeamPose() {
     if (k > 0.45 && k < 1.55) {
       const fly = clamp((k - 1.1) / 0.45, 0, 1);
       const wx = lerp(x + 10, W / 2, fly * fly), wy = lerp(ty - 250, 250, fly * fly);
-      g.save(); g.translate(wx, wy); g.rotate(-Math.PI / 2 + fly * Math.PI / 2 + (hid === 3 ? Math.PI / 2 : 0) * (1 - fly));
+      g.save(); g.translate(wx, wy); g.rotate(fly * 0.3);
       g.globalCompositeOperation = 'lighter'; g.globalAlpha = fade * 0.6; g.fillStyle = HEROES[hid].color;
       g.beginPath(); g.arc(0, 0, 50, 0, 7); g.fill();
       g.globalCompositeOperation = 'source-over'; g.globalAlpha = fade;
-      g.drawImage(IMG.items, fw[0], fw[1], fw[2], fw[3], -fw[4] * 1.2, -fw[5] * 1.2, fw[2] * 1.2, fw[3] * 1.2);
+      g.drawImage(IMG.items, fw[0], fw[1], fw[2], fw[3], -fw[4] * 0.9, -fw[5] * 0.9, fw[2] * 0.9, fw[3] * 0.9);
       g.restore();
     }
   });
@@ -592,12 +593,12 @@ function drawTeamPose() {
     const cx = lx + 40, cy = ly - 118;
     const form = clamp((k - 1.5) / 0.15, 0, 1);
     if (k < 1.65) { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = (1 - form) * fade; g.fillStyle = '#fff'; g.beginPath(); g.arc(W / 2, 250, 160 * (1 - form) + 40, 0, 7); g.fill(); g.restore(); }
-    const sc = 1.5;
+    const sc = 1.1;
     const recoil = k > 2.0 ? Math.sin(Math.min(1, (k - 2.0) * 6) * Math.PI) * 14 : 0;
     g.save(); g.translate(cx - recoil, cy); g.scale(sc, sc);
     g.drawImage(IMG.items, fc[0], fc[1], fc[2], fc[3], -fc[4], -fc[5], fc[2], fc[3]);
     g.restore();
-    const mx = cx + (fc[2] - fc[4]) * sc - 6, my = cy - fc[5] * sc + 22 * sc;
+    const mx = cx + (fc[2] - fc[4]) * sc - 4, my = cy + (fc[3] * 0.55 - fc[5]) * sc;
     if (k < 2.0) {
       // charging: five colours spiral into the muzzle
       g.save(); g.globalCompositeOperation = 'lighter';

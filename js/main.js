@@ -69,7 +69,7 @@ const Game = {
         <button id="howto">COME SI GIOCA</button>
         <button id="audio">AUDIO: ${Audio.muted ? 'SPENTO' : 'ACCESO'}</button>
       </nav>
-      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.1</div>`, 'menu');
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.3</div>`, 'menu');
     UI.on('#play', () => { this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
     UI.on('#chapters', () => this.chapters());

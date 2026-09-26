@@ -1,5 +1,5 @@
 # PRIMAL SENTINELS — Il cuore dei titani
-Ideato e sviluppato da b3pZ. Build 1.2: campagna completa in 8 capitoli, da 1 a 4 giocatori.
+Ideato e sviluppato da b3pZ. Build 1.3: campagna completa in 8 capitoli, da 1 a 4 giocatori.
 
 ## Avvio
 Estrai tutto lo ZIP e apri `index.html` con Chrome, Edge o Firefox (Mac o Windows).

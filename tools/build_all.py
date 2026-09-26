@@ -4,9 +4,12 @@ from PIL import Image
 from pack import pack
 import items, people
 exec(open('build_sheets.py').read())
-fr = items.build()
+import build_hd
+hd = build_hd.item_frames()
+hd_keys = {k for k, *_ in hd}
+fr = [f for f in items.build() if f[0] not in hd_keys] + hd
 atlas, meta = pack(fr); atlas.save(OUT + 'items.png', optimize=True); META['items'] = meta
-fr = people.build()
+fr = build_hd.people_frames()
 atlas, meta = pack(fr); atlas.save(OUT + 'people.png', optimize=True); META['people'] = meta
 print('items', len(META['items']), 'people', len(META['people']))
 src = Image.open(os.path.join(ROOT, 'assets', 'source', 'story.png')).convert('RGB')
