@@ -1,54 +1,53 @@
 # PRIMAL SENTINELS — Porto Aurora
 Sviluppato ed ideato da b3pZ.
-Build 0.1 — primo livello, single player desktop.
+Build 0.2 — primo livello + cooperativa online sperimentale desktop.
 
 ## Avvio
-Estrai tutto lo ZIP, poi apri `index.html` in un browser su Mac o Windows.
-Non aprire il file direttamente dentro lo ZIP. Non occorrono installazioni,
-account, librerie esterne o connessione per la modalità singola.
-Per GitHub Pages, pubblica il contenuto della cartella `primal-sentinels`
-come sito statico mantenendo `index.html` e `assets` nella stessa directory.
-Questo pacchetto non è già stato caricato su un repository o pubblicato.
+Per la modalità singola puoi estrarre lo ZIP e aprire `index.html` su Mac o Windows.
+Per il CO-OP ONLINE è consigliato pubblicare la cartella `primal-sentinels` su GitHub Pages e aprire lo stesso indirizzo su entrambi i computer. È necessaria Internet perché il collegamento usa WebRTC + PeerJS per il signaling.
 
-## Incluso e implementato
-- Intro in tre scene, saltabile; menu, scelta tra cinque eroi.
-- Un livello a scorrimento con tre ondate (4, 6, 7 soldati) e Mastice.
-- Movimento su due assi, pugno, calcio, salto, speciale e schivata.
-- Eroi con velocità/potenza diverse; energia, salute, punteggio e contatore colpi.
-- Boss con anticipazione dei colpi e attacco ad area, più aggressivo a metà vita.
-- Casse distruttibili con cure; recuperi di energia.
-- Checkpoint tra le zone nella sessione; pausa; vittoria e sconfitta.
-- Suoni sintetizzati localmente e accompagnamento minimale.
-- Input tastiera e controller standard; controller non verificato con hardware reale.
-- Tavole di riferimento aggiuntive per ambientazioni, boss e titani.
+## Co-op online
+1. Giocatore 1: `CO-OP ONLINE` → `CREA STANZA`.
+2. Condivide il codice di 6 caratteri.
+3. Giocatore 2: `CO-OP ONLINE` → inserisce il codice → `ENTRA`.
+4. Ognuno sceglie il proprio Sentinel.
+5. Entrambi premono `PRONTO`.
+6. L'host avvia automaticamente la simulazione quando entrambi sono pronti.
+
+### Architettura
+- collegamento browser-to-browser WebRTC;
+- host autoritativo: nemici, danni, boss, drop, checkpoint e punteggio vengono calcolati dall'host;
+- l'ospite invia solo i propri input e riceve snapshot della partita;
+- targeting nemici sul Sentinel vivo più vicino;
+- due barre vita/energia;
+- se un Sentinel cade, il compagno lo rianima restando vicino per circa 2 secondi;
+- se la connessione cade, la sessione co-op termina in modo controllato.
 
 ## Comandi
 WASD / frecce: movimento. J: pugno. K: calcio. Spazio: salto.
 L: speciale (40 energia). Shift sinistro: schivata. Esc: pausa. M: audio.
 Controller standard: stick/croce per muoversi, X pugno, Y calcio, A salto,
 B speciale, RB schivata, Start pausa. Nei menu croce e A.
-Con tastiera: Tab e Invio per navigare i menu.
 
-## Stato effettivo
-È una prima build giocabile, non la campagna completa né una versione finale.
-Il multiplayer online con codice non è implementato. Nessun server viene contattato.
-Mobile rinviato. Livelli 2–8 non implementati.
-Le cinematiche sono scene statiche con testo, non filmati animati o doppiati.
-Le animazioni del primo livello sono essenziali; salto e schivata riutilizzano pose.
-Il checkpoint non sopravvive al ricaricamento della pagina. Il completamento viene
-registrato localmente quando il browser lo consente, ma non sblocca contenuti inesistenti.
-Consulta ASSET_STATUS.md per ciò che è ancora da produrre.
+## Incluso
+- Intro in tre scene, menu e scelta tra cinque eroi.
+- Primo livello Porto Aurora con tre ondate e Mastice.
+- Single player conservato.
+- Co-op online a due giocatori con stanza/codice.
+- Scelta eroe indipendente P1/P2.
+- Host autoritativo e sincronizzazione snapshot.
+- Nemici e boss con targeting su entrambi.
+- Rianimazione compagno.
+- Pausa condivisa.
+- HUD a due giocatori.
+- Tastiera e controller sul proprio computer.
 
-## Verifica
-Controllo sintassi JavaScript superato. Caricamento delle immagini e rendering
-Canvas eseguiti. Simulazione della logica di combattimento completata fino alla
-vittoria in tutte e quattro le zone, con posizionamento/energia controllati dal test.
-Verificati movimento, salto, pausa, sconfitta e checkpoint. Non è una prova di
-bilanciamento eseguita da una persona. Browser automatico non disponibile:
-non sono certificati Safari/macOS, Chrome/Windows, audio e controller reali.
+## Limiti di questa build
+- Il co-op richiede Internet e il servizio pubblico di signaling PeerJS.
+- Alcune VPN, firewall aziendali o NAT restrittivi possono impedire una connessione WebRTC diretta; non è incluso un TURN dedicato proprietario.
+- Il controller resta da verificare con hardware reale su Mac e Windows.
+- Mobile rinviato.
+- Livelli 2–8 non implementati.
 
-## File
-`game.js`: logica e rendering; `style.css`: menu; `assets`: immagini.
-`artbook.html`: catalogo delle tavole e regole di coerenza.
-`ASSET_STATUS.md`: inventario, limiti e lavori mancanti.
-`ART_BIBLE.md`: scelte visive da preservare.
+## GitHub Pages
+Carica il contenuto della cartella `primal-sentinels` nella root del repository mantenendo `index.html`, `game.js`, `style.css` e `assets/` allo stesso livello.
