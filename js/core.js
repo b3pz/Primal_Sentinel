@@ -286,6 +286,9 @@ const Audio = {
       case 'crowd': for (let i = 0; i < 4; i++) this.tone(rand(300, 700), 0.25, 'triangle', 0.012, rand(0.7, 1.3), i * 0.06); break;
       case 'stomp': this.noise(0.3, 0.12, 40); this.tone(45, 0.35, 'sine', 0.12, 0.6); break;
       case 'laser': this.tone(900, 0.3, 'sawtooth', 0.04, 0.2); break;
+      case 'shot': this.tone(1300, 0.09, 'square', 0.03, 0.35); this.noise(0.05, 0.03, 3000); break;
+      case 'empty': this.tone(180, 0.05, 'square', 0.02, 1); this.tone(140, 0.05, 'square', 0.02, 1, 0.06); break;
+      case 'reload': this.tone(500, 0.04, 'square', 0.03, 1); this.tone(760, 0.06, 'square', 0.03, 1, 0.06); break;
     }
   },
   /* songs: [bass line, lead line] in semitones from A1; null = rest */
@@ -326,28 +329,28 @@ const Audio = {
 /* ============================================================
    INPUT — dispositivi: tastiera (solo / A / B) e controller
    Ogni giocatore legge un "controllo" astratto:
-   l r u d  + punch kick jump special dodge team start
+   l r u d  + punch (attacco) shoot (pistola) jump special dodge team start
    ============================================================ */
-const BTN = ['punch', 'kick', 'jump', 'special', 'dodge', 'team', 'start'];
+const BTN = ['punch', 'shoot', 'jump', 'special', 'dodge', 'team', 'start'];
 const KEYMAPS = {
   // una sola persona sulla tastiera: tutti i tasti
   kb: {
     l: ['KeyA', 'ArrowLeft'], r: ['KeyD', 'ArrowRight'], u: ['KeyW', 'ArrowUp'], d: ['KeyS', 'ArrowDown'],
-    punch: ['KeyJ', 'KeyF', 'Numpad1'], kick: ['KeyK', 'KeyG', 'Numpad2'], jump: ['Space', 'Numpad0'],
+    punch: ['KeyJ', 'KeyF', 'Numpad1'], shoot: ['KeyK', 'KeyG', 'Numpad2'], jump: ['Space', 'Numpad0'],
     special: ['KeyL', 'KeyR', 'Numpad3'], dodge: ['ShiftLeft', 'ShiftRight', 'KeyT'], team: ['KeyI', 'KeyY', 'Numpad4'], start: ['Escape', 'Enter'],
   },
   // due persone sulla stessa tastiera
   kbA: {
     l: ['KeyA'], r: ['KeyD'], u: ['KeyW'], d: ['KeyS'],
-    punch: ['KeyF'], kick: ['KeyG'], jump: ['Space'], special: ['KeyR'], dodge: ['ShiftLeft'], team: ['KeyT'], start: ['Escape'],
+    punch: ['KeyF'], shoot: ['KeyG'], jump: ['Space'], special: ['KeyR'], dodge: ['ShiftLeft'], team: ['KeyT'], start: ['Escape'],
   },
   kbB: {
     l: ['ArrowLeft'], r: ['ArrowRight'], u: ['ArrowUp'], d: ['ArrowDown'],
-    punch: ['Numpad1', 'KeyK'], kick: ['Numpad2', 'KeyL'], jump: ['Numpad0', 'KeyI'], special: ['Numpad3', 'KeyO'],
+    punch: ['Numpad1', 'KeyK'], shoot: ['Numpad2', 'KeyL'], jump: ['Numpad0', 'KeyI'], special: ['Numpad3', 'KeyO'],
     dodge: ['NumpadDecimal', 'ShiftRight'], team: ['Numpad4', 'KeyP'], start: ['NumpadEnter', 'Enter'],
   },
 };
-const PADMAP = { jump: [0], special: [1], punch: [2], kick: [3], team: [4], dodge: [5, 7, 6], start: [9] };
+const PADMAP = { jump: [0], special: [1], punch: [2], shoot: [3], team: [4], dodge: [5, 7, 6], start: [9] };
 
 const Input = {
   keys: {}, keyEdge: {}, padPrev: {}, padEdge: {},

@@ -36,7 +36,8 @@ function applyEvents(evs, world = true) {
         for (let i = 0; i < 4; i++) FX.parts.push({ k: 'plank', x: e.x, y: e.y - 30, vx: rand(-260, 260), vy: rand(-420, -200), life: 0.9, max: 0.9, f: e.k === 'bin' ? 'can' : 'plank' + i, rot: rand(0, 6), vr: rand(-12, 12), world });
         break;
       case 'team': FX.team = { t: 0, heroes: e.heroes }; break;
-      case 'go': FX.go = 4; Audio.sfx('confirm'); break;
+      case 'go': FX.go = 5; Audio.sfx('confirm'); break;
+      case 'pop': FX.parts.push({ k: 'pop', x: e.x, y: e.y, s: e.s, c: e.c, big: e.big, life: e.big ? 1.3 : 0.7, max: e.big ? 1.3 : 0.7, rot: rand(-0.25, 0.25), world: !e.fixed && world }); break;
       case 'shock': break;
       case 'uncage': FX.parts.push({ k: 'ring', x: e.x, y: e.y - 70, r: 140, life: 0.5, max: 0.5, c: '#c07bff', world }); for (let i = 0; i < 16; i++) FX.parts.push({ k: 'fire', x: e.x + rand(-50, 50), y: e.y - rand(0, 150), vx: rand(-60, 60), vy: rand(-160, -40), life: 0.6, max: 0.6, c: '#c07bff', s: 6, world }); break;
       case 'morph': FX.parts.push({ k: 'column', x: e.x, y: e.y, c: e.c, life: 1.1, max: 1.1, world }); break;
@@ -126,6 +127,20 @@ function drawParts(cam, layer) {
         for (let i = 0; i < 6; i++) { const a = (1 - k) * 8 + i; g.fillStyle = p.c; g.beginPath(); g.arc(x + Math.cos(a) * 50, y - 20 - i * 26 - (1 - k) * 60, 5, 0, 7); g.fill(); }
         break;
       }
+      case 'pop': {
+        // comic-book burst with a word
+        const age = p.max - p.life;
+        const sc = age < 0.12 ? age / 0.12 * 1.25 : 1.25 - Math.min(0.25, (age - 0.12) * 2);
+        g.translate(x, y - age * 30); g.rotate(p.rot); g.scale(sc, sc);
+        g.globalAlpha = Math.min(1, p.life * 4);
+        g.font = `400 ${p.big ? 26 : 18}px ${PXFONT}`;
+        const w = g.measureText(p.s).width + 34, h = p.big ? 56 : 42;
+        g.fillStyle = '#05070c'; burst(0, 0, w / 2 + 10, h / 2 + 10, 14); g.fill();
+        g.fillStyle = p.c; burst(0, 0, w / 2 + 4, h / 2 + 4, 14); g.fill();
+        g.fillStyle = '#fff8e0'; burst(0, 0, w / 2 - 4, h / 2 - 4, 14); g.fill();
+        ptitle(p.s, 0, (p.big ? 26 : 18) / 2, p.big ? 26 : 18, '#ffffff', p.c);
+        break;
+      }
       case 'txt':
         g.globalAlpha = Math.min(1, k * 2.5); txt(p.s, x, y, p.size, p.c, 'center', 900); break;
     }
@@ -213,6 +228,18 @@ function drawDrawable(o, cam, t) {
       g.fillStyle = '#d24a5a'; g.globalAlpha = 0.8;
       g.beginPath(); g.ellipse(x, y - 40, 22, 60, 0, 0, 7); g.fill();
       g.fillStyle = '#ffd0d8'; g.beginPath(); g.ellipse(x + o.fc * 6, y - 40, 8, 50, 0, 0, 7); g.fill();
+    } else if (o.sh2 === 'bolt') {
+      g.globalCompositeOperation = 'lighter';
+      g.fillStyle = o.c || '#bfe6ff'; g.globalAlpha = 0.55;
+      g.fillRect(x - (o.fc > 0 ? 60 : 0), y - z - 6, 60, 12);
+      g.globalAlpha = 1; g.fillStyle = '#ffffff'; g.fillRect(x - (o.fc > 0 ? 34 : 0), y - z - 2, 34, 4);
+    } else if (o.sh2 === 'flame') {
+      g.globalCompositeOperation = 'lighter';
+      g.translate(x, y - z); g.scale(o.fc, 1);
+      g.fillStyle = '#ff5a1e'; g.globalAlpha = 0.8;
+      g.beginPath(); g.moveTo(-30, -110); g.quadraticCurveTo(80, 0, -30, 110); g.quadraticCurveTo(20, 0, -30, -110); g.fill();
+      g.fillStyle = '#ffd06a'; g.globalAlpha = 0.9;
+      g.beginPath(); g.moveTo(-14, -80); g.quadraticCurveTo(55, 0, -14, 80); g.quadraticCurveTo(14, 0, -14, -80); g.fill();
     } else if (o.sh2 === 'wing') {
       g.globalCompositeOperation = 'lighter';
       g.translate(x, y - z); g.scale(o.fc, 1);
@@ -267,7 +294,9 @@ function drawDrawable(o, cam, t) {
     g.beginPath(); g.ellipse(x + o.fc * 55, y - 120, 18, 90, 0, 0, 7); g.fill(); g.restore();
   }
   if (o.wn) txt('!', x, y - 175 * (o.sc || 1) - z, 30, '#ff7a6a', 'center', 900);
+  if (o.gb && Math.floor(t * 6) % 2) ptxt('PRESA!', x, y - 168 - z, 9, '#ffe08a', 'center');
   if (o.hb !== undefined) bar(x - 26, y - 160 * (o.sc / 0.86) - z, 52, 4, o.hb, '#b39cff');
+  if (o.hint) drawHint(o, x, y - z, t);
   if (o.pl && Game.showTags) txt(o.pl + 'P', x, y - (o.s === 'people' ? 150 : 160) - z, 15, o.pc || '#fff', 'center', 900);
 }
 
@@ -425,10 +454,10 @@ function drawPortrait(hero, x, y, s = 0.52, dim = false) {
 
 /* key names for the on-screen hints, depending on the device of each local player */
 function keyName(device, action) {
-  const kb = { punch: 'J', kick: 'K', jump: 'SPAZIO', special: 'L', dodge: 'SHIFT', team: 'I' };
-  const kbA = { punch: 'F', kick: 'G', jump: 'SPAZIO', special: 'R', dodge: 'SHIFT', team: 'T' };
-  const kbB = { punch: 'K', kick: 'L', jump: 'I', special: 'O', dodge: 'SHIFT DX', team: 'P' };
-  const pad = { punch: 'X', kick: 'Y', jump: 'A', special: 'B', dodge: 'RB', team: 'LB' };
+  const kb = { punch: 'J', shoot: 'K', jump: 'SPAZIO', special: 'L', dodge: 'SHIFT', team: 'I' };
+  const kbA = { punch: 'F', shoot: 'G', jump: 'SPAZIO', special: 'R', dodge: 'SHIFT', team: 'T' };
+  const kbB = { punch: 'K', shoot: 'L', jump: 'I', special: 'O', dodge: 'SHIFT DX', team: 'P' };
+  const pad = { punch: 'X', shoot: 'Y', jump: 'A', special: 'B', dodge: 'RB', team: 'LB' };
   if (!device || device === 'remote') return kb[action] + '/' + pad[action];
   if (device.startsWith('pad')) return pad[action];
   if (device === 'kb' || !Game.local.twoKeyboards) return kb[action];
@@ -463,9 +492,11 @@ function drawHUD(h, t) {
       g.fillStyle = hero.color; g.fillRect(lx - 4, ly - 4, 9, 9);
       g.fillStyle = '#05070c'; g.fillRect(lx - 3, ly - 1, 7, 3);
     }
-    if (p.wp) {
-      const f = frameOf('items', p.wp);
-      if (f) g.drawImage(IMG.items, f[0], f[1], f[2], f[3], x + 92, y + 74, f[2] * 0.6, f[3] * 0.6);
+    {
+      // blaster ammo
+      const f = frameOf('items', 'w_gun');
+      if (f) g.drawImage(IMG.items, f[0], f[1], f[2], f[3], x + 92, y + 74, f[2] * 0.5, f[3] * 0.5);
+      ptxt(`×${p.am ?? 0}`, x + 92 + (f ? f[2] * 0.5 + 4 : 0), y + 86, 9, p.am > 0 ? '#bfe6ff' : '#ff8a7a');
     }
     if (p.cb > 1) ptxt(`${p.cb} COLPI!`, x + pw - 14, y + 88, 11, Math.floor(t * 10) % 2 ? '#fff1c6' : '#ffb03a', 'right');
   });
@@ -475,6 +506,7 @@ function drawHUD(h, t) {
   panel(tx - 14, ty - 26, 388, 44, full ? '#ffd35a' : '#8f7cff', 0.8);
   const grd = g.createLinearGradient(tx, 0, tx + 360, 0);
   HEROES.forEach((hh, i) => grd.addColorStop(i / 4, hh.color));
+  if (full) drawTeamReady(t);
   if (full) {
     const keys = Game.online === 'client' ? keyName(Game.lastDevice || 'kb', 'team') : [...new Set(Game.players.filter((p) => p.device !== 'gone').map((p) => keyName(p.device, 'team')))].join(' / ') || 'I / LB';
     ptxt(Math.floor(t * 4) % 2 ? `COLPO DI SQUADRA! PREMI ${keys}` : 'COLPO DI SQUADRA PRONTO!', W / 2, ty - 8, 10, Math.floor(t * 4) % 2 ? '#ffffff' : '#ffd35a', 'center');
@@ -503,11 +535,7 @@ function drawHUD(h, t) {
     if (h.ban.s) ptxt(h.ban.s, W / 2 + slide, 342, 11, '#e8eef4', 'center');
     g.restore();
   }
-  if (h.go && Math.floor(t * 3) % 2) {
-    ptitle('AVANTI', W - 170, 385, 24, '#fff6d6', '#ffb03a');
-    g.fillStyle = '#05070c'; g.beginPath(); g.moveTo(W - 86, 348); g.lineTo(W - 38, 372); g.lineTo(W - 86, 396); g.fill();
-    g.fillStyle = '#ffcf5a'; g.beginPath(); g.moveTo(W - 90, 352); g.lineTo(W - 46, 372); g.lineTo(W - 90, 392); g.fill();
-  }
+  if (h.go) drawGoArrow(t);
 }
 
 /* COLPO DI SQUADRA: the whole team gathers, the five weapons fly together
@@ -661,7 +689,7 @@ function drawGiantHUD(h, t) {
   segBar(W - 430, 88, 250, 8, h.bal / 100, 0, h.stg ? '#fff1a6' : '#f0a05a', 5);
   panel(W / 2 - 470, H - 50, 940, 36, '#6fd8d3', 0.8);
   const k = (a) => keyName(Game.players[0] && Game.players[0].device, a);
-  ptxt(`${k('punch')} ${h.moves[0]} · ${k('kick')} ${h.moves[1]} · TIENI ${k('dodge')} PARATA · ${k('jump')} PASSO · ${k('special')} ${h.stg ? h.moves[2] : 'COLPO TITANICO'}`, W / 2, H - 27, 9, h.stg && Math.floor(t * 6) % 2 ? '#fff1a6' : '#c8d6e4', 'center');
+  ptxt(`${k('punch')} ${h.moves[0]} · ${k('shoot')} ${h.moves[1]} · TIENI ${k('dodge')} PARATA · ${k('jump')} PASSO · ${k('special')} ${h.stg ? h.moves[2] : 'COLPO TITANICO'}`, W / 2, H - 27, 9, h.stg && Math.floor(t * 6) % 2 ? '#fff1a6' : '#c8d6e4', 'center');
   if (h.ban && h.ban.k > 0) {
     const a = clamp(Math.min(h.ban.k * 3, (h.ban.e || 0) * 4), 0, 1);
     g.save(); g.globalAlpha = a;
@@ -671,4 +699,94 @@ function drawGiantHUD(h, t) {
     ptxt(h.ban.s, W / 2, 344, 12, '#f0d0ff', 'center');
     g.restore();
   }
+}
+
+/* ---------- pop UI: themed GO arrow, button icons and prompts ---------- */
+function burst(cx, cy, rx, ry, n) {
+  g.beginPath();
+  for (let i = 0; i < n * 2; i++) { const a = i / (n * 2) * Math.PI * 2, k = i % 2 ? 0.78 : 1; g.lineTo(cx + Math.cos(a) * rx * k, cy + Math.sin(a) * ry * k); }
+  g.closePath();
+}
+/* the silver V of the armours, turned into a chevron with a coloured Heart */
+function vChevron(x, y, s, heart, a) {
+  g.save(); g.translate(x, y); g.scale(s, s); g.globalAlpha = a;
+  g.fillStyle = '#05070c'; g.beginPath(); g.moveTo(-26, -46); g.lineTo(6, -46); g.lineTo(40, 0); g.lineTo(6, 46); g.lineTo(-26, 46); g.lineTo(8, 0); g.closePath(); g.fill();
+  const grd = g.createLinearGradient(0, -40, 0, 40); grd.addColorStop(0, '#ffffff'); grd.addColorStop(0.5, '#9fb0c4'); grd.addColorStop(0.51, '#dfe8f2'); grd.addColorStop(1, '#8a9ab0');
+  g.fillStyle = grd; g.beginPath(); g.moveTo(-18, -38); g.lineTo(2, -38); g.lineTo(31, 0); g.lineTo(2, 38); g.lineTo(-18, 38); g.lineTo(11, 0); g.closePath(); g.fill();
+  g.fillStyle = '#05070c'; g.beginPath(); g.arc(18, 0, 9, 0, 7); g.fill();
+  g.fillStyle = heart; g.beginPath(); g.arc(18, 0, 6.5, 0, 7); g.fill();
+  g.fillStyle = '#fff'; g.fillRect(15, -3, 3, 3);
+  g.restore();
+}
+function drawGoArrow(t) {
+  const x0 = W - 330, y = 360;
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  const grd = g.createRadialGradient(W - 170, y, 10, W - 170, y, 200); grd.addColorStop(0, 'rgba(255,210,90,.35)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = grd; g.fillRect(W - 380, y - 200, 400, 400);
+  g.restore();
+  HEROES.forEach((h, i) => {
+    const ph = (t * 2.2 - i * 0.18) % 1;
+    const a = Math.max(0, Math.sin(Math.max(0, ph) * Math.PI));
+    vChevron(x0 + i * 52 + ph * 20, y, 1.0 + a * 0.12, h.color, 0.35 + a * 0.65);
+  });
+  ptitle('AVANTI!', W - 190, y - 70, 24, '#fff6d6', '#ffb03a');
+}
+/* a keyboard key or a gamepad button, with a press animation */
+function btnIcon(x, y, device, action, t, scale = 1) {
+  const label = keyName(device, action);
+  const pad = device && device.startsWith('pad');
+  const press = Math.floor(t * 3) % 2 ? 3 : 0;
+  g.save(); g.translate(x, y); g.scale(scale, scale);
+  if (pad && ['X', 'Y', 'A', 'B'].includes(label)) {
+    const col = { X: '#3f86ff', Y: '#f2c230', A: '#58e0a0', B: '#ff4a3d' }[label];
+    g.fillStyle = '#05070c'; g.beginPath(); g.arc(0, 3, 21, 0, 7); g.fill();
+    g.fillStyle = col; g.beginPath(); g.arc(0, press, 18, 0, 7); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.4)'; g.beginPath(); g.arc(-5, press - 6, 6, 0, 7); g.fill();
+    ptxt(label, 0, press + 7, 14, '#10161e', 'center', false);
+  } else {
+    g.font = `400 12px ${PXFONT}`;
+    const w = Math.max(40, g.measureText(label).width + 20), h = 36;
+    g.fillStyle = '#05070c'; g.fillRect(-w / 2 - 3, -h / 2 - 3, w + 6, h + 9);
+    g.fillStyle = '#6a7686'; g.fillRect(-w / 2, -h / 2 + 5, w, h);
+    g.fillStyle = '#e8eef4'; g.fillRect(-w / 2, -h / 2 + press, w, h - 5);
+    g.fillStyle = '#ffffff'; g.fillRect(-w / 2 + 3, -h / 2 + 3 + press, w - 6, 3);
+    ptxt(label, 0, 6 + press, 12, '#10161e', 'center', false);
+  }
+  g.restore();
+}
+function localDevice(slot) {
+  if (Game.online === 'client') return (Net.lobby.find((p) => p.id === Net.myId) || {}).id === slot + 1 ? (Game.lastDevice || 'kb') : null;
+  const p = Game.players[slot];
+  return p && p.device !== 'remote' && p.device !== 'gone' ? p.device : null;
+}
+function drawHint(o, x, y, t) {
+  const dev = localDevice(o.pl - 1);
+  if (!dev) return;
+  const top = y - 190;
+  const info = { power: ['special', 'SPRIGIONA IL TUO POTERE!', '#ffd35a'], grab: ['punch', 'AFFERRALO!', '#ffe08a'], jump: ['jump', 'SALTA!', '#9fe8ff'], morph: ['special', 'TRASFORMATI!', o.pc] }[o.hint];
+  if (!info) return;
+  const [act, text, col] = info;
+  const bob = Math.sin(t * 6) * 4;
+  if (o.hint === 'power') {
+    g.save(); g.globalCompositeOperation = 'lighter';
+    const grd = g.createRadialGradient(x, y - 80, 10, x, y - 80, 150); grd.addColorStop(0, o.pc + 'aa'); grd.addColorStop(1, 'rgba(0,0,0,0)');
+    g.globalAlpha = 0.5 + Math.sin(t * 10) * 0.25; g.fillStyle = grd; g.fillRect(x - 150, y - 230, 300, 300); g.restore();
+  }
+  ptitle(text, x, top - 26 + bob, o.hint === 'power' ? 16 : 13, '#ffffff', col);
+  btnIcon(x, top + bob, dev, act, t, 0.9);
+}
+
+function drawTeamReady(t) {
+  const y = 176;
+  const pulse = 1 + Math.sin(t * 8) * 0.05;
+  g.save();
+  g.translate(W / 2, y); g.scale(pulse, pulse);
+  g.globalCompositeOperation = 'lighter';
+  HEROES.forEach((h, i) => { const a = t * 2 + i * 1.256; g.fillStyle = h.color; g.globalAlpha = 0.6; g.beginPath(); g.arc(Math.cos(a) * 190, Math.sin(a) * 26, 10, 0, 7); g.fill(); });
+  g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+  ptitle('COLPO DI SQUADRA PRONTO!', 0, -8, 20, '#ffffff', '#ffd35a');
+  g.restore();
+  const devs = Game.online === 'client' ? [Game.lastDevice || 'kb'] : [...new Set(Game.players.filter((p) => p.device !== 'remote' && p.device !== 'gone').map((p) => p.device))];
+  devs.slice(0, 4).forEach((d, i) => btnIcon(W / 2 - (devs.length - 1) * 30 + i * 60, y + 28, d, 'team', t, 0.85));
 }

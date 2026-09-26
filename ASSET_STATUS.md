@@ -6,7 +6,7 @@
 | fighters.png | 5 eroi × 8 pose; soldato Senzavolto + varianti "Lama del Velo" e "Bruto di ruggine" | ritaglio per sagoma di `source/fighters.png`; varianti ricolorate |
 | bosses.png | Mastice (8 pose); Centipede, Trivor, Mimesi, Kharon, Custode, Vespera, Eclisse (6 pose ciascuno) | ritaglio per sagoma di `source/mastice.png` e `source/campaign-villains.png` |
 | titans.png | 5 titani + Concordia, viste di lato/fronte/retro | ritaglio di `source/titans-reference.png` |
-| items.png | pizza, pollo arrosto, bibita, cella d'energia, moneta, frammento di Cuore, cassa, fusto esplosivo, bidone, 4 schegge; armi dei ranger (spada, lancia tricorno, artigli, arco, martello) e Cannone Primordiale | pixel art nuova (`tools/items.py`) |
+| items.png | pizza, pollo arrosto, bibita, cella d'energia, moneta, frammento di Cuore, cassa, fusto esplosivo, bidone, 4 schegge; armi dei ranger (spada, lancia tricorno, pugnali, arco, ascia), pistola, caricatore e Cannone Primordiale (provvisori, da sostituire con le tavole generate) | pixel art nuova (`tools/items.py`) |
 | ui/logo.png | logo metallico con i cinque Cuori, graffi e nastro | `tools/logo.py` |
 | people.png | 9 civili (cameriere, pescatore, signora, anziano, turista, ragazza, impiegato, bambino, scienziata) × fermo/camminata/corsa in preda al panico/riparo/indica; 5 eroi in borghese × fermo/camminata/scatto/posa/braccio alzato/indica | pixel art nuova (`tools/people.py`) |
 

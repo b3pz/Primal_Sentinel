@@ -6,15 +6,15 @@
 
 const HEROES = [
   { id: 'ignis', name: 'IGNIS', civil: 'Marco', role: 'Equilibrato', color: '#ff5b4f', glow: '#ff8a5a', power: 1.0, speed: 250, hp: 120,
-    special: 'RUGGITO DI FUOCO', weapon: 'SPADA ZANNA', specialText: 'Onda di fuoco tutt\'intorno', titan: 'Tiranno rosso' },
+    special: 'LAMA DI FUOCO', weapon: 'SPADA ZANNA', specialText: 'Onda di fuoco in avanti (media distanza)', titan: 'Tiranno rosso' },
   { id: 'azur', name: 'AZUR', civil: 'Davide', role: 'Tecnico', color: '#5d9bff', glow: '#8cc4ff', power: 0.95, speed: 262, hp: 115,
-    special: 'CARICA DEL TRICORNO', weapon: 'LANCIA TRICORNO', specialText: 'Scatto che travolge tutto sulla linea', titan: 'Triceratopo blu' },
+    special: 'CARICA DEL TRICORNO', weapon: 'LANCIA TRICORNO', specialText: 'Affondo in carica (media distanza)', titan: 'Triceratopo blu' },
   { id: 'lyra', name: 'LYRA', civil: 'Nadia', role: 'Veloce', color: '#f7d046', glow: '#ffe98a', power: 0.85, speed: 300, hp: 105,
-    special: 'ARTIGLIO FULMINEO', weapon: 'ARTIGLI FELINI', specialText: 'Raffica di colpi rapidissimi', titan: 'Felino giallo' },
+    special: 'DANZA DEI PUGNALI', weapon: 'PUGNALI FELINI', specialText: 'Raffica di fendenti (da vicino)', titan: 'Felino giallo' },
   { id: 'aura', name: 'AURA', civil: 'Sofia', role: 'Distanza', color: '#ff78bb', glow: '#ffb2da', power: 0.9, speed: 268, hp: 110,
-    special: 'ALA DI LUCE', weapon: 'ARCO D\'ALA', specialText: 'Lama d\'energia che attraversa lo schermo', titan: 'Pterosauro rosa' },
+    special: 'PIOGGIA D\'ALA', weapon: 'ARCO D\'ALA', specialText: 'Tre frecce alate (da lontano)', titan: 'Pterosauro rosa' },
   { id: 'onyx', name: 'ONYX', civil: 'Bruno', role: 'Potente', color: '#b9c6d4', glow: '#e3ecf5', power: 1.25, speed: 222, hp: 140,
-    special: 'ZANNA TELLURICA', weapon: 'MARTELLO ZANNA', specialText: 'Pugno a terra che abbatte tutti', titan: 'Mastodonte nero' },
+    special: 'SCURE TELLURICA', weapon: 'ASCIA ZANNA', specialText: 'Colpo d\'ascia che spacca il suolo (da vicino)', titan: 'Mastodonte nero' },
 ];
 
 /* Frame convention of the fighters atlas (per character):
@@ -55,12 +55,13 @@ const ITEMS = {
   energy: { energy: 35, label: 'CELLA D\'ENERGIA' },
   coin: { score: 500, label: 'MONETA' },
   gem: { score: 1500, team: 25, label: 'FRAMMENTO DI CUORE' },
+  ammo: { ammo: 4, label: 'CARICATORE' },
   pipe: { weapon: true, dmg: 1.7, reach: 42, uses: 14, label: 'TUBO D\'ACCIAIO' },
   oar: { weapon: true, dmg: 1.5, reach: 74, uses: 11, label: 'REMO' },
 };
 
 const PROPS = {
-  crate: { hp: 2, drops: ['pizza', 'can', 'coin', 'energy', 'chicken'] },
+  crate: { hp: 2, drops: ['pizza', 'can', 'coin', 'energy', 'chicken', 'ammo'] },
   bin: { hp: 1, drops: ['can', 'coin', 'pizza'] },
   barrel: { hp: 1, explode: true, drops: [] },
 };

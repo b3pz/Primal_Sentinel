@@ -216,14 +216,14 @@ const Game = {
           if (slots.some((o) => o !== s && o.ready && o.hero === s.hero)) Audio.sfx('hurt');
           else { s.ready = true; Audio.sfx('confirm'); }
         }
-        if (c.pressed.kick || c.pressed.back) {
+        if (c.pressed.shoot || c.pressed.back) {
           if (slots.length === 1) { this.menu(); return; }
           this.lobbySlots = slots.filter((o) => o !== s);
           if (s.dev === 'kbB') { this.local.twoKeyboards = false; const a = this.lobbySlots.find((o) => o.dev === 'kbA'); if (a) a.dev = 'kb'; }
           Audio.sfx('select');
           return;
         }
-      } else if (c.pressed.kick || c.pressed.back) { s.ready = false; Audio.sfx('select'); }
+      } else if (c.pressed.shoot || c.pressed.back) { s.ready = false; Audio.sfx('select'); }
     }
     if (K.Escape && !slots.some((s) => s.ready)) { this.menu(); return; }
     if (slots.length && slots.every((s) => s.ready)) {
@@ -290,7 +290,7 @@ const Game = {
       txt(hero.special, x + w / 2, y + 420, 12, '#ffcf7a', 'center', 800);
       const taken = !s.ready && slots.some((o) => o !== s && o.ready && o.hero === s.hero);
       if (s.ready) { g.fillStyle = hero.color; g.fillRect(x + 20, y + 436, w - 40, 26); txt('PRONTO!', x + w / 2, y + 455, 16, '#0b1118', 'center', 900); }
-      else txt(taken ? 'GIÀ SCELTO' : online && !s.me ? 'STA SCEGLIENDO…' : 'PUGNO/A: PRONTO · CALCIO/B: ESCI', x + w / 2, y + 455, 12, taken ? '#ff8a7a' : '#9fb4c8', 'center', 800);
+      else txt(taken ? 'GIÀ SCELTO' : online && !s.me ? 'STA SCEGLIENDO…' : 'ATTACCO: PRONTO · SPARO: ESCI', x + w / 2, y + 455, 12, taken ? '#ff8a7a' : '#9fb4c8', 'center', 800);
     }
     if (online) {
       g.fillStyle = 'rgba(4,10,20,.85)'; g.fillRect(40, 610, W - 80, 80);
@@ -307,7 +307,7 @@ const Game = {
       }
       txt('ESC: ESCI DALLA STANZA', W - 60, 700, 11, '#6f8aa2', 'right', 700);
     } else {
-      txt('◀ ▶ SCEGLI · PUGNO/A: PRONTO · CALCIO/B: ANNULLA · ESC: MENU', W / 2, 640, 15, '#9fb4c8', 'center', 800);
+      txt('◀ ▶ SCEGLI · J / X: PRONTO · K / Y: ANNULLA · ESC: MENU', W / 2, 640, 15, '#9fb4c8', 'center', 800);
       txt('Quando tutti sono pronti la partita inizia. In più giocatori i nemici sono più numerosi.', W / 2, 668, 13, '#6f8aa2', 'center', 700);
     }
   },
@@ -359,7 +359,7 @@ const Game = {
         if (Net.role === 'client') Net.sendPick(h, false); else Net.pushLobby();
       }
       if (c.pressed.punch || c.pressed.jump) { me.ready = true; Audio.sfx('confirm'); if (Net.role === 'client') Net.sendPick(me.hero, true); else Net.pushLobby(); }
-    } else if (c.pressed.kick) { me.ready = false; if (Net.role === 'client') Net.sendPick(me.hero, false); else Net.pushLobby(); }
+    } else if (c.pressed.shoot) { me.ready = false; if (Net.role === 'client') Net.sendPick(me.hero, false); else Net.pushLobby(); }
     if (Net.role === 'host' && Net.lobby.every((p) => p.ready) && (Input.keyEdge.Enter || c.pressed.start || Input.keyEdge.NumpadEnter)) this.hostStart();
   },
   hostStart() {
@@ -516,7 +516,7 @@ const Game = {
         const line = d.lines[d.i];
         const full = line.card ? 2.6 : line[1].length / 48;
         const skipAll = this.anyPress(c, 'start');
-        const adv = this.anyPress(c, 'punch', 'jump', 'kick');
+        const adv = this.anyPress(c, 'punch', 'jump', 'shoot');
         if (skipAll) { d.i = d.lines.length; }
         else if (adv) { if (d.t < full && !line.card) d.t = full; else { d.i++; d.t = 0; Audio.sfx('select'); } }
         else if (d.t > full + (line.card ? 0 : 4.5)) { d.i++; d.t = 0; }

@@ -8,7 +8,7 @@
    Per usare un proprio server: index.html?peer=host:porta
    ============================================================ */
 const NET_PREFIX = 'primal-sentinels-v1-';
-const NET_VERSION = 1;
+const NET_VERSION = 2;
 
 const Net = {
   role: null, peer: null, conns: new Map(), hostConn: null, code: '', status: '', error: '',

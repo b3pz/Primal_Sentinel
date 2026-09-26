@@ -37,7 +37,7 @@ function stepGiant(G, ctrls, dt) {
   const gev = (e) => G.events.push(e);
 
   // merge controls of every pilot
-  let dx = 0, guard = false, press = { punch: null, kick: null, special: null, jump: null };
+  let dx = 0, guard = false, press = { punch: null, shoot: null, special: null, jump: null };
   for (const pl of G.players) {
     const c = ctrls[pl.id] || EMPTY_CTRL;
     dx += (c.r ? 1 : 0) - (c.l ? 1 : 0);
@@ -60,7 +60,7 @@ function stepGiant(G, ctrls, dt) {
         if (P.en >= 50) { P.en -= 50; P.st = 'heavy'; P.t = 0; P.super = true; gev({ t: 'snd', n: 'special' }); credit(G, press.special, 200); break; }
       }
       if (press.punch && P.cool <= 0) { P.st = 'jab'; P.t = 0; P.hitDone = false; gev({ t: 'snd', n: 'punch' }); credit(G, press.punch, 50); break; }
-      if (press.kick && P.cool <= 0) { P.st = 'heavy'; P.t = 0; P.super = false; P.hitDone = false; gev({ t: 'snd', n: 'wind' }); credit(G, press.kick, 80); break; }
+      if (press.shoot && P.cool <= 0) { P.st = 'heavy'; P.t = 0; P.super = false; P.hitDone = false; gev({ t: 'snd', n: 'wind' }); credit(G, press.shoot, 80); break; }
       if (press.jump && P.cool <= 0) { P.st = 'step'; P.t = 0; P.stepDir = dx || 1; gev({ t: 'snd', n: 'stomp' }); break; }
       if (dx) { P.x += dx * 130 * dt; P.st = 'walk'; if (Math.floor(G.t * 2.2) !== Math.floor((G.t - dt) * 2.2)) gev({ t: 'snd', n: 'stomp' }), gev({ t: 'shake', v: 3 }); }
       else P.st = 'idle';

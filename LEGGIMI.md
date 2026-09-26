@@ -1,5 +1,5 @@
 # PRIMAL SENTINELS — Il cuore dei titani
-Ideato e sviluppato da b3pZ. Build 1.1: campagna completa in 8 capitoli, da 1 a 4 giocatori.
+Ideato e sviluppato da b3pZ. Build 1.2: campagna completa in 8 capitoli, da 1 a 4 giocatori.
 
 ## Avvio
 Estrai tutto lo ZIP e apri `index.html` con Chrome, Edge o Firefox (Mac o Windows).
@@ -17,29 +17,31 @@ Non serve installare nulla. Per GitHub Pages pubblica il contenuto della cartell
 ## Comandi
 | | Tastiera (1 giocatore) | Tastiera 1P (in due) | Tastiera 2P (in due) | Controller |
 |---|---|---|---|---|
-| Muovi | WASD / frecce | WASD | frecce | stick / croce |
-| Pugno (3 = combo) | J | F | K / Num1 | X |
-| Calcio | K | G | L / Num2 | Y |
-| Salto (+ attacco in aria) | Spazio | Spazio | I / Num0 | A |
-| Speciale | L | R | O / Num3 | B |
+| Muovi (doppio tocco = corsa) | WASD / frecce | WASD | frecce | stick / croce |
+| Attacco: pugno, calcio, colpo con l'arma | J | F | K / Num1 | X |
+| Pistola (pochi colpi) | K | G | L / Num2 | Y |
+| Speciale con l'arma (40 energia) | L | R | O / Num3 | B |
+| Salto (+ attacco = calcio volante) | Spazio | Spazio | I / Num0 | A |
 | Schivata | Shift | Shift sinistro | Shift destro | RB / RT |
 | Colpo di squadra | I | T | P / Num4 | LB |
 | Pausa | Esc / Invio | Esc | Invio | Start |
 
 Il tutorial animato **COME SI GIOCA** (dal menu, dalla pausa e automaticamente la prima volta
 prima del capitolo 1) mostra ogni mossa con i tasti che si illuminano, per tastiera, controller e
-due giocatori sulla stessa tastiera.
+due giocatori sulla stessa tastiera. Durante la partita i tasti da premere compaiono sullo schermo
+quando servono: colpo di squadra pronto, "SPRIGIONA IL TUO POTERE!", "AFFERRALO!", "SALTA!".
 
-Ogni ranger ha la sua arma: Ignis la Spada Zanna, Azur la Lancia Tricorno, Lyra gli Artigli Felini,
-Aura l'Arco d'Ala, Onyx il Martello Zanna. Si vedono nel terzo pugno della combo, nel pugno in corsa
-(doppio tocco avanti) e nella mossa speciale. Cammina contro un nemico stordito per **afferrarlo**:
-pugno = ginocchiate, calcio = lancio (travolge gli altri nemici). I fusti rossi esplodono.
-Lo speciale costa 40 di energia; senza energia costa un po' di vita, come nei cabinati.
-La barra squadra si riempie colpendo: quando è piena lo schermo indica il tasto, e il colpo di
-squadra riunisce i cinque ranger, le loro armi si uniscono nel Cannone Primordiale e sparano insieme.
+- **Combo**: attacco ×3 = pugno, calcio e colpo finale con l'arma personale; in corsa = carica con l'arma.
+- **Pistola**: 8 colpi a inizio capitolo, massimo 12; i caricatori escono dalle casse e dai nemici.
+- **Prese**: quando un nemico è stordito compare "PRESA!": attacco lo afferra, attacco = ginocchiate,
+  indietro + attacco = lancio alle spalle, salto = lancio in avanti contro gli altri.
+- **Speciali in base all'arma**: Aura (arco) tre frecce da lontano; Ignis (spada) onda di fuoco e Azur
+  (lancia) affondo a media distanza; Onyx (ascia) e Lyra (pugnali) da vicino.
+- **Colpo di squadra**: la squadra si riunisce, le cinque armi diventano il Cannone Primordiale.
+- I fusti rossi esplodono. Senza energia lo speciale costa un po' di vita, come nei cabinati.
 
 **Duelli giganti** (capitoli 3, 5 e 8): tutti i giocatori pilotano insieme il titano o Concordia.
-Pugno e calcio attaccano, schivata tenuta premuta para, salto fa un passo rapido.
+Attacco = pugno, pistola = colpo pesante, schivata tenuta = parata, salto = passo rapido.
 Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale.
 
 ## Cosa contiene questa versione

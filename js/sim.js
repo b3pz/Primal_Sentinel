@@ -23,7 +23,7 @@ function newStage(levelIdx, players, checkpoint = 0) {
       x: startX - i * 60, y: 560 + i * 36, z: 0, vz: 0, vx: 0, face: 1,
       hp: hero.hp, max: hero.hp, en: 60, lives: p.lives ?? 3, score: p.score || 0,
       st: 'idle', t: 0, atk: null, hit: new Set(), combo: 0, comboT: 0, inv: 1.5, weapon: null,
-      tapT: 0, tapDir: 0, run: false, hold: 0, holdN: 0, walk: 0, respawn: 0, out: false, kos: 0, maxCombo: 0, hits: 0,
+      tapT: 0, tapDir: 0, run: false, hold: 0, holdN: 0, walk: 0, respawn: 0, out: false, kos: 0, maxCombo: 0, hits: 0, ammo: 8,
     });
   });
   S.cam = clamp(startX - 380, 0, L.length - W);
@@ -70,9 +70,9 @@ function ring(S, x, y, c, r = 220, life = 0.5) { ev(S, { t: 'ring', x: Math.roun
 /* ---------------- moves ---------------- */
 const MOVES = {
   jab: { dur: 0.24, hitAt: 0.07, frames: [[0.06, 4], [1, 5]], dmg: 9, reach: 104, depth: 36, snd: 'punch' },
-  jab2: { dur: 0.25, hitAt: 0.07, frames: [[0.05, 4], [1, 5]], dmg: 10, reach: 108, depth: 36, snd: 'punch' },
+  jab2: { dur: 0.32, hitAt: 0.1, frames: [[0.06, 4], [1, 6]], dmg: 11, reach: 124, depth: 38, snd: 'kick' },
   fin: { dur: 0.46, hitAt: 0.15, frames: [[0.1, 4], [1, 5]], dmg: 19, reach: 158, depth: 42, knock: true, snd: 'weapon', lunge: 120, sig: true },
-  kick: { dur: 0.5, hitAt: 0.17, frames: [[0.12, 4], [1, 6]], dmg: 16, reach: 136, depth: 40, knock: true, snd: 'kick', lunge: 60 },
+  shoot: { dur: 0.3, hitAt: 0.06, frames: [[0.05, 4], [1, 5]], dmg: 0, reach: 0, depth: 0, snd: null, gun: true },
   air: { dur: 9, hitAt: 0, frames: [[99, 6]], dmg: 15, reach: 120, depth: 44, knock: true, snd: 'kick', air: true },
   dash: { dur: 0.38, hitAt: 0.05, frames: [[1, 5]], dmg: 17, reach: 138, depth: 42, knock: true, snd: 'weapon', lunge: 420, multi: true, sig: true },
   knee: { dur: 0.26, hitAt: 0.1, frames: [[0.08, 4], [1, 6]], dmg: 8, reach: 70, depth: 30, snd: 'kick', grab: true },
@@ -187,36 +187,22 @@ function stepPlayer(S, p, c, dt) {
 
   switch (p.st) {
     case 'idle': case 'walk': {
-      // pick up weapon
-      if (c.pressed.punch && !p.weapon) {
-        const it = S.items.find((i) => ITEMS[i.type].weapon && i.z <= 0 && Math.abs(i.x - p.x) < 55 && Math.abs(i.y - p.y) < 34);
-        if (it) {
-          p.weapon = { type: it.type, uses: ITEMS[it.type].uses }; it.life = 0;
-          sfx(S, 'weapon'); floatText(S, p.x, p.y - 170, ITEMS[it.type].label, '#e8f2ff', 18);
-          p.st = 'atk'; p.atk = 'pickup'; p.t = 0; p.hit = new Set();
-          break;
-        }
-      }
-      // grab: walking into a hurt/idle enemy
-      if (dx && !p.run) {
-        const e = S.enemies.find((e) => !e.boss && !e.big && ['hurt', 'walk', 'idle'].includes(e.st) && e.z === 0 &&
-          Math.abs(e.y - p.y) < 22 && (e.x - p.x) * dx > 0 && Math.abs(e.x - p.x) < 64);
-        p.pushT = e ? (p.pushT || 0) + dt : 0;
-        if (e && (e.st === 'hurt' || p.pushT > 0.3)) { p.pushT = 0; grab(S, p, e); break; }
-      } else p.pushT = 0;
+      // grab: a stunned enemy right in front → attack (or walking into it) grabs it
+      const gr = grabbable(S, p);
+      if (gr && (c.pressed.punch || (dx === p.face && !p.run && (p.pushT = (p.pushT || 0) + dt) > 0.12))) { p.pushT = 0; grab(S, p, gr); break; }
+      if (!gr) p.pushT = 0;
       if (c.pressed.team && S.team >= 100) { teamAttack(S, p); break; }
       if (c.pressed.special) { special(S, p); break; }
       if (c.pressed.jump) { p.st = 'jump'; p.t = 0; p.vz = 560; p.jdx = dx * (p.run ? 1.35 : 1); p.jdy = dy; sfx(S, 'jump'); break; }
       if (c.pressed.dodge) { p.st = 'dodge'; p.t = 0; p.inv = 0.38; p.ddir = dx || -p.face; sfx(S, 'dodge'); break; }
+      if (c.pressed.shoot) { shoot(S, p); break; }
       if (c.pressed.punch) {
-        if (p.weapon) { startMove(S, p, 'swing'); break; }
         if (p.run) { startMove(S, p, 'dash'); p.run = false; break; }
         const name = p.comboT > 0 ? (p.combo === 1 ? 'jab2' : p.combo >= 2 ? 'fin' : 'jab') : 'jab';
         p.combo = name === 'jab' ? 1 : name === 'jab2' ? 2 : 0;
         startMove(S, p, name);
         break;
       }
-      if (c.pressed.kick) { startMove(S, p, 'kick'); p.combo = 0; break; }
       // movement
       const sp = hero.speed * (p.run ? 1.55 : 1);
       const len = Math.hypot(dx, dy) || 1;
@@ -231,7 +217,7 @@ function stepPlayer(S, p, c, dt) {
       p.z += p.vz * dt; p.vz -= 1500 * dt;
       p.x += p.jdx * hero.speed * 1.05 * dt;
       p.y += p.jdy * hero.speed * 0.4 * dt;
-      if ((c.pressed.punch || c.pressed.kick) && !p.airDone) { p.airDone = true; p.atk = 'air'; p.hit = new Set(); sfx(S, 'kick'); }
+      if (c.pressed.punch && !p.airDone) { p.airDone = true; p.atk = 'air'; p.hit = new Set(); sfx(S, 'kick'); }
       if (p.atk === 'air') hitScan(S, p, MOVES.air);
       if (p.z <= 0) { p.z = 0; p.vz = 0; p.st = 'land'; p.t = 0; p.atk = null; p.airDone = false; }
       break;
@@ -248,20 +234,24 @@ function stepPlayer(S, p, c, dt) {
       break;
     }
     case 'atk': {
-      if (p.atk === 'pickup') { if (p.t > 0.18) p.st = 'idle'; break; }
       const m = MOVES[p.atk];
+      if (m.gun) {
+        if (!p._swung && p.t >= m.hitAt) { p._swung = true; fireBolt(S, p); }
+        if (c.pressed.shoot && p.t > 0.12) p.buffer = 'shoot';
+        if (p.t >= m.dur) { p._swung = false; p.st = 'idle'; p.t = 0; if (p.buffer === 'shoot') { p.buffer = null; shoot(S, p); } p.buffer = null; }
+        break;
+      }
       if (m.lunge && p.t < m.dur * 0.6) p.x += p.face * m.lunge * dt * (p.atk === 'dash' ? 1 : 2.2 * (1 - p.t / m.dur));
       if (p.t >= m.hitAt && (m.multi ? p.t < m.dur * 0.8 : !p._swung)) { hitScan(S, p, m); if (!m.multi) p._swung = true; }
       // buffered combo input
       if (c.pressed.punch && p.t > m.hitAt) p.buffer = 'punch';
-      if (c.pressed.kick && p.t > m.hitAt) p.buffer = 'kick';
       if (p.t >= m.dur) {
         p._swung = false; p.st = 'idle'; p.t = 0;
         if (['jab', 'jab2'].includes(p.atk)) p.comboT = 0.45; else p.combo = 0;
-        if (p.buffer === 'punch' && p.comboT > 0 && !p.weapon) {
+        if (p.buffer === 'punch' && p.comboT > 0) {
           const name = p.combo === 1 ? 'jab2' : 'fin';
           p.combo = name === 'jab2' ? 2 : 0; startMove(S, p, name);
-        } else if (p.buffer === 'kick') startMove(S, p, 'kick');
+        }
         p.buffer = null;
       }
       break;
@@ -270,10 +260,12 @@ function stepPlayer(S, p, c, dt) {
       const e = S.enemies.find((e) => e.id === p.hold);
       if (!e || e.st !== 'held') { p.st = 'idle'; p.hold = 0; break; }
       e.x = p.x + p.face * 52; e.y = p.y + 1; e.face = -p.face;
-      if (dx && dx !== p.face) p.face = dx, e.x = p.x + p.face * 52, e.face = -p.face;
-      if (c.pressed.punch) {
+      if (c.pressed.punch && dx && dx !== p.face) {
+        // back + attack: flip the enemy over the shoulder, behind you
+        p.face = dx; e.x = p.x + p.face * 52; e.face = -p.face; throwEnemy(S, p, e);
+      } else if (c.pressed.punch) {
         startMove(S, p, 'knee'); p.st = 'grabatk'; p.holdN++;
-      } else if (c.pressed.kick || c.pressed.jump || p.t > 2.2) {
+      } else if (c.pressed.jump || c.pressed.shoot || p.t > 2.2) {
         throwEnemy(S, p, e);
       }
       break;
@@ -336,11 +328,29 @@ function stepPlayer(S, p, c, dt) {
       if (d.energy) { p.en = Math.min(100, p.en + d.energy); floatText(S, p.x, p.y - 170, 'ENERGIA', '#77ceff'); }
       if (d.score) { p.score += d.score; floatText(S, p.x, p.y - 170, `+${d.score}`, '#ffd76a'); }
       if (d.team) S.team = Math.min(100, S.team + d.team);
+      if (d.ammo) { p.ammo = Math.min(12, p.ammo + d.ammo); floatText(S, p.x, p.y - 170, `+${d.ammo} COLPI`, '#bfe6ff'); sfx(S, 'reload'); }
       sfx(S, 'pickup');
     }
   }
 }
 function FOOT_TOP() { return FLOOR_TOP; }
+
+function grabbable(S, p) {
+  return S.enemies.find((e) => !e.boss && !e.big && e.st === 'hurt' && e.z === 0 && e.hp > 0 &&
+    Math.abs(e.y - p.y) < 24 && (e.x - p.x) * p.face > 0 && Math.abs(e.x - p.x) < 78);
+}
+/* the blaster: few shots, magazines are rare */
+function shoot(S, p) {
+  if (p.ammo <= 0) { sfx(S, 'empty'); floatText(S, p.x, p.y - 170, 'SCARICA!', '#ff9a8a', 16); p.st = 'atk'; p.atk = 'shoot'; p.t = 0.2; p._swung = true; p.hit = new Set(); return; }
+  startMove(S, p, 'shoot');
+}
+function fireBolt(S, p) {
+  p.ammo--;
+  const hero = heroOf(p);
+  S.shots.push({ id: nid(), kind: 'bolt', x: p.x + p.face * 70, y: p.y, z: 104, vx: p.face * 1250, owner: p.id, life: 0.95, dmg: 9 * hero.power, hit: new Set(), friendly: true, stun: true, c: hero.glow, single: true });
+  sfx(S, 'shot');
+  ev(S, { t: 'spark', x: Math.round(p.x + p.face * 86), y: Math.round(p.y - 104), c: hero.glow, n: 5 });
+}
 
 function grab(S, p, e) {
   p.st = 'grab'; p.t = 0; p.hold = e.id; p.holdN = 0;
@@ -420,6 +430,7 @@ function damageEnemy(S, p, e, dmg, opt = {}) {
     S.team = Math.min(100, S.team + dmg * 0.18);
   }
   const col = e.boss ? '#ffc052' : e.def && e.def.shade ? '#c79bff' : '#a58cff';
+  if ((opt.heavy || e.hp <= 0) && p && p.hero !== undefined && Math.random() < (e.boss ? 0.5 : 0.8)) ev(S, { t: 'pop', x: Math.round(e.x), y: Math.round(e.y - (e.boss ? 200 : 140)), s: pick(['BAM!', 'POW!', 'CRASH!', 'WHAM!', 'SBAM!', 'KRAK!']), c: HEROES[p.hero].color });
   sparks(S, e.x + (p ? -p.face * 10 : 0), e.y - (e.boss ? 150 : 95) - (e.z || 0), col, e.boss ? 14 : 10);
   if (!opt.silent) sfx(S, opt.heavy ? 'heavy' : 'hit');
   shake(S, opt.heavy ? 6 : 3);
@@ -444,7 +455,7 @@ function damageEnemy(S, p, e, dmg, opt = {}) {
     if (p && p.score !== undefined) { p.score += e.def.score; p.kos++; }
     // drops: every few KOs something useful
     S.koCount = (S.koCount || 0) + 1;
-    if (S.koCount % 4 === 0) { const it = makeItem(pick(['energy', 'coin', 'can', 'pizza']), e.x, e.y, 40); it.vz = 220; S.items.push(it); }
+    if (S.koCount % 4 === 0) { const it = makeItem(pick(['energy', 'coin', 'can', 'pizza', 'ammo']), e.x, e.y, 40); it.vz = 220; S.items.push(it); }
     if (S.koCount % 9 === 0) { const it = makeItem('gem', e.x + 20, e.y, 40); it.vz = 260; S.items.push(it); }
   }
 }
@@ -476,6 +487,7 @@ function special(S, p) {
   } else p.en -= 40;
   p.st = 'special'; p.t = 0; p.hit = new Set(); p.inv = 0.7; p.spk = hero.id;
   sfx(S, 'special'); ev(S, { t: 'flash', c: hero.glow, v: 0.25 });
+  ev(S, { t: 'pop', x: Math.round(p.x), y: Math.round(p.y - 200), s: hero.special + '!', c: hero.color, big: 1 });
   S.hitstop = 0.06;
 }
 function stepSpecial(S, p, dt) {
@@ -486,9 +498,14 @@ function stepSpecial(S, p, dt) {
     for (const o of S.props) if (o.hp > 0 && !p.hit.has(o.id) && fn(o)) { p.hit.add(o.id); hitProp(S, o, p); }
   };
   if (k === 'ignis') {
-    if (p.t > 0.18 && !p._s1) { p._s1 = 1; ring(S, p.x, p.y - 70, '#ff7a3a', 260, 0.55); ring(S, p.x, p.y - 70, '#ffd06a', 180, 0.4); sparks(S, p.x, p.y - 80, '#ff8a3a', 40, 'fire'); shake(S, 10); }
-    if (p.t > 0.18) hitAll((e) => Math.hypot(e.x - p.x, (e.y - p.y) * 1.8) < 250, 42);
-    if (p.t > 0.6) end();
+    // sword, medium range: a crescent of fire slashed forward (~420 px)
+    if (p.t > 0.16 && !p._s1) {
+      p._s1 = 1; shake(S, 8); sfx(S, 'heavy');
+      S.shots.push({ id: nid(), kind: 'flame', x: p.x + p.face * 70, y: p.y, z: 80, vx: p.face * 820, owner: p.id, life: 0.5, dmg: 42 * hero.power, hit: new Set(), friendly: true });
+      sparks(S, p.x + p.face * 80, p.y - 90, '#ff8a3a', 24, 'fire');
+    }
+    if (p.t > 0.16 && p.t < 0.3) hitAll((e) => (e.x - p.x) * p.face > -20 && Math.abs(e.x - p.x) < 150 && Math.abs(e.y - p.y) < 50, 20);
+    if (p.t > 0.55) end();
   } else if (k === 'azur') {
     if (p.t < 0.45) { p.x += p.face * 820 * dt; if (Math.random() < 0.6) sparks(S, p.x - p.face * 40, p.y - 70, '#8cc4ff', 3, 'trail'); }
     hitAll((e) => Math.abs(e.x - p.x) < 95 && Math.abs(e.y - p.y) < 55, 40);
@@ -498,19 +515,21 @@ function stepSpecial(S, p, dt) {
     if (n !== p._n && p.t < 0.72) {
       p._n = n; p.hit = new Set(); p.face = n % 2 ? -p.face : p.face;
       sparks(S, p.x + p.face * 70, p.y - 90, '#ffe98a', 6, 'slash');
-      hitAll((e) => Math.abs(e.x - p.x) < 150 && Math.abs(e.y - p.y) < 50, 9, n >= 8);
+      hitAll((e) => Math.abs(e.x - p.x) < 120 && Math.abs(e.y - p.y) < 48, 10, n >= 8);
     }
     if (p.t > 0.8) end();
   } else if (k === 'aura') {
     if (p.t > 0.2 && !p._s1) {
       p._s1 = 1;
-      S.shots.push({ id: nid(), kind: 'wing', x: p.x + p.face * 60, y: p.y, z: 80, vx: p.face * 900, owner: p.id, life: 1.4, dmg: 38 * hero.power, hit: new Set(), friendly: true });
+      // bow, long range: three winged arrows across the whole screen
+      for (const dy of [-46, 0, 46]) S.shots.push({ id: nid(), kind: 'wing', x: p.x + p.face * 60, y: clamp(p.y + dy, FLOOR_TOP, FLOOR_BOTTOM), z: 80, vx: p.face * (980 - Math.abs(dy) * 2), owner: p.id, life: 1.5, dmg: 30 * hero.power, hit: new Set(), friendly: true });
       sfx(S, 'laser');
     }
     if (p.t > 0.5) end();
   } else if (k === 'onyx') {
-    if (p.t > 0.3 && !p._s1) { p._s1 = 1; ring(S, p.x + p.face * 40, p.y, '#e3ecf5', 320, 0.6); ev(S, { t: 'crack', x: p.x + p.face * 40, y: p.y }); shake(S, 16); sfx(S, 'stomp'); }
-    if (p.t > 0.3) hitAll((e) => Math.hypot(e.x - p.x, (e.y - p.y) * 1.6) < 300, 48);
+    // axe, close range: overhead smash that splits the ground
+    if (p.t > 0.3 && !p._s1) { p._s1 = 1; ring(S, p.x + p.face * 70, p.y, '#e3ecf5', 220, 0.55); ev(S, { t: 'crack', x: p.x + p.face * 70, y: p.y }); shake(S, 18); sfx(S, 'stomp'); }
+    if (p.t > 0.3) hitAll((e) => Math.hypot(e.x - (p.x + p.face * 60), (e.y - p.y) * 1.6) < 190, 60);
     if (p.t > 0.7) end();
   }
   function end() { p.st = 'idle'; p.t = 0; p._s1 = 0; p._n = -1; }
@@ -825,8 +844,9 @@ function stepShots(S, dt) {
     s.x += s.vx * dt; s.y += (s.vy || 0) * dt;
     if (s.friendly) {
       const owner = S.players.find((q) => q.id === s.owner);
-      for (const e of S.enemies) if (hittable(e) && !s.hit.has(e.id) && Math.abs(e.x - s.x) < 70 && Math.abs(e.y - s.y) < 60) {
-        s.hit.add(e.id); damageEnemy(S, owner, e, s.dmg, { knock: true, heavy: true, from: s.x - s.vx });
+      for (const e of S.enemies) if (s.life > 0 && hittable(e) && !s.hit.has(e.id) && Math.abs(e.x - s.x) < (s.kind === 'bolt' ? 46 : 70) && Math.abs(e.y - s.y) < (s.kind === 'bolt' ? 34 : 60)) {
+        s.hit.add(e.id); damageEnemy(S, owner, e, s.dmg, s.stun ? { from: s.x - s.vx } : { knock: true, heavy: true, from: s.x - s.vx });
+        if (s.single) s.life = 0;
       }
       for (const o of S.props) if (o.hp > 0 && !s.hit.has(o.id) && Math.abs(o.x - s.x) < 50 && Math.abs(o.y - s.y) < 50) { s.hit.add(o.id); hitProp(S, o, owner); }
     } else {
@@ -910,7 +930,7 @@ function stepZones(S, dt) {
     S.zoneOn = false; S.camLock = null; S.zoneIdx++;
     for (const c of S.civs) if (c.mode === 'cower') { c.mode = 'saved'; c.face = -1; c.t = 0; if (c.caged) { c.caged = false; ev(S, { t: 'uncage', x: Math.round(c.x), y: Math.round(c.y) }); } for (const p of alivePlayers(S)) p.score += 300; }
     const zz = L.zones[S.zoneIdx];
-    ev(S, { t: 'go' });
+    ev(S, { t: 'go' }); ev(S, { t: 'pop', x: 640, y: 230, s: 'ZONA LIBERATA!', c: '#ffd35a', big: 1, fixed: 1 });
     for (const p of S.players) p.hp = Math.min(p.max, p.hp + 10);
   }
 }
@@ -1048,6 +1068,7 @@ function buildView(S) {
     if (e.st === 'fall') { o.a = +Math.max(0, 1 - e.t / 0.8).toFixed(2); o.sh = 0; }
     if (boss && e.st === 'dead') { o.a = e.t > 1.8 ? +Math.max(0, 1 - (e.t - 1.8) / 0.6).toFixed(2) : 1; o.fl = Math.floor(e.t * 12) % 2; }
     if (!boss && e.hp > 0 && e.hp < e.max && e.st !== 'held') o.hb = +(e.hp / e.max).toFixed(2);
+    if (!boss && e.st === 'hurt' && S.players.some((p) => !p.out && p.st !== 'dead' && Math.abs(p.y - e.y) < 24 && Math.abs(p.x - e.x) < 90)) o.gb = 1;
     if (e.st === 'wind' && boss && e.move === 'slam') o.tg = [r(e.tx), r(e.ty), 130];
     if (e.st === 'burrow') o.tg = [r(e.tx), r(e.ty), 140];
     if (e.st === 'wind' && boss && e.move === 'blast') o.bl = 1;
@@ -1059,6 +1080,14 @@ function buildView(S) {
     if (p.out) continue;
     const [f, rot] = playerFrame(p);
     const o = { i: p.id, s: 'fighters', f, x: r(p.x), y: r(p.y), z: r(p.z), fc: p.face, sc: HERO_SCALE, r: rot, sh: p.st === 'fall' ? 0 : 36, pl: p.slot + 1, pc: HEROES[p.hero].color };
+    // on-screen button prompts
+    if (!p.civil && (p.st === 'idle' || p.st === 'walk')) {
+      const near = S.enemies.filter((e) => e.hp > 0 && !e.boss && Math.abs(e.x - p.x) < 280 && Math.abs(e.y - p.y) < 90).length + (S.enemies.some((e) => e.boss && e.hp > 0 && Math.abs(e.x - p.x) < 320) ? 3 : 0);
+      if (p.en >= 80 && near >= 3) o.hint = 'power';
+      else if (grabbable(S, p)) o.hint = 'grab';
+      else if (S.L.train && trainOn(S.L, p.x) && [50, 90, 130].some((d) => inGap(S.L, p.x + p.face * d, p.y))) o.hint = 'jump';
+    }
+    if (p.civil && !p.morphT) o.hint = 'morph';
     if (p.st === 'fall') o.a = +Math.max(0, 1 - p.t / 0.7).toFixed(2);
     if (p.civil) { o.s = 'people'; o.sc = 1; o.r = 0; o.f = `${HEROES[p.hero].id}C_` + (p.st === 'walk' ? 'walk' + (Math.floor(p.walk) % 6) : p.morphT > 0 ? 'raise' : 'idle' + (Math.floor(S.t * 2) % 2)); delete o.wp; }
     if (p.inv > 0 && p.st !== 'special' && p.st !== 'pose' && Math.floor(S.t * 20) % 2) o.a = 0.45;
@@ -1067,13 +1096,14 @@ function buildView(S) {
     if (p.st === 'special' || p.st === 'pose') o.au = HEROES[p.hero].glow;
     // personal weapon visible in the finisher, the running strike and the specials
     const hid = HEROES[p.hero].id;
-    if (p.st === 'atk' && MOVES[p.atk] && MOVES[p.atk].sig) {
+    if (p.st === 'atk' && p.atk === 'shoot') { o.sw = 'w_gun'; o.sr = 0; }
+    else if (p.st === 'atk' && MOVES[p.atk] && MOVES[p.atk].sig) {
       o.sw = 'w_' + hid;
       o.sr = p.atk === 'dash' ? 0 : +(p.t < 0.1 ? -1.5 : clamp(-1.5 + (p.t - 0.1) / 0.12 * 1.7, -1.5, 0.2)).toFixed(2);
       if (hid === 'aura') o.sr = 0;
     } else if (p.st === 'special') {
       o.sw = 'w_' + hid;
-      o.sr = hid === 'ignis' ? +(p.t * 20).toFixed(2) : hid === 'onyx' ? (p.t < 0.3 ? -2.0 : 0.95) : 0;
+      o.sr = hid === 'ignis' ? +clamp(-1.6 + p.t / 0.16 * 1.9, -1.6, 0.3).toFixed(2) : hid === 'onyx' ? (p.t < 0.3 ? -2.0 : 0.95) : 0;
     }
     if (p.st === 'dodge' || p.run && p.st === 'walk' || p.st === 'special' && p.spk === 'azur') o.gh = 1;
     d.push(o);
@@ -1084,7 +1114,7 @@ function buildView(S) {
   return {
     m: 'stage', lv: S.lvl, bg: S.L.bg, cam: r(S.cam), t: +S.t.toFixed(2), d,
     hud: {
-      p: S.players.map((p) => ({ h: p.hero, n: p.name, hp: Math.max(0, Math.round(p.hp)), mx: p.max, en: Math.round(p.en), sc: p.score, lv: p.lives, out: p.out ? 1 : 0, wp: p.weapon ? p.weapon.type : 0, wu: p.weapon ? p.weapon.uses : 0, cb: p.comboHitT > 0 && p.combo2 > 1 ? p.combo2 : 0 })),
+      p: S.players.map((p) => ({ h: p.hero, n: p.name, hp: Math.max(0, Math.round(p.hp)), mx: p.max, en: Math.round(p.en), sc: p.score, lv: p.lives, out: p.out ? 1 : 0, wp: 0, am: p.ammo, cb: p.comboHitT > 0 && p.combo2 > 1 ? p.combo2 : 0 })),
       team: Math.round(S.team),
       boss: boss ? { n: boss.B.name, t: boss.B.title, hp: Math.max(0, boss.hp), mx: boss.max, g: boss.guarding ? 1 : 0 } : null,
       ban: S.banner ? { t: S.banner.text, s: S.banner.sub || '', k: +S.banner.t.toFixed(2), e: +((S.banner.tot || (S.banner.tot = S.banner.t)) - S.banner.t).toFixed(2), b: S.banner.boss ? 1 : 0 } : null,
