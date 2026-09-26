@@ -1,44 +1,29 @@
-# Inventario e lavori mancanti
+# Inventario degli asset (build 1.0)
 
-## Pacchetto utilizzato dal primo livello
-| File | Contenuto | Stato |
+## Sprite in gioco (`assets/sprites`, metadati in `js/atlas.js`)
+| Atlante | Contenuto | Origine |
 |---|---|---|
-| fighters.png | 5 eroi + soldato, 8 pose per riga | Integrato. Onyx posa 8 esclusa. Pose essenziali, non animazione completa |
-| mastice.png | 8 pose del boss | Integrato con ritaglio a griglia; possibile rifinitura delle estensioni tra celle |
-| port.png | Panorama del porto | Integrato |
-| story.png | Quattro quadri preliminari | Usati solo panorama e camera dei Cuori; ritratti precedenti esclusi |
-| campaign-villains.png | Centipede, Trivor, Mimesi, Kharon, Custode, Vespera, Eclipse | Vespera usata nell'intro; restanti sequenze da validare |
-| Codice Canvas/CSS | Casse, cure, particelle, anelli, HUD, pulsanti | Integrato; elementi semplici, non tavole raster |
-| Web Audio | Colpi, salto, recuperi, pulsazione musicale | Integrato; niente doppiaggio o colonna sonora finale |
+| fighters.png | 5 eroi × 8 pose; soldato Senzavolto + varianti "Lama del Velo" e "Bruto di ruggine" | ritaglio per sagoma di `source/fighters.png`; varianti ricolorate |
+| bosses.png | Mastice (8 pose); Centipede, Trivor, Mimesi, Kharon, Custode, Vespera, Eclisse (6 pose ciascuno) | ritaglio per sagoma di `source/mastice.png` e `source/campaign-villains.png` |
+| titans.png | 5 titani + Concordia, viste di lato/fronte/retro | ritaglio di `source/titans-reference.png` |
+| items.png | pizza, pollo arrosto, bibita, cella d'energia, moneta, frammento di Cuore, tubo, remo, cassa, fusto esplosivo, bidone, 4 schegge | pixel art nuova (`tools/items.py`) |
+| people.png | 9 civili (cameriere, pescatore, signora, anziano, turista, ragazza, impiegato, bambino, scienziata) × fermo/camminata/corsa in preda al panico/riparo/indica; 5 eroi in borghese × fermo/camminata/scatto/posa/braccio alzato/indica | pixel art nuova (`tools/people.py`) |
 
-## Campagna: riferimenti inclusi
-| Livello | Fondale | Avversario | Stato |
-|---|---|---|---|
-| 1 | Porto Aurora | Mastice | Giocabile |
-| 2 | Convoglio | Centipede | Tavole preliminari |
-| 3 | Parco preistorico | Trivor | Tavole preliminari; titano non animato |
-| 4 | Teatro degli specchi | Mimesi | Tavole preliminari |
-| 5 | Città sotto assedio | Kharon | Tavole preliminari; robot non animato |
-| 6 | Cimitero dei titani | Custode | Tavole preliminari |
-| 7 | Palazzo del Velo | Kharon / Vespera | Tavole preliminari |
-| 8 | Alba / fortezza | Vespera / Eclipse | Tavole preliminari |
+Ogni fotogramma ha il punto d'appoggio ai piedi: le pose con estensioni (calci, spade, magie)
+non vengono più troncate e non "saltano" quando cambiano larghezza.
+Correzione: il fotogramma di danno di Onyx aveva la gemma viola del soldato; ora è ridipinto.
 
-## Ancora da completare per dire «tutti gli asset definitivi»
-- Turnaround fronte/profilo/retro definitivo dei cinque eroi, con correzione dei dettagli.
-- Animazioni dedicate di salto, atterraggio, caduta, rialzata, presa, lancio,
-  trasformazione e speciale individuale. Ora si riutilizzano pose essenziali.
-- Validazione e allineamento delle sei pose dei boss successivi, più cadute e morti.
-- Sprite animati e separati dei cinque titani e Concordia; parti per l'assemblaggio.
-- Scenari estesi e livelli separati di parallasse per i capitoli 2–8; oggetti dedicati.
-- Cinematiche definitive dei capitoli 2–8, figure civili/scienziata, inquadrature aggiuntive.
-- Audio musicale finale, eventuali voci, effetti dedicati dei titani.
+## Fondali (`assets/bg`)
+port (capitolo 1), rail, park, theater, siege, graveyard, veil, dawn (capitoli 2–8),
+più le tavole della storia usate nelle cinematiche. I fondali dei capitoli 2–8 derivano dalle
+miniature di `campaign-worlds.png`: sono ingranditi e quindi più morbidi del porto.
 
-Questi lavori non richiedono ulteriori file dell'utente. Il pacchetto è una baseline
-con un livello implementato; NON dichiara conclusa la produzione grafica degli otto livelli.
+## Animazioni ottenute via codice
+Salto, caduta a terra, rialzata, presa, lancio, pose del titano nei duelli giganti, colpo di
+squadra: realizzati trasformando le pose esistenti (rotazione, spostamento, scie, bagliori).
 
-## Mancanze tecniche
-Cooperativa online: da progettare e implementare. Occorrono un servizio di stanze/
-signaling e una strategia di sincronizzazione; GitHub Pages serve soltanto i file statici.
-Repository: non è stato fornito un repository di destinazione né pubblicata questa build.
-Test su Mac e Windows e controller reali: da eseguire, oltre ai controlli Canvas già fatti.
-Mobile: volontariamente fuori da questa fase.
+## Da migliorare in futuro
+- Fondali dei capitoli 2–8 disegnati alla risoluzione piena, con livelli di parallasse separati.
+- Pose dedicate per salto, a terra e rialzata di eroi e boss (ora sono pose adattate).
+- Pose animate dei titani (ora sono viste fisse animate con trasformazioni).
+- Voci e colonna sonora registrata (ora c'è musica sintetizzata).

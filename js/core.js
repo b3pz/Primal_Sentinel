@@ -1,0 +1,321 @@
+'use strict';
+/* ============================================================
+   CORE — canvas, immagini, sprite, audio, input
+   ============================================================ */
+const W = 1280, H = 720;
+const canvas = document.querySelector('#game');
+const g = canvas.getContext('2d');
+g.imageSmoothingEnabled = false;
+
+const IMG = {};
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+function loadImages(list) {
+  return Promise.all(list.map(([name, src]) => new Promise((ok, ko) => {
+    const i = new Image();
+    i.onload = () => { IMG[name] = i; ok(); };
+    i.onerror = () => ko(src);
+    i.src = src;
+  })));
+}
+
+/* ---------- sprites ---------- */
+function frameOf(sheet, key) {
+  const s = ATLAS[sheet];
+  return s && s[key];
+}
+
+/* draw a frame so that its anchor (feet) lands on (x, y) */
+function spr(sheet, key, x, y, opt = {}) {
+  const f = frameOf(sheet, key);
+  if (!f) return;
+  const img = opt.img || (opt.tint ? tinted(sheet, key, opt.tint) : IMG[sheet]);
+  if (!img) return;
+  const s = opt.scale || 1, face = opt.face || 1;
+  g.save();
+  g.translate(Math.round(x), Math.round(y));
+  if (opt.rot) g.rotate(opt.rot);
+  g.scale(face * s * (opt.sx || 1), s * (opt.sy || 1));
+  if (opt.alpha !== undefined) g.globalAlpha *= opt.alpha;
+  const sx = opt.tint ? 0 : f[0], sy = opt.tint ? 0 : f[1];
+  g.drawImage(img, sx, sy, f[2], f[3], -f[4], -f[5], f[2], f[3]);
+  if (opt.flash) {
+    g.globalCompositeOperation = 'lighter';
+    g.globalAlpha *= opt.flash;
+    g.drawImage(flashImg(sheet, key), 0, 0, f[2], f[3], -f[4], -f[5], f[2], f[3]);
+  }
+  g.restore();
+}
+
+/* tinted/silhouette versions made with compositing (no getImageData → works from file://) */
+const tintCache = new Map();
+function tinted(sheet, key, color, mode = 'source-atop', strength = 0.62) {
+  const id = sheet + key + color + mode + strength;
+  let c = tintCache.get(id);
+  if (c) return c;
+  const f = frameOf(sheet, key);
+  c = document.createElement('canvas');
+  c.width = f[2]; c.height = f[3];
+  const x = c.getContext('2d');
+  x.drawImage(IMG[sheet], f[0], f[1], f[2], f[3], 0, 0, f[2], f[3]);
+  x.globalCompositeOperation = mode;
+  x.globalAlpha = strength;
+  x.fillStyle = color;
+  x.fillRect(0, 0, f[2], f[3]);
+  tintCache.set(id, c);
+  return c;
+}
+function flashImg(sheet, key) { return tinted(sheet, key, '#ffffff', 'source-atop', 1); }
+
+/* ---------- text helpers ---------- */
+const FONT = '"Trebuchet MS", "Segoe UI", system-ui, sans-serif';
+function txt(t, x, y, size = 18, color = '#eef6ff', align = 'left', weight = 800) {
+  g.font = `${weight} ${size}px ${FONT}`;
+  g.textAlign = align;
+  g.fillStyle = '#050a12';
+  g.fillText(t, x + 2, y + 2);
+  g.fillStyle = color;
+  g.fillText(t, x, y);
+}
+function wrapText(t, maxW, size) {
+  g.font = `700 ${size}px ${FONT}`;
+  const words = t.split(' '), lines = [];
+  let cur = '';
+  for (const w of words) {
+    const test = cur ? cur + ' ' + w : w;
+    if (g.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; } else cur = test;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+function bar(x, y, w, h, v, color, back = '#0d1a26') {
+  g.fillStyle = '#02060c';
+  g.fillRect(x - 2, y - 2, w + 4, h + 4);
+  g.fillStyle = back;
+  g.fillRect(x, y, w, h);
+  g.fillStyle = color;
+  g.fillRect(x, y, w * clamp(v, 0, 1), h);
+  g.fillStyle = 'rgba(255,255,255,.25)';
+  g.fillRect(x, y, w * clamp(v, 0, 1), Math.max(1, h / 4));
+}
+
+/* ---------- background tiling with mirrored repeats ---------- */
+function drawBackdrop(name, offset, opt = {}) {
+  const img = IMG[name];
+  if (!img) return;
+  const s = H / img.height, tw = img.width * s;
+  let start = Math.floor(offset / tw);
+  for (let i = start; i * tw - offset < W; i++) {
+    const x = i * tw - offset;
+    g.save();
+    if (i % 2 && !opt.noMirror) {
+      g.translate(x + tw, 0); g.scale(-1, 1);
+      g.drawImage(img, 0, 0, tw, H);
+    } else g.drawImage(img, x, 0, tw, H);
+    g.restore();
+  }
+}
+
+/* ============================================================
+   AUDIO — effetti sintetizzati + piccolo sequencer musicale
+   ============================================================ */
+const Audio = {
+  ctx: null, master: null, muted: false, music: null, step: 0, next: 0, song: 0, musicOn: false,
+  unlock() {
+    if (!this.ctx) {
+      try {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.master = this.ctx.createGain();
+        this.master.gain.value = 0.9;
+        this.master.connect(this.ctx.destination);
+      } catch (e) { return; }
+    }
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+  },
+  tone(f = 160, d = 0.08, type = 'square', vol = 0.035, slide = 0.45, when = 0) {
+    if (this.muted || !this.ctx) return;
+    const t = this.ctx.currentTime + when;
+    const o = this.ctx.createOscillator(), a = this.ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f, t);
+    if (slide !== 1) o.frequency.exponentialRampToValueAtTime(Math.max(25, f * slide), t + d);
+    a.gain.setValueAtTime(vol, t);
+    a.gain.exponentialRampToValueAtTime(0.0008, t + d);
+    o.connect(a); a.connect(this.master);
+    o.start(t); o.stop(t + d + 0.02);
+  },
+  noise(d = 0.15, vol = 0.05, hp = 800, when = 0) {
+    if (this.muted || !this.ctx) return;
+    const t = this.ctx.currentTime + when;
+    const len = Math.floor(this.ctx.sampleRate * d);
+    const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const s = this.ctx.createBufferSource(); s.buffer = buf;
+    const f = this.ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = hp;
+    const a = this.ctx.createGain(); a.gain.value = vol;
+    s.connect(f); f.connect(a); a.connect(this.master);
+    s.start(t);
+  },
+  sfx(name) {
+    switch (name) {
+      case 'punch': this.tone(230, 0.06, 'square', 0.03); this.noise(0.05, 0.03, 1800); break;
+      case 'kick': this.tone(160, 0.09, 'square', 0.035); this.noise(0.07, 0.03, 1200); break;
+      case 'hit': this.tone(95, 0.11, 'sawtooth', 0.05, 0.4); this.noise(0.08, 0.06, 600); break;
+      case 'heavy': this.tone(70, 0.22, 'sawtooth', 0.06, 0.3); this.noise(0.2, 0.08, 200); break;
+      case 'jump': this.tone(300, 0.12, 'triangle', 0.035, 1.8); break;
+      case 'dodge': this.tone(500, 0.08, 'triangle', 0.025, 0.5); break;
+      case 'pickup': this.tone(660, 0.08, 'sine', 0.05, 1.5); this.tone(990, 0.12, 'sine', 0.04, 1.2, 0.07); break;
+      case 'weapon': this.tone(400, 0.05, 'square', 0.03, 1); this.tone(800, 0.1, 'square', 0.03, 1, 0.05); break;
+      case 'break': this.noise(0.18, 0.08, 400); this.tone(120, 0.12, 'square', 0.03, 0.5); break;
+      case 'boom': this.noise(0.6, 0.14, 60); this.tone(60, 0.5, 'sawtooth', 0.07, 0.3); break;
+      case 'special': this.tone(330, 0.4, 'sawtooth', 0.05, 2.2); this.tone(495, 0.4, 'square', 0.03, 2.2, 0.05); break;
+      case 'team': [262, 330, 392, 523, 659].forEach((f, i) => this.tone(f, 0.35, 'square', 0.04, 1, i * 0.09)); break;
+      case 'wind': this.tone(140, 0.2, 'triangle', 0.04, 1.6); break;
+      case 'bosswind': this.tone(90, 0.35, 'sawtooth', 0.05, 1.8); break;
+      case 'hurt': this.tone(160, 0.2, 'sawtooth', 0.05, 0.4); break;
+      case 'ko': this.tone(200, 0.6, 'square', 0.05, 0.2); break;
+      case 'siren': this.tone(620, 0.5, 'triangle', 0.03, 1.4); this.tone(870, 0.5, 'triangle', 0.03, 0.7, 0.5); break;
+      case 'morph': [392, 523, 659, 784, 1046].forEach((f, i) => this.tone(f, 0.25, 'triangle', 0.045, 1, i * 0.07)); this.noise(0.8, 0.05, 2500, 0.3); break;
+      case 'select': this.tone(520, 0.05, 'square', 0.03, 1); break;
+      case 'confirm': this.tone(520, 0.06, 'square', 0.03, 1); this.tone(780, 0.1, 'square', 0.03, 1, 0.06); break;
+      case 'crowd': for (let i = 0; i < 4; i++) this.tone(rand(300, 700), 0.25, 'triangle', 0.012, rand(0.7, 1.3), i * 0.06); break;
+      case 'stomp': this.noise(0.3, 0.12, 40); this.tone(45, 0.35, 'sine', 0.12, 0.6); break;
+      case 'laser': this.tone(900, 0.3, 'sawtooth', 0.04, 0.2); break;
+    }
+  },
+  /* songs: [bass line, lead line] in semitones from A1; null = rest */
+  SONGS: [
+    { bpm: 138, bass: [0, 0, 12, 0, 3, 3, 15, 3, 5, 5, 17, 5, 3, 3, 15, 2], lead: [12, null, 15, null, 17, 15, null, 12, 10, null, 12, null, 15, null, null, null] },
+    { bpm: 150, bass: [0, 12, 0, 12, 0, 12, 3, 15, 5, 17, 5, 17, 3, 15, 2, 14], lead: [24, null, 22, 24, null, 27, null, 24, 22, null, 19, null, 22, null, 24, null] },
+    { bpm: 128, bass: [0, 0, 7, 0, 10, 10, 7, 5, 0, 0, 7, 0, 12, 10, 7, 3], lead: [12, null, null, 15, null, null, 19, null, 17, null, 15, null, 12, null, null, null] },
+    { bpm: 118, bass: [0, null, 1, null, 0, null, 6, null, 0, null, 1, null, 7, 6, 1, null], lead: [18, null, 17, null, 13, null, 12, null, 18, null, 19, null, 18, 17, 13, null] },
+    { bpm: 156, bass: [0, 0, 12, 0, 0, 12, 10, 12, 5, 5, 17, 5, 7, 7, 19, 7], lead: [24, 24, null, 22, 24, null, 27, 29, 29, null, 27, null, 24, null, 22, null] },
+    { bpm: 110, bass: [0, null, null, 0, 3, null, null, 3, 1, null, null, 1, 0, null, 11, null], lead: [null, 12, null, null, 15, null, 14, null, null, 13, null, null, 12, null, null, null] },
+    { bpm: 144, bass: [0, 12, 1, 13, 0, 12, 6, 18, 0, 12, 1, 13, 7, 19, 6, 18], lead: [24, null, 25, null, 24, null, 30, null, 31, null, 30, null, 25, null, 24, null] },
+    { bpm: 162, bass: [0, 0, 12, 0, 5, 5, 17, 5, 7, 7, 19, 7, 10, 10, 22, 12], lead: [24, 27, 29, 31, 29, 27, 24, null, 31, 34, 36, 34, 31, 29, 27, null] },
+    { bpm: 96, bass: [0, null, 7, null, 5, null, 3, null, 0, null, 7, null, 8, null, 7, null], lead: [12, null, null, null, 15, null, 14, null, 12, null, null, null, 19, null, 17, null] },
+  ],
+  playSong(i) { this.song = i; this.musicOn = true; this.step = 0; this.next = 0; },
+  stopSong() { this.musicOn = false; },
+  update() {
+    if (!this.ctx || !this.musicOn || this.muted) return;
+    const s = this.SONGS[this.song % this.SONGS.length];
+    const stepDur = 60 / s.bpm / 2;
+    const now = this.ctx.currentTime;
+    if (this.next < now) this.next = now + 0.05;
+    while (this.next < now + 0.12) {
+      const i = this.step % 16, when = this.next - now;
+      const b = s.bass[i];
+      const hz = (n) => 55 * Math.pow(2, n / 12);
+      if (b !== null && b !== undefined) this.tone(hz(b), stepDur * 0.9, 'triangle', 0.05, 1, when);
+      const l = s.lead[i];
+      if (l !== null && l !== undefined && (this.step >> 4) % 2 === 1) this.tone(hz(l + 12), stepDur * 1.6, 'square', 0.012, 1, when);
+      if (i % 4 === 0) this.noise(0.05, 0.03, 60, when);
+      if (i % 4 === 2) this.noise(0.04, 0.018, 5000, when);
+      this.step++;
+      this.next += stepDur;
+    }
+  },
+};
+
+/* ============================================================
+   INPUT — dispositivi: tastiera (solo / A / B) e controller
+   Ogni giocatore legge un "controllo" astratto:
+   l r u d  + punch kick jump special dodge team start
+   ============================================================ */
+const BTN = ['punch', 'kick', 'jump', 'special', 'dodge', 'team', 'start'];
+const KEYMAPS = {
+  // una sola persona sulla tastiera: tutti i tasti
+  kb: {
+    l: ['KeyA', 'ArrowLeft'], r: ['KeyD', 'ArrowRight'], u: ['KeyW', 'ArrowUp'], d: ['KeyS', 'ArrowDown'],
+    punch: ['KeyJ', 'KeyF', 'Numpad1'], kick: ['KeyK', 'KeyG', 'Numpad2'], jump: ['Space', 'Numpad0'],
+    special: ['KeyL', 'KeyR', 'Numpad3'], dodge: ['ShiftLeft', 'ShiftRight', 'KeyT'], team: ['KeyI', 'KeyY', 'Numpad4'], start: ['Escape', 'Enter'],
+  },
+  // due persone sulla stessa tastiera
+  kbA: {
+    l: ['KeyA'], r: ['KeyD'], u: ['KeyW'], d: ['KeyS'],
+    punch: ['KeyF'], kick: ['KeyG'], jump: ['Space'], special: ['KeyR'], dodge: ['ShiftLeft'], team: ['KeyT'], start: ['Escape'],
+  },
+  kbB: {
+    l: ['ArrowLeft'], r: ['ArrowRight'], u: ['ArrowUp'], d: ['ArrowDown'],
+    punch: ['Numpad1', 'KeyK'], kick: ['Numpad2', 'KeyL'], jump: ['Numpad0', 'KeyI'], special: ['Numpad3', 'KeyO'],
+    dodge: ['NumpadDecimal', 'ShiftRight'], team: ['Numpad4', 'KeyP'], start: ['NumpadEnter', 'Enter'],
+  },
+};
+const PADMAP = { jump: [0], special: [1], punch: [2], kick: [3], team: [4], dodge: [5, 7, 6], start: [9] };
+
+const Input = {
+  keys: {}, keyEdge: {}, padPrev: {}, padEdge: {},
+  init() {
+    addEventListener('keydown', (e) => {
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code) && !UI.typing()) e.preventDefault();
+      if (!this.keys[e.code]) this.keyEdge[e.code] = true;
+      this.keys[e.code] = true;
+      Audio.unlock();
+    });
+    addEventListener('keyup', (e) => { this.keys[e.code] = false; });
+    addEventListener('blur', () => { this.keys = {}; });
+    addEventListener('pointerdown', () => Audio.unlock());
+  },
+  pads() {
+    const out = [];
+    const ps = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const p of ps) if (p && p.connected) out.push(p);
+    return out;
+  },
+  /* read device → control snapshot {l,r,u,d, held:{}, pressed:{}} */
+  read(device) {
+    const c = { l: 0, r: 0, u: 0, d: 0, held: {}, pressed: {} };
+    if (device.startsWith('kb')) {
+      const map = device === 'kb' ? KEYMAPS.kb : (Game.local.twoKeyboards ? KEYMAPS[device] : KEYMAPS.kb);
+      for (const dir of ['l', 'r', 'u', 'd']) c[dir] = map[dir].some((k) => this.keys[k]) ? 1 : 0;
+      for (const b of BTN) {
+        c.held[b] = map[b].some((k) => this.keys[k]);
+        c.pressed[b] = map[b].some((k) => this.keyEdge[k]);
+      }
+    } else if (device.startsWith('pad')) {
+      const idx = +device.slice(3);
+      const p = (navigator.getGamepads ? navigator.getGamepads() : [])[idx];
+      if (!p) return c;
+      const b = p.buttons.map((x) => x.pressed);
+      const prev = this.padPrev[idx] || [];
+      c.l = (p.axes[0] < -0.35 || b[14]) ? 1 : 0;
+      c.r = (p.axes[0] > 0.35 || b[15]) ? 1 : 0;
+      c.u = (p.axes[1] < -0.35 || b[12]) ? 1 : 0;
+      c.d = (p.axes[1] > 0.35 || b[13]) ? 1 : 0;
+      for (const k of BTN) {
+        c.held[k] = PADMAP[k].some((i) => b[i]);
+        c.pressed[k] = PADMAP[k].some((i) => b[i] && !prev[i]);
+      }
+    }
+    return c;
+  },
+  /* any-device edge detection used by menus/lobby */
+  anyPressed(btn) {
+    for (const dev of ['kb']) if (this.read(dev).pressed[btn]) return dev;
+    for (const p of this.pads()) if (this.read('pad' + p.index).pressed[btn]) return 'pad' + p.index;
+    return null;
+  },
+  endFrame() {
+    this.keyEdge = {};
+    for (const p of this.pads()) this.padPrev[p.index] = p.buttons.map((x) => x.pressed);
+  },
+};
+
+/* control packed into bits for the network */
+function packControl(c) {
+  let bits = (c.l ? 1 : 0) | (c.r ? 2 : 0) | (c.u ? 4 : 0) | (c.d ? 8 : 0);
+  BTN.forEach((b, i) => { if (c.held[b]) bits |= 1 << (4 + i); });
+  let edge = 0;
+  BTN.forEach((b, i) => { if (c.pressed[b]) edge |= 1 << i; });
+  return [bits, edge];
+}
+function unpackControl(bits, edge) {
+  const c = { l: bits & 1 ? 1 : 0, r: bits & 2 ? 1 : 0, u: bits & 4 ? 1 : 0, d: bits & 8 ? 1 : 0, held: {}, pressed: {} };
+  BTN.forEach((b, i) => { c.held[b] = !!(bits & (1 << (4 + i))); c.pressed[b] = !!(edge & (1 << i)); });
+  return c;
+}
