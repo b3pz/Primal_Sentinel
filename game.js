@@ -28,7 +28,7 @@ const stagePropBlueprints=[
 ];
 
 let mode='loading',gameType='solo',chosen=0,remoteChosen=1,players=[],player=null,enemies=[],props=[],fx=[],drops=[];
-let camera=0,time=0,zone=0,score=0,kills=0,combo=0,comboTimer=0,shake=0,flash=0,elapsed=0,checkpoint=0,muted=false,audio,beat=0,introPage=0,introClock=0;
+let camera=0,time=0,zone=0,score=0,kills=0,combo=0,comboTimer=0,shake=0,flash=0,elapsed=0,checkpoint=0,muted=false,audio,beat=0,introPage=0,introClock=0,selectClock=0,selectCoop=false;
 let padsPrev=[[],[]],netTick=0,guestSnapshot=null;
 let peer=null,conn=null,isHost=false,roomCode='',netStatus='offline',remoteReady=false,localReady=false;
 let remoteInput=blankInput(),remotePressed=blankPressed(),lastRemoteSeq=0,inputSeq=0;
@@ -38,7 +38,7 @@ function blankPressed(){return{punch:false,kick:false,jump:false,special:false,d
 function sound(f=160,d=.08,type='square',vol=.035){if(muted||!audio)return;const o=audio.createOscillator(),a=audio.createGain();o.type=type;o.frequency.setValueAtTime(f,audio.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(25,f*.45),audio.currentTime+d);a.gain.setValueAtTime(vol,audio.currentTime);a.gain.exponentialRampToValueAtTime(.001,audio.currentTime+d);o.connect(a);a.connect(audio.destination);o.start();o.stop(audio.currentTime+d)}
 function unlock(){if(!audio)try{audio=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}audio?.resume()}
 function ui(html,cls=''){screen.className=cls;screen.innerHTML=html;screen.querySelector('button')?.focus()}
-function foot(){return '<div class="footer">SVILUPPATO ED IDEATO DA b3pZ · V0.3 PATCH ASSET/INTRO · PORTO AURORA</div>'}
+function foot(){return '<div class="footer">SVILUPPATO ED IDEATO DA b3pZ · V0.4 SELECT/REFINE · PORTO AURORA</div>'}
 function setNet(s){netStatus=s;const el=document.querySelector('#net-status');if(el)el.textContent=s}
 
 function menu(){
@@ -55,9 +55,11 @@ function help(){
 const story=[['PORTO AURORA · ORE 23:47','La notte delle sirene','La frattura apparve sopra il mare. Poi gli uomini senza volto uscirono dagli specchi. Nessuno sapeva cosa cercassero.'],['OLTRE IL VELO','Una voce dimenticata','«Riportatemi i Cuori.» Vespera pronunciò cinque nomi. Sotto la città, macchine addormentate da millenni risposero.'],['IL RISVEGLIO','Non siete soli','Cinque armature si accesero. Il porto era già in fiamme. Prima di scoprire chi li avesse scelti, i nuovi Sentinels dovevano salvare la loro città.']];
 function intro(){mode='intro';introClock=0;let s=story[introPage];ui(`<span class="eyebrow">${s[0]}</span><h2>${s[1]}</h2><p>${s[2]}</p><nav><button class="primary" id="next">${introPage===2?'SCEGLI IL SENTINEL':'CONTINUA'}</button><button id="skip">SALTA INTRO</button></nav><p class="small">Intro illustrata animata: civili in fuga, Vespera e i cinque Cuori.</p>`);document.querySelector('#next').onclick=()=>{introPage++;introPage>2?selection(false):intro()};document.querySelector('#skip').onclick=()=>selection(false)}
 function selection(coop=false){
- mode='select';
- ui('<span class="eyebrow">CINQUE CUORI · UNA SQUADRA</span><h2>'+ (coop?'Scegli il tuo Sentinel':'Scegli il tuo Sentinel') +'</h2><div class="cards">'+roster.map((r,i)=>`<button class="card ${i===chosen?'selected':''}" data-i="${i}"><canvas width="181" height="181"></canvas><b>${r.name}</b><small>${r.role}</small></button>`).join('')+'</div><p id="desc">'+(coop?'La scelta è indipendente: il tuo compagno può usare un altro Sentinel.':'Ogni eroe ha velocità e potenza diverse. L’armatura che vedi qui è quella che userai in battaglia.')+'</p><nav><button class="primary" id="go">'+(coop?'CONFERMA E TORNA ALLA LOBBY':'ENTRA A PORTO AURORA')+'</button><button id="back">INDIETRO</button></nav>');
- screen.querySelectorAll('.card').forEach((b,i)=>{drawCardHero(b.querySelector('canvas').getContext('2d'),i);b.onclick=()=>{chosen=i;selection(coop)}});
+ mode='select'; selectClock=0; selectCoop=coop;
+ ui('<div class="select-shell"><span class="eyebrow">CENTRALE DEI CUORI</span><h2>Seleziona il Sentinel</h2><p class="select-copy">Scorri il team, guarda la posa del Ranger selezionato e conferma chi entra in battaglia.</p><div class="select-nav"><button id="left" class="arrow">◀</button><div class="select-panel"><div class="select-name">'+roster[chosen].name+'</div><div class="select-role">'+roster[chosen].role+'</div><div class="select-tip">'+(coop?'Modalità CO-OP: il tuo compagno può scegliere un altro Sentinel.':'Ogni Sentinel ha stile e statistiche diverse.')+'</div></div><button id="right" class="arrow">▶</button></div><nav><button class="primary" id="go">'+(coop?'CONFERMA E TORNA ALLA LOBBY':'ENTRA A PORTO AURORA')+'</button><button id="back">INDIETRO</button></nav><p class="small">Tasti utili: ← → per scorrere · Invio per confermare</p></div>','select-screen');
+ const refresh=()=>selection(coop);
+ document.querySelector('#left').onclick=()=>{chosen=(chosen+roster.length-1)%roster.length;refresh()};
+ document.querySelector('#right').onclick=()=>{chosen=(chosen+1)%roster.length;refresh()};
  document.querySelector('#go').onclick=()=>{unlock();if(coop){sendNet({t:'hero',hero:chosen});lobby()}else start()};
  document.querySelector('#back').onclick=()=>coop?lobby():menu();
 }
@@ -190,7 +192,10 @@ function updateGuest(dt){
  if(guestSnapshot){camera=guestSnapshot.camera??camera;time=guestSnapshot.time??time;elapsed=guestSnapshot.elapsed??elapsed}
 }
 function update(dt){
- pollPad();if(pressed.KeyM)muted=!muted;if(mode==='intro')introClock+=dt; if(mode!=='play'){for(let k in pressed)delete pressed[k];return}
+ pollPad();if(pressed.KeyM)muted=!muted;
+ if(mode==='intro')introClock+=dt;
+ if(mode==='select'){selectClock+=dt; if(pressed.ArrowLeft||pressed.KeyA){chosen=(chosen+roster.length-1)%roster.length;selection(selectCoop)} if(pressed.ArrowRight||pressed.KeyD){chosen=(chosen+1)%roster.length;selection(selectCoop)} if(pressed.Enter){document.querySelector('#go')?.click()} for(let k in pressed)delete pressed[k]; return}
+ if(mode!=='play'){for(let k in pressed)delete pressed[k];return}
  elapsed+=dt;time+=dt;
  if(gameType==='coop'&&!isHost)updateGuest(dt);else updateHost(dt);
  for(let k in pressed)delete pressed[k];
@@ -220,6 +225,7 @@ function txt(text,x,y,size=18,color='#eef6ff',align='left'){g.fillStyle=color;g.
 function bar(x,y,w,h,value,color){g.fillStyle='#142636';g.fillRect(x,y,w,h);g.fillStyle=color;g.fillRect(x,y,w*clamp(value,0,1),h)}
 function backdrop(){
  if(mode==='intro'){renderIntroScene();return}
+ if(mode==='select'){renderSelectScene();return}
  if(['play','pause','win','lose'].includes(mode)){g.drawImage(imgs.port,-camera*.65,0,world*.65+W,720);g.fillStyle='#04112030';g.fillRect(0,0,W,H)}
  else{let q=0;g.drawImage(imgs.story,0,q,887,443,0,0,W,H);g.fillStyle='#05102055';g.fillRect(0,0,W,H)}
 }
@@ -230,6 +236,36 @@ function drawCivilianCrowd(){
    g.drawImage(img,frame*sw,0,sw,sh,px,py,126,126)
  }
  g.restore();
+}
+
+function renderSelectScene(){
+ const grd=g.createLinearGradient(0,0,0,H); grd.addColorStop(0,'#13091f'); grd.addColorStop(.52,'#22113d'); grd.addColorStop(1,'#070c17'); g.fillStyle=grd; g.fillRect(0,0,W,H);
+ // command room pillars
+ for(let i=0;i<6;i++){ const x=96+i*210; g.fillStyle='rgba(247,229,187,.85)'; g.fillRect(x,56,18,360); g.fillStyle='rgba(247,229,187,.18)'; g.fillRect(x-10,56,38,390); }
+ g.fillStyle='#4e1f7a'; g.fillRect(250,275,780,110); g.fillStyle='#6731a3'; g.fillRect(270,255,740,28);
+ g.fillStyle='#06080d'; g.fillRect(0,420,W,300);
+ g.fillStyle='rgba(255,255,255,.05)'; g.beginPath(); g.ellipse(640,545,410,78,0,0,7); g.fill();
+ g.fillStyle='rgba(130,255,120,.22)'; g.beginPath(); g.ellipse(640,552,78,18,0,0,7); g.fill();
+ // monitors
+ for(let i=0;i<5;i++){ g.fillStyle='#0b0f15'; g.fillRect(315+i*115,274,70,42); g.fillStyle=i===chosen?roster[i].color:'#58d7dd'; g.fillRect(323+i*115,282,54,26); }
+ g.fillStyle='rgba(137,245,255,.55)'; g.beginPath(); g.arc(642,120,58+Math.sin(selectClock*2)*6,0,7); g.fill();
+ txt('1P',640,320,32,'#ffe348','center');
+ g.fillStyle='#ffffff'; g.beginPath(); g.moveTo(640,330); g.lineTo(614,360); g.lineTo(666,360); g.fill();
+ const atk=Math.sin(selectClock*3.2)>0.35?4:0;
+ const others=[0,1,2,3,4].filter(i=>i!==chosen);
+ const left=others.filter(i=>i<chosen), right=others.filter(i=>i>chosen);
+ left.forEach((i,idx)=>{g.globalAlpha=.75; const px=220+idx*165; sprite(i,Math.floor(selectClock*3+idx)%2,px,470,128,1);});
+ right.forEach((i,idx)=>{g.globalAlpha=.75; const px=885+idx*165; sprite(i,Math.floor(selectClock*3+idx)%2,px,470,128,1);});
+ g.globalAlpha=1;
+ // selected ranger
+ g.save();
+ g.translate(0,Math.sin(selectClock*2.6)*4);
+ const glow=g.createRadialGradient(640,405,22,640,405,140); glow.addColorStop(0,roster[chosen].color+'BB'); glow.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=glow; g.beginPath(); g.arc(640,405,138,0,7); g.fill();
+ sprite(chosen,atk,640,575,228,1);
+ g.restore();
+ // floor reflection
+ g.save(); g.globalAlpha=.18; g.translate(0,1110); g.scale(1,-.62); sprite(chosen,atk,640,575,228,1); g.restore(); g.globalAlpha=1;
+ txt('SCEGLI IL TUO SENTINEL',640,666,28,'#ffe268','center');
 }
 function renderIntroScene(){
  g.save();

@@ -1,6 +1,6 @@
 # PRIMAL SENTINELS — Porto Aurora
 Sviluppato ed ideato da b3pZ.
-Build 0.3 — primo livello rifinito + cooperativa online sperimentale desktop.
+Build 0.4 — selezione personaggio dedicata + rifiniture del primo livello e co-op online sperimentale desktop.
 
 ## Avvio
 Per la modalità singola puoi estrarre lo ZIP e aprire `index.html` su Mac o Windows.
@@ -30,7 +30,7 @@ Controller standard: stick/croce per muoversi, X pugno, Y calcio, A salto,
 B speciale, RB schivata, Start pausa. Nei menu croce e A.
 
 ## Incluso
-- Intro in tre scene animate, menu e scelta tra cinque eroi.
+- Intro in tre scene animate, menu e nuova selezione personaggio dedicata.
 - Civili in fuga durante l'intro e nuovi asset di scenario.
 - Primo livello Porto Aurora con tre ondate, props migliorati e Mastice.
 - Single player conservato.
