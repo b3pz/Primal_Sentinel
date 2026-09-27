@@ -140,7 +140,11 @@ function mechView(S, d, r) {
   for (const h of S.haz) {
     if (h.type === 'scooter') {
       if (h.t < 0) d.push({ i: h.id, tg: [r(S.cam + W - 60), r(h.y), 60], x: r(h.x), y: r(h.y) });
-      else d.push({ i: h.id, s: 'extra', f: 'scooter', x: r(h.x), y: r(h.y), fc: -1, sc: 1.1, sh: 40 });
+      else {
+        // a Veil soldier riding it (drawn first: the scooter covers his legs)
+        d.push({ i: h.id + 0.5, s: 'fighters', f: 'soldier_4', x: r(h.x + 4), y: r(h.y) - 1, z: 6, fc: -1, sc: 0.78, sh: 0 });
+        d.push({ i: h.id, s: 'extra', f: 'scooter', x: r(h.x), y: r(h.y), fc: -1, sc: 1.1, sh: 40 });
+      }
     } else if (h.type === 'spot') {
       if (h.t < 1.2) d.push({ i: h.id, tg: [r(h.x), r(h.y), 85], x: r(h.x), y: r(h.y), s: 'extra', f: 'spotlight', z: r(Math.max(0, 700 - (h.t / 1.2) * 700 * (h.t > 0.9 ? 1 : 0.2))), sc: 0.6, sh: 0, a: h.t > 0.9 ? 1 : 0.0001 });
       else d.push({ i: h.id, s: 'extra', f: 'spotlight', x: r(h.x), y: r(h.y), sc: 0.6, sh: 50, r: 0.2, a: +clamp(2.4 - h.t, 0, 1).toFixed(2) });

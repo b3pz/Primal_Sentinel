@@ -66,6 +66,9 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.6.5
+- Gli scooter del capitolo 1 ora hanno un soldato del Velo alla guida.
+
 ## Novità della 1.6.4
 - **Colonna sonora nuova**, originale e generata dal gioco (niente file, niente licenze): 12 brani a 4 canali
   (melodia, basso, arpeggio, batteria) con strofa e ritornello — sigla, un tema per ognuno degli 8 capitoli,
