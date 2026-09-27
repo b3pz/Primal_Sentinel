@@ -58,24 +58,31 @@ const Game = {
     this.back = null;
     if (this.online) { Net.leave(); this.online = null; }
     this.local.twoKeyboards = false;
-    Audio.playSong(8);
+    this.attract = false; this.capture = null;
+    Audio.playSong(8, 'sigla');
     const prog = this.progress();
     UI.show(`
       <img class="logo" src="assets/ui/logo.png" alt="Primal Sentinels · Il cuore dei titani">
-      <nav class="col arcade">
-        <button class="primary" id="play" autofocus>GIOCA · 1-4 GIOCATORI</button>
+      <nav class="grid2 arcade">
+        <button class="primary" id="play" autofocus>GIOCA · STORIA · 1-4 GIOCATORI</button>
         <button id="online">COOPERATIVA ONLINE</button>
+        <button id="extras">MODALITÀ EXTRA</button>
         <button id="chapters">CAPITOLI${prog > 0 ? ` · ${prog + 1}/8` : ''}</button>
         <button id="diff">DIFFICOLTÀ: ${DIFF.name}</button>
+        <button id="scores">CLASSIFICHE</button>
+        <button id="gallery">GALLERIA</button>
         <button id="howto">COME SI GIOCA</button>
-        <button id="audio">AUDIO: ${Audio.muted ? 'SPENTO' : 'ACCESO'}</button>
+        <button id="options">OPZIONI</button>
       </nav>
-      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.5</div>`, 'menu');
-    UI.on('#play', () => { this.startLevel = 0; this.lobby(); });
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.6.2</div>`, 'menu');
+    UI.on('#play', () => { this.modeKind = 'campaign'; this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
+    UI.on('#extras', () => this.extras());
     UI.on('#chapters', () => this.chapters());
+    UI.on('#scores', () => this.showScores(0, () => this.menu()));
+    UI.on('#gallery', () => this.gallery());
     UI.on('#howto', () => this.howto(() => this.menu()));
-    UI.on('#audio', () => { Audio.muted = !Audio.muted; this.menu(); });
+    UI.on('#options', () => this.options());
     UI.on('#diff', () => {
       const keys = Object.keys(DIFFS); const k = keys[(keys.indexOf(this.diffKey()) + 1) % keys.length];
       DIFF = DIFFS[k]; try { localStorage.setItem('primal-diff', k); } catch (e) {}
@@ -95,7 +102,7 @@ const Game = {
     this.titleT += dt;
     const any = Object.keys(Input.keyEdge).length > 0 || Input.pads().some((p) => Object.values(Input.read('pad' + p.index).pressed).some(Boolean));
     if (any && this.titleT > 0.5) { Audio.unlock(); Audio.sfx('team'); this.menu(); return; }
-    if (this.titleT > 32) { this.attract = true; this.players = []; this.mode = 'intro'; this.introT = 0; this.prevIntroT = 0; }
+    if (this.titleT > 30) this.nextAttract();
   },
   /* animated tutorial; `then` is called when the player leaves it */
   howto(then, footer) {
@@ -156,7 +163,7 @@ const Game = {
     UI.show(`<span class="eyebrow">CAPITOLI · SIGILLI DEI TITANI ${tot}/24</span><h2>${this.diffKey() === 'arcade' ? 'In modalità Arcade si parte dal capitolo 1' : 'Scegli da dove ripartire'}</h2>
       <div class="chapters">${LEVELS.map((L, i) => `<button class="chap" data-i="${i}" ${i > prog ? 'disabled' : ''}><b>${L.n}</b><span>${i > prog ? 'BLOCCATO' : L.title}</span><small>${i > prog ? (this.diffKey() === 'arcade' ? 'Solo dal capitolo 1' : 'Completa il capitolo precedente') : L.place + ' · ' + '★'.repeat((sg[i] || []).length) + '☆'.repeat(3 - (sg[i] || []).length)}</small></button>`).join('')}</div>
       <nav><button id="back">INDIETRO</button></nav>`);
-    screenEl.querySelectorAll('.chap').forEach((b) => b.onclick = () => { Audio.sfx('confirm'); this.startLevel = +b.dataset.i; this.lobby(); });
+    screenEl.querySelectorAll('.chap').forEach((b) => b.onclick = () => { Audio.sfx('confirm'); this.modeKind = 'campaign'; this.startLevel = +b.dataset.i; this.lobby(); });
     UI.on('#back', () => this.menu());
   },
 
@@ -195,7 +202,7 @@ const Game = {
     if (this.lobbySlots.length >= 4 || this.lobbySlots.some((s) => s.dev === dev)) return;
     const used = this.lobbySlots.map((s) => s.hero);
     const hero = [0, 1, 2, 3, 4].find((h) => !used.includes(h));
-    this.lobbySlots.push({ dev, hero, ready: false, t: 0 });
+    this.lobbySlots.push({ dev, hero, ready: false, t: 0, skin: 0 });
     Audio.sfx('confirm');
   },
   tickLobby(dt) {
@@ -222,9 +229,14 @@ const Game = {
         let dir = 0;
         if (c.pressed.l) dir = -1; if (c.pressed.r) dir = 1;
         if (dir) {
-          let h = s.hero;
-          for (let k = 0; k < 5; k++) { h = (h + dir + 5) % 5; if (!slots.some((o) => o !== s && o.ready && o.hero === h)) break; }
+          let h = s.hero; const n = this.heroCount();
+          for (let k = 0; k < n; k++) { h = (h + dir + n) % n; if (!slots.some((o) => o !== s && o.ready && o.hero === h)) break; }
           s.hero = h; Audio.sfx('select');
+        }
+        // alternate costumes (unlocked with the sigils / by finishing the story)
+        if (c.pressed.u || c.pressed.d) {
+          const sk = this.skinsUnlocked();
+          if (sk.length > 1) { s.skin = sk[(sk.indexOf(s.skin || 0) + (c.pressed.u ? 1 : sk.length - 1)) % sk.length]; Audio.sfx('select'); }
         }
         if (c.pressed.punch || c.pressed.jump || c.pressed.start) {
           if (slots.some((o) => o !== s && o.ready && o.hero === s.hero)) Audio.sfx('hurt');
@@ -250,22 +262,26 @@ const Game = {
     // edge-detect directions for menus
     const prev = this._lobbyPrev || (this._lobbyPrev = {});
     const p = prev[dev] || {};
-    const out = { pressed: { ...c.pressed, l: c.l && !p.l, r: c.r && !p.r, back: false } };
+    const out = { pressed: { ...c.pressed, l: c.l && !p.l, r: c.r && !p.r, u: c.u && !p.u, d: c.d && !p.d, back: false } };
     if (dev.startsWith('kb')) {
       const K = Input.keyEdge, two = this.local.twoKeyboards;
       out.pressed.back = !!K.Backspace;
+      if (dev !== 'kbB' && (K.KeyW || (!two && K.ArrowUp))) out.pressed.u = true;
+      if (dev !== 'kbB' && (K.KeyS || (!two && K.ArrowDown))) out.pressed.d = true;
+      if (dev === 'kbB' && K.ArrowUp) out.pressed.u = true;
+      if (dev === 'kbB' && K.ArrowDown) out.pressed.d = true;
       // quick taps can start and end inside one frame: also look at key edges
       if (dev !== 'kbB' && (K.KeyA || (!two && K.ArrowLeft))) out.pressed.l = true;
       if (dev !== 'kbB' && (K.KeyD || (!two && K.ArrowRight))) out.pressed.r = true;
       if (dev === 'kbB' && K.ArrowLeft) out.pressed.l = true;
       if (dev === 'kbB' && K.ArrowRight) out.pressed.r = true;
     }
-    prev[dev] = { l: c.l, r: c.r };
+    prev[dev] = { l: c.l, r: c.r, u: c.u, d: c.d };
     return out;
   },
   startLocalGame() {
     this.online = null;
-    this.players = this.lobbySlots.map((s, i) => ({ id: i + 1, device: s.dev, hero: s.hero, name: `${i + 1}P`, lives: 3, score: 0 }));
+    this.players = this.lobbySlots.map((s, i) => ({ id: i + 1, device: s.dev, hero: s.hero, skin: s.skin || 0, name: `${i + 1}P`, lives: 3, score: 0 }));
     this.showTags = this.players.length > 1;
     this.beginCampaign();
   },
@@ -274,6 +290,7 @@ const Game = {
     coverImage('story_cores', 1.05, 0.5, 0.5);
     g.fillStyle = 'rgba(3,8,16,.72)'; g.fillRect(0, 0, W, H);
     txt(online ? 'COOPERATIVA ONLINE' : 'SCEGLI IL TUO SENTINEL', W / 2, 70, 38, '#f5dcad', 'center', 900);
+    if (this.modeKind !== 'campaign') ptxt(MODE_NAMES[this.modeKind] + (this.modeKind === 'timeattack' ? ` · CAPITOLO ${this.taLevel + 1}` : ''), W / 2, 104, 12, '#9fe8ff', 'center');
     const slots = online ? Net.lobby.map((p) => ({ hero: p.hero, ready: p.ready, name: p.name, me: p.id === Net.myId, host: p.host })) : this.lobbySlots;
     for (let i = 0; i < 4; i++) {
       const x = 40 + i * 305, y = 120, w = 285, h = 470;
@@ -297,11 +314,13 @@ const Game = {
       txt(`${i + 1}P · ${devName}`, x + 16, y + 34, 14, '#c8d6e4', 'left', 800);
       const f = Math.floor(this.lobbyT * 3) % 4 === 3 && !s.ready ? 4 : s.ready ? 5 : 0;
       drawShadow(x + w / 2, y + 330, 40);
-      spr('fighters', `${hero.id}_${f}`, x + w / 2, y + 330, { scale: 1.2, face: 1 });
+      heroSpr(s.hero, f, x + w / 2, y + 330, { scale: 1.2, face: 1, skin: s.skin || 0 });
       if (!s.ready && (!online || s.me)) { txt('◀', x + 22, y + 230, 26, '#ffcf7a', 'center', 900); txt('▶', x + w - 22, y + 230, 26, '#ffcf7a', 'center', 900); }
       txt(hero.name, x + w / 2, y + 372, 30, hero.color, 'center', 900);
       txt(`${hero.role.toUpperCase()} · ${hero.civil}`, x + w / 2, y + 396, 13, '#c8d6e4', 'center', 800);
       txt(hero.special, x + w / 2, y + 420, 12, '#ffcf7a', 'center', 800);
+      if (!online && this.skinsUnlocked().length > 1 && !s.ready) ptxt(`▲▼ COSTUME: ${SKINS[s.skin || 0].name}`, x + w / 2, y + 60, 8, '#ffd35a', 'center');
+      else if (s.skin) ptxt(`COSTUME ${SKINS[s.skin].name}`, x + w / 2, y + 60, 8, '#ffd35a', 'center');
       const taken = !s.ready && slots.some((o) => o !== s && o.ready && o.hero === s.hero);
       if (s.ready) { g.fillStyle = hero.color; g.fillRect(x + 20, y + 436, w - 40, 26); txt('PRONTO!', x + w / 2, y + 455, 16, '#0b1118', 'center', 900); }
       else txt(taken ? 'GIÀ SCELTO' : online && !s.me ? 'STA SCEGLIENDO…' : 'ATTACCO: PRONTO · SPARO: ESCI', x + w / 2, y + 455, 12, taken ? '#ff8a7a' : '#9fb4c8', 'center', 800);
@@ -337,10 +356,12 @@ const Game = {
       <p>Uno crea la stanza e comunica il <b>codice di 5 caratteri</b>; gli altri lo inseriscono. Fino a 4 giocatori. Il collegamento è diretto tra i vostri browser (WebRTC): serve Internet solo per "presentarvi".</p>
       ${avail ? '' : '<p class="warn">La libreria di rete non è stata caricata: verifica che la cartella <b>vendor</b> sia accanto a index.html.</p>'}
       <label class="field">IL TUO NOME<input id="name" maxlength="12" value="${name.replace(/"/g, '')}" placeholder="Es. Marco"></label>
-      <nav><button class="primary" id="host" ${avail ? '' : 'disabled'}>CREA UNA STANZA</button></nav>
+      <nav><button class="primary" id="host" ${avail ? '' : 'disabled'}>CREA UNA STANZA</button><button id="omode">MODALITÀ: ${MODE_NAMES[this.modeKind === 'timeattack' ? 'campaign' : this.modeKind]}</button></nav>
       <label class="field">CODICE STANZA<input id="code" maxlength="5" placeholder="ES. K7QX2" style="text-transform:uppercase"></label>
       <nav><button id="join" ${avail ? '' : 'disabled'}>ENTRA NELLA STANZA</button><button id="back">INDIETRO</button></nav>`);
     const getName = () => { const n = (screenEl.querySelector('#name').value || '').trim().slice(0, 12) || 'SENTINEL'; try { localStorage.setItem('primal-name', n); } catch (e) {} return n.toUpperCase(); };
+    if (this.modeKind === 'timeattack') this.modeKind = 'campaign';
+    UI.on('#omode', () => { const k = ['campaign', 'bossrush', 'survival']; this.modeKind = k[(k.indexOf(this.modeKind) + 1) % k.length]; const nm = screenEl.querySelector('#name').value; this.onlineMenu(); screenEl.querySelector('#name').value = nm; screenEl.querySelector('#omode').focus(); });
     UI.on('#host', () => { const n = getName(); this.netLobby(); Net.host(n, 0); });
     UI.on('#join', () => {
       const code = (screenEl.querySelector('#code').value || '').trim();
@@ -368,7 +389,8 @@ const Game = {
       let dir = 0; if (c.pressed.l) dir = -1; if (c.pressed.r) dir = 1;
       if (dir) {
         let h = me.hero;
-        for (let k = 0; k < 5; k++) { h = (h + dir + 5) % 5; if (!Net.lobby.some((o) => o !== me && o.hero === h)) break; }
+        const n = this.heroCount();
+        for (let k = 0; k < n; k++) { h = (h + dir + n) % n; if (!Net.lobby.some((o) => o !== me && o.hero === h)) break; }
         me.hero = h; Audio.sfx('select');
         if (Net.role === 'client') Net.sendPick(h, false); else Net.pushLobby();
       }
@@ -409,6 +431,8 @@ const Game = {
   /* ---------------- campaign flow ---------------- */
   beginCampaign() {
     UI.hide();
+    if (this.modeKind && this.modeKind !== 'campaign') { this.beginMode(); return; }
+    for (const p of this.players) { p.score = 0; p.lives = 3; }
     this.credits = DIFF.credits;
     if (this.diffKey() === 'arcade') this.startLevel = 0;
     this.levelIdx = this.startLevel;
@@ -422,10 +446,12 @@ const Game = {
     if (checkpoint) { this.enterStage(idx, checkpoint); return; }
     this.dialog([{ card: true }, ...L.intro], () => this.enterStage(idx, 0));
   },
-  simPlayers() { return this.players.filter((p) => p.device !== 'gone').map((p) => ({ id: p.id, hero: p.hero, name: p.name, lives: Math.max(3, p.lives), score: p.score })); },
+  simPlayers(keepLives) { return this.players.filter((p) => p.device !== 'gone').map((p) => ({ id: p.id, hero: p.hero, skin: p.skin || 0, name: p.name, lives: keepLives ? p.lives : Math.max(3, p.lives), score: p.score })); },
   enterStage(idx, cp) {
     this.S = newStage(idx, this.simPlayers(), cp);
     this.S.credits = this.credits;
+    this.S.summonOK = this.sigilTotal() >= 3;
+    { const z = LEVELS[idx].zones[cp]; if (cp && z && z.ride === 'end') startRide(this.S); }
     if (!cp) this.chapterCont = 0;
     this.G = null;
     this.mode = 'stage';
@@ -441,20 +467,35 @@ const Game = {
   },
   stageResult(r) {
     const L = LEVELS[this.levelIdx];
+    if (this.modeKind !== 'campaign' && this.modeStageResult(r)) return;
+    if (r === 'ride') {
+      // chapter 3: the Tiranno rosso wakes up and the heroes ride it
+      this.playCine('awake', () => { this.mode = 'stage'; startRide(this.S); Audio.playSong(L.music); });
+      return;
+    }
     this.carryScores(this.S.players);
     if (r === 'bonus') { Audio.playSong(8); this.afterClear(); return; }
     const S = this.S;
     this.stats = { lvl: this.levelIdx, time: S.t + (this.stageTimeBefore || 0), saved: S.saved, sigils: S.sigils.slice(), dmg: S.dmgTaken, cont: (this.chapterCont || 0) + S.contUsed,
       players: S.players.map((p) => ({ h: p.hero, n: p.name, sc: p.score, ko: p.kos, cb: p.maxCombo })) };
     if (r === 'giant') {
-      this.dialog(L.mid, () => this.playCine(MID_CINE[this.levelIdx], () => { this.G = newGiant(this.levelIdx, this.simPlayers()); this.mode = 'giant'; FX.parts = []; Audio.playSong(7); }));
+      const duel = () => { this.G = newGiant(this.levelIdx, this.simPlayers()); this.mode = 'giant'; FX.parts = []; Audio.playSong(7, 'titani'); };
+      const mc = MID_CINE[this.levelIdx];
+      this.dialog(L.mid, () => (mc !== undefined && mc !== null ? this.playCine(mc, duel) : duel()));
       return;
     }
     this.levelClear();
   },
   levelClear() {
     this.saveProgress(this.levelIdx + 1);
+    const before = this.sigilTotal();
     if (this.stats) this.saveSigils(this.levelIdx, this.stats.sigils);
+    const after = this.sigilTotal();
+    if (this.stats) {
+      this.stats.unlock = [];
+      if (before < 3 && after >= 3) this.stats.unlock.push('EVOCAZIONE DEL TITANO');
+      if (before < 12 && after >= 12) this.stats.unlock.push('COSTUME OMBRA');
+    }
     Audio.playSong(8);
     this.summary(() => this.afterClear());
   },
@@ -469,7 +510,7 @@ const Game = {
     this.bonusDone = false;
     // an animated cinematic tells what happens between this chapter and the next
     this.playCine(this.levelIdx, () => {
-      if (this.levelIdx >= LEVELS.length - 1) { this.mode = 'ending'; this.endT = 0; Audio.playSong(8); }
+      if (this.levelIdx >= LEVELS.length - 1) { this.mode = 'ending'; this.endT = 0; this.unlockMsg = !this.unlocks().story; this.setUnlock('story'); Audio.playSong(8, 'finale'); }
       else this.chapterStart(this.levelIdx + 1);
     });
   },
@@ -483,6 +524,7 @@ const Game = {
   },
   finalOver() {
     this.mode = 'final'; this.finalT = 0; Audio.stopSong(); Audio.sfx('ko');
+    this.runResult = { kind: this.modeKind || 'campaign', win: false };
   },
   tickCont(dt, ctrls) {
     const before = Math.floor(this.contT);
@@ -501,7 +543,7 @@ const Game = {
   },
   tickFinal(dt, ctrls) {
     this.finalT += dt;
-    if (this.finalT > 7 || (this.finalT > 2 && (this.anyPress(ctrls, 'start', 'punch') || Input.keyEdge.Enter))) this.title();
+    if (this.finalT > 7 || (this.finalT > 2 && (this.anyPress(ctrls, 'start', 'punch') || Input.keyEdge.Enter))) this.afterRun();
   },
   /* end of chapter summary with a rank */
   summary(then) {
@@ -526,14 +568,15 @@ const Game = {
     this.back = () => this.resume();
     if (this.online === 'host') this.broadcastView({ m: 'pause' });
     UI.show(`<span class="eyebrow">PAUSA</span><h2>Porto Aurora può aspettare.</h2>
-      <nav class="col"><button class="primary" id="resume" autofocus>RIPRENDI</button><button id="retry" ${this.credits > 0 ? '' : 'disabled'}>RICOMINCIA LA ZONA (1 CREDITO)</button><button id="help">COME SI GIOCA</button><button id="audio">AUDIO: ${Audio.muted ? 'SPENTO' : 'ACCESO'}</button><button id="menu">ESCI AL MENU</button></nav>`, 'center');
+      <nav class="col"><button class="primary" id="resume" autofocus>RIPRENDI</button><button id="retry" ${this.credits > 0 ? '' : 'disabled'}>RICOMINCIA LA ZONA (1 CREDITO)</button><button id="help">COME SI GIOCA</button><button id="audio">AUDIO: ${Audio.muted ? 'SPENTO' : 'ACCESO'}</button><button id="opts">OPZIONI E COMANDI</button><button id="menu">ESCI AL MENU</button></nav>`, 'center');
+    UI.on('#opts', () => this.options('pause'));
     UI.on('#resume', () => this.resume());
     UI.on('#retry', () => { if (!(this.credits > 0)) return; this.credits--; UI.hide(); if (this.pausedFrom === 'giant') { this.G = newGiant(this.levelIdx, this.simPlayers()); this.mode = 'giant'; } else this.enterStage(this.levelIdx, this.S.checkpoint); });
     UI.on('#help', () => { const from = this.pausedFrom; this.howto(() => { this.mode = from; this.pause(); this.pausedFrom = from; }); });
-    UI.on('#audio', () => { Audio.muted = !Audio.muted; this.pause(); this.pausedFrom = this.pausedFrom === 'pause' ? 'stage' : this.pausedFrom; });
+    UI.on('#audio', () => { const from = this.pausedFrom; Audio.setMuted(!Audio.muted); this.mode = from; this.pause(); });
     UI.on('#menu', () => this.menu());
   },
-  resume() { UI.hide(); this.mode = this.pausedFrom || 'stage'; this.back = null; Input.keyEdge = {}; },
+  resume() { UI.hide(); this.mode = this.pausedFrom || 'stage'; this.back = null; Input.keyEdge = {}; this.capture = null; },
 
   /* ---------------- controls ---------------- */
   gatherInputs() {
@@ -567,7 +610,8 @@ const Game = {
         this.introT += dt;
         introSounds(this.prevIntroT, this.introT);
         if (this.introT > INTRO_LEN || (this.introT > 0.6 && (this.anyPress(c, 'punch', 'start', 'jump') || Input.keyEdge.Enter || (this.attract && Object.keys(Input.keyEdge).length)))) {
-          if (this.attract) { this.attract = false; this.title(); break; }
+          if (this.galleryIntro) { this.galleryIntro = false; this.gallery(); break; }
+          if (this.attract) { if (this.introT <= INTRO_LEN) { Audio.unlock(); this.menu(); } else this.title(); break; }
           if (!this.tutorialSeen()) this.howto(() => this.chapterStart(0), 'PUGNO / INVIO: INIZIA LA PARTITA · ◀ ▶ PAGINA');
           else this.chapterStart(0);
         }
@@ -596,6 +640,8 @@ const Game = {
         stepStage(this.S, c, dt);
         this.credits = this.S.credits;
         this.pendingEv.push(...this.S.events);
+        // boss music (assets/music/boss.mp3, if present)
+        if (this.S.bossId && this._bossSong !== this.S.bossId && !this.S.L.rush) { this._bossSong = this.S.bossId; Audio.playSong(this.S.L.music, 'boss'); }
         if (this.S.result) { const r = this.S.result; this.S.result = null; this.stageResult(r); break; }
         if (this.S.players.every((p) => p.out)) this.gameOver('stage');
         break;
@@ -624,9 +670,17 @@ const Game = {
       case 'ending': {
         const c = this.controls();
         this.endT += dt;
-        if (this.endT > 5 && (this.anyPress(c, 'punch', 'start', 'jump') || Input.keyEdge.Enter)) this.menu();
+        if (this.endT > 5 && (this.anyPress(c, 'punch', 'start', 'jump') || Input.keyEdge.Enter || (this.galleryEnd && (Input.keyEdge.Escape || this.padOk())))) {
+          if (this.galleryEnd) { this.galleryEnd = false; this.gallery(); break; }
+          this.runResult = { kind: 'campaign', end: true };
+          this.afterRun();
+        }
         break;
       }
+      case 'demo': this.tickDemo(dt); break;
+      case 'entry': this.tickEntry(dt, this.controls()); break;
+      case 'scores': this.tickScores(dt, this.controls()); break;
+      case 'gallery': this.controls(); this.tickGallery(dt); break;
       default: this.controls();
     }
   },
@@ -643,8 +697,14 @@ const Game = {
       case 'cont': return { m: 'cont', t: +this.contT.toFixed(2), cr: this.credits === Infinity ? -1 : this.credits };
       case 'final': return { m: 'final', t: +this.finalT.toFixed(2) };
       case 'summary': return { m: 'summary', t: +this.sumT.toFixed(2), st: this.stats };
-      case 'ending': return { m: 'ending', t: +this.endT.toFixed(2), heroes: this.players.map((p) => p.hero) };
+      case 'ending': return { m: 'ending', t: +this.endT.toFixed(2), heroes: this.players.map((p) => p.hero), un: this.unlockMsg && !this.galleryEnd ? 1 : 0 };
       case 'pause': return { m: 'pause' };
+      case 'demo': return this.demo ? { ...buildView(this.demo.S), demo: 1 } : null;
+      case 'entry': { const E = this.entry; if (!E) return null; const cur = E.queue[E.i]; const r = cur.rec;
+        const val = E.kind === 'timeattack' ? 'TEMPO ' + fmtTime(r.tm) : E.kind === 'survival' ? `ONDATE ${r.w} · ${r.s} PUNTI` : E.kind === 'bossrush' ? `BOSS ${r.b}/8 · ${r.s} PUNTI` : `${r.s} PUNTI`;
+        return { m: 'entry', kind: E.kind, t: +E.t.toFixed(2), letters: E.letters.slice(), pos: E.pos, h: cur.p.hero, pl: this.players.indexOf(cur.p) + 1, val }; }
+      case 'scores': { const s = this.sc; const kind = BOARDS[s.b].id; return { m: 'scores', b: s.b, t: +s.t.toFixed(2), lvl: s.lvl, rows: this.sortBoard(kind, this.boardList(kind, s.lvl)).slice(0, kind === 'timeattack' ? 5 : 10), me: this.lastRec || null }; }
+      case 'gallery': return { m: 'gallery', pg: this.gal.pg, i: this.gal.i, t: +this.gal.t.toFixed(2) };
       case 'over': return { m: 'over' };
     }
     return null;
@@ -656,19 +716,22 @@ const Game = {
     g.clearRect(0, 0, W, H);
     if (!v) return;
     switch (v.m) {
-      case 'stage': renderStage(v); break;
+      case 'stage': renderStage(v); if (v.demo) drawDemoOverlay(v.t); break;
+      case 'entry': drawEntry(v); break;
+      case 'scores': drawScores(v); break;
+      case 'gallery': drawGallery(v); break;
       case 'giant': renderGiant(v); break;
       case 'dlg': drawDialog(v); break;
       case 'intro':
         if (this.online === 'client') { introSounds(this._cIntroT || 0, v.t); this._cIntroT = v.t; }
         drawIntro(v.t); break;
-      case 'ending': drawEnding(v.t, v.heroes); break;
+      case 'ending': drawEnding(v.t, v.heroes); if (v.un && v.t > 4) { panel(W / 2 - 330, 90, 660, 70, '#ffd35a', 0.9); ptitle('SBLOCCATI: KHARON E COSTUME ORO', W / 2, 128, 16, '#ffffff', '#ffd35a'); ptxt('SCEGLILI NELLA SCHERMATA DEI GIOCATORI · NUOVE VOCI IN GALLERIA', W / 2, 150, 8, '#fff1c6', 'center'); } break;
       case 'cont': drawContinue(v); break;
       case 'final': drawFinal(v); break;
       case 'summary': drawSummary(v); break;
       case 'howto': {
         const scheme = this.online === 'client' ? ((this.lastDevice || 'kb').startsWith('pad') ? 'pad' : 'kb') : v.sc;
-        const hero = (this.players[0] && this.players[0].hero) || 0;
+        const hero = ((this.players[0] && this.players[0].hero) || 0) % CORE_HEROES;
         this.howT = v.t;
         drawHowto(v.pg, v.t, scheme, this.online === 'client' ? (Net.lobby.find((p) => p.id === Net.myId) || { hero: 0 }).hero : hero, { footer: v.f || undefined });
         break;
@@ -700,7 +763,7 @@ const Game = {
     g.save();
     g.fillStyle = '#05070c';
     g.beginPath(); g.moveTo(E + 300, 0); g.lineTo(W + 400, 0); g.lineTo(W + 400, H); g.lineTo(E, H); g.fill();
-    HEROES.forEach((h, i) => {
+    HEROES.slice(0, CORE_HEROES).forEach((h, i) => {
       const x = E - (i + 1) * 46;
       g.fillStyle = h.color;
       g.beginPath(); g.moveTo(x + 300, 0); g.lineTo(x + 346, 0); g.lineTo(x + 46, H); g.lineTo(x, H); g.fill();
@@ -719,9 +782,9 @@ function frame(ts) {
   // remember the last device that pressed something (for auto-join)
   if (Object.keys(Input.keyEdge).length) Game.lastDevice = 'kb';
   for (const p of Input.pads()) { const c = Input.read('pad' + p.index); if (Object.values(c.pressed).some(Boolean)) Game.lastDevice = 'pad' + p.index; }
-  if (Input.keyEdge.KeyM && !UI.typing()) Audio.muted = !Audio.muted;
+  if (Input.keyEdge.KeyM && !UI.typing() && !Game.capture) Audio.setMuted(!Audio.muted);
 
-  UI.nav();
+  if (!Game.pollPadCapture() && !Game.capture) UI.nav();
   if (Game.wipeT !== undefined) Game.wipeT += dt;
   if (Game.mode === 'title') { Game.tickTitle(dt); g.setTransform(1, 0, 0, 1, 0, 0); drawTitle(Game.titleT); }
   else if (Game.mode === 'lobby') { Game.tickLobby(dt); Game.draw(null); Game.drawLobby(false); }
@@ -742,7 +805,7 @@ function frame(ts) {
       drawStageBackdrop('port', 300);
       g.fillStyle = 'rgba(3,8,16,.35)'; g.fillRect(0, 0, W, H);
       const k = Game.menuT;
-      HEROES.forEach((h, i) => { const x = 700 + i * 110, y = 620 + (i % 2) * 30; drawShadow(x, y, 36); spr('fighters', `${h.id}_${Math.floor(k * 1.5 + i) % 7 === 0 ? 4 : 0}`, x, y, { scale: 1.0, face: -1 }); });
+      HEROES.slice(0, CORE_HEROES).forEach((h, i) => { const x = 700 + i * 110, y = 620 + (i % 2) * 30; drawShadow(x, y, 36); spr('fighters', `${h.id}_${Math.floor(k * 1.5 + i) % 7 === 0 ? 4 : 0}`, x, y, { scale: 1.0, face: -1 }); });
     }
   } else {
     Game.gatherInputs();
@@ -752,6 +815,7 @@ function frame(ts) {
     if (n === 5) acc = 0;
     const v = Game.currentView();
     if (v && (v.m === 'stage' || v.m === 'giant')) { applyEvents(Game.pendingEv, v.m === 'stage'); }
+    else if (Game.pendingEv.length) Game.pendingEv.length = 0;
     if (Game.online === 'host') {
       Game.sendT -= dt;
       if (Game.sendT <= 0 && v) {
@@ -775,7 +839,7 @@ function frame(ts) {
 /* ---------------- boot ---------------- */
 Input.init();
 const IMAGES = [
-  ['fighters', 'assets/sprites/fighters.png'], ['bosses', 'assets/sprites/bosses.png'], ['titans', 'assets/sprites/titans.png'], ['giants', 'assets/sprites/giants.png'], ['extra', 'assets/sprites/extra.png'],
+  ['fighters', 'assets/sprites/fighters.png'], ['bosses', 'assets/sprites/bosses.png'], ['titans', 'assets/sprites/titans.png'], ['giants', 'assets/sprites/giants.png'], ['extra', 'assets/sprites/extra.png'], ['bosses2', 'assets/sprites/bosses2.png'],
   ['cine_run', 'assets/bg/cine_run.jpg'], ['cine_duel', 'assets/bg/cine_duel.jpg'], ['cine_rex', 'assets/bg/cine_rex.jpg'], ['cine_cavern', 'assets/bg/cine_cavern.jpg'], ['cine_cockpit', 'assets/bg/cine_cockpit.jpg'], ['cine_dawn', 'assets/bg/cine_dawn.jpg'],
   ['items', 'assets/sprites/items.png'], ['people', 'assets/sprites/people.png'],
   ['port', 'assets/bg/port.jpg'], ['harbor', 'assets/bg/harbor.jpg'], ['rail', 'assets/bg/rail.jpg'], ['park', 'assets/bg/park.jpg'],
@@ -783,6 +847,8 @@ const IMAGES = [
   ['dawn', 'assets/bg/dawn.jpg'], ['story_cores', 'assets/bg/story_cores.jpg'], ['logo', 'assets/ui/logo.png'],
 ];
 try { const k = localStorage.getItem('primal-diff'); if (k && DIFFS[k]) DIFF = DIFFS[k]; } catch (e) {}
+Audio.loadVolumes();
+loadKeymaps();
 Promise.all([loadFonts(), loadImages(IMAGES)]).then(() => {
   document.querySelector('#loading').remove();
   Game.title();
@@ -795,7 +861,8 @@ Promise.all([loadFonts(), loadImages(IMAGES)]).then(() => {
 window.gameStatus = () => ({
   mode: Game.mode, level: Game.levelIdx, online: Game.online,
   players: Game.S ? Game.S.players.map((p) => ({ id: p.id, hero: HEROES[p.hero].id, x: Math.round(p.x), y: Math.round(p.y), hp: p.hp, st: p.st, lives: p.lives, score: p.score, civil: !!p.civil })) : [],
-  zone: Game.S ? Game.S.zoneIdx : 0, enemies: Game.S ? Game.S.enemies.filter((e) => e.hp > 0).length : 0,
+  zone: Game.S ? Game.S.zoneIdx : 0, enemies: Game.S ? Game.S.enemies.filter((e) => e.hp > 0).length : 0, kind: Game.modeKind,
+  ride: Game.S && Game.S.ride ? Math.round(Game.S.ride.hp) : null, wave: Game.S && Game.S.sv ? Game.S.sv.wave : null,
   giant: Game.G ? { thp: Game.G.pl.hp, ehp: Game.G.en.hp } : null,
 });
 
@@ -806,7 +873,7 @@ function drawTitle(t) {
   grd.addColorStop(0, 'rgba(3,6,16,.75)'); grd.addColorStop(0.6, 'rgba(3,6,16,.35)'); grd.addColorStop(1, 'rgba(3,6,16,.85)');
   g.fillStyle = grd; g.fillRect(0, 0, W, H);
   // heroes line-up with coloured back-lights
-  HEROES.forEach((h, i) => {
+  HEROES.slice(0, CORE_HEROES).forEach((h, i) => {
     const x = 240 + i * 200, y = 700;
     glowAt(x, y - 80, 150, h.color, 0.25 + 0.1 * Math.sin(t * 2 + i));
     drawShadow(x, y, 40);

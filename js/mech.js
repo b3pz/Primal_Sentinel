@@ -134,7 +134,7 @@ function stepMech(S, dt) {
 }
 
 /* zone can't be cleared while its dark mirrors stand */
-function mechZoneBlocked(S) { return S.props.some((o) => o.type === 'mirror' && o.hp > 0 && o.zone === S.zoneIdx); }
+function mechZoneBlocked(S) { return S.props.some((o) => o.type === 'mirror' && o.hp > 0 && o.zone === S.zoneIdx) || tunnelBlocked(S); }
 
 function mechView(S, d, r) {
   for (const h of S.haz) {

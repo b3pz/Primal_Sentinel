@@ -33,3 +33,6 @@ for n in os.listdir(OUT):
         im = Image.open(OUT + n).convert('RGBA')
         im.quantize(colors=256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE).save(OUT + n, optimize=True)
 print('quantized')
+
+# boss pose sheets (1.6.2) go in their own atlas
+exec(open('build_boss_poses.py').read())

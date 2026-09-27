@@ -58,3 +58,11 @@ kbd{font-family:PressStart,monospace;font-size:.75em;padding:2px 5px}
 #loading{font-family:PressStart,monospace;font-weight:400;font-size:12px}
 
 body,button,input{font-variant-ligatures:none;font-feature-settings:'liga' 0}
+
+/* ---- 1.6 ---- */
+nav.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:760px;align-items:stretch}
+nav.grid2 button{width:100%}
+nav.grid2 button.primary{grid-column:1 / span 2}
+.keygrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:1000px;margin-top:10px}
+.keygrid button{display:flex;justify-content:space-between;gap:10px}
+.keygrid button b{color:#ffd35a;font-weight:400}

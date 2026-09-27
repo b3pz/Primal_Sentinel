@@ -28,6 +28,7 @@ function newGiant(levelIdx, players, prev) {
 function stepGiant(G, ctrls, dt) {
   G.events.length = 0;
   if (G.hitstop > 0) { G.hitstop -= dt; return; }
+  if (G.slowT > 0) { G.slowT -= dt; dt *= 0.3; }   // final blow: slow motion
   G.t += dt;
   if (G.banner) { G.banner.t -= dt; if (G.banner.t <= 0) G.banner = null; }
   const P = G.pl, E = G.en, T = G.T;
@@ -191,8 +192,9 @@ function giantHitEnemy(G, dmg, bal, heavy = false, finisher = false) {
     } else if (heavy && E.st !== 'atk') { E.st = 'hurt'; E.t = 0; }
   }
   if (E.hp <= 0) {
-    E.hp = 0; E.st = 'dead'; E.t = 0; G.hitstop = 0.4;
-    G.events.push({ t: 'flash', c: '#ffffff', v: 0.9 });
+    E.hp = 0; E.st = 'dead'; E.t = 0; G.hitstop = 0.3; G.slowT = 1.8;
+    G.events.push({ t: 'flash', c: '#ffffff', v: 1 });
+    G.events.push({ t: 'pop', x: 640, y: 200, s: 'K.O.!', c: '#ffd35a', big: 1, fixed: 1 });
     G.events.push({ t: 'snd', n: 'boom' });
   }
 }

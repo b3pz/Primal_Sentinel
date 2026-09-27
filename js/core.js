@@ -71,6 +71,44 @@ function tinted(sheet, key, color, mode = 'source-atop', strength = 0.62) {
 }
 function flashImg(sheet, key) { return tinted(sheet, key, '#ffffff', 'source-atop', 1); }
 
+/* costumi alternativi: copia ricolorata del fotogramma (filtri canvas, niente getImageData → va anche da file://) */
+const skinCache = new Map();
+let CANVAS_FILTER = null;
+function skinned(sheet, key, skin) {
+  const id = sheet + key + skin;
+  let c = skinCache.get(id);
+  if (c) return c;
+  const f = frameOf(sheet, key), S = SKINS[skin];
+  if (!f || !S) return null;
+  if (CANVAS_FILTER === null) { const t = document.createElement('canvas').getContext('2d'); t.filter = 'blur(1px)'; CANVAS_FILTER = t.filter === 'blur(1px)'; }
+  if (!CANVAS_FILTER) c = tinted(sheet, key, S.tint, 'source-atop', 0.5);
+  else {
+    c = document.createElement('canvas'); c.width = f[2]; c.height = f[3];
+    const x = c.getContext('2d');
+    x.filter = S.filter;
+    x.drawImage(IMG[sheet], f[0], f[1], f[2], f[3], 0, 0, f[2], f[3]);
+  }
+  skinCache.set(id, c);
+  return c;
+}
+
+/* Kharon giocabile: finché non arriva la sua tavola usa le pose del boss.
+   Mappa i 16 fotogrammi degli eroi sulle 6 pose del boss (0 guardia · 1-2 passo · 3 carica · 4 attacco · 5 colpito) */
+const KH_MAP = [0, 1, 2, 1, 3, 4, 4, 5, 3, 4, 4, 4, 3, 5, 5, 0];
+const KH_MAP2 = [0, 1, 0, 1, 2, 3, 3, 5, 2, 3, 4, 3, 2, 5, 6, 0];   // same, on the 8-pose sheet
+function heroSprite(h, f) {
+  const H = HEROES[h] || HEROES[0];
+  if (H.sheet === 'bosses' && !frameOf('fighters', H.id + '_0') && frameOf('bosses2', H.id + 'P_0')) return ['bosses2', H.id + 'P_' + (KH_MAP2[f] ?? 0), 0.93, 0];
+  if (H.sheet === 'bosses' && !frameOf('fighters', H.id + '_0')) return ['bosses', H.id + '_' + (KH_MAP[f] ?? 0), 0.93, f === 14 ? -1.45 : f === 13 ? -0.9 : 0];
+  return ['fighters', `${H.id}_${f}`, 1, 0];
+}
+function heroSpr(h, f, x, y, opt = {}) {
+  const [sh, key, m, r] = heroSprite(h, f);
+  const o = { ...opt, scale: (opt.scale || 1) * m, rot: (opt.rot || 0) + r };
+  if (opt.skin) o.img = skinned(sh, key, opt.skin);
+  spr(sh, key, x, y, o);
+}
+
 /* ---------- text helpers ---------- */
 const FONT = 'Pixelify, "Trebuchet MS", system-ui, sans-serif';
 const PXFONT = 'PressStart, Pixelify, monospace';
@@ -225,6 +263,7 @@ function drawBackdrop(name, offset, opt = {}) {
    ============================================================ */
 const Audio = {
   ctx: null, master: null, muted: false, music: null, step: 0, next: 0, song: 0, musicOn: false,
+  musicVol: 0.8, sfxVol: 0.9, out: null, track: null, trackName: '', fileOK: {},
   unlock() {
     if (!this.ctx) {
       try {
@@ -232,10 +271,25 @@ const Audio = {
         this.master = this.ctx.createGain();
         this.master.gain.value = 0.9;
         this.master.connect(this.ctx.destination);
+        this.musicBus = this.ctx.createGain(); this.musicBus.connect(this.master);
+        this.sfxBus = this.ctx.createGain(); this.sfxBus.connect(this.master);
+        this.out = this.sfxBus;
+        this.setVolumes(this.musicVol, this.sfxVol);
       } catch (e) { return; }
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
+    if (this.track && this.track.paused && this.musicOn && !this.muted) this.track.play().catch(() => {});
   },
+  /* volume separato per musica ed effetti (0..1), salvato nel browser */
+  setVolumes(m, s) {
+    this.musicVol = clamp(m, 0, 1); this.sfxVol = clamp(s, 0, 1);
+    if (this.musicBus) this.musicBus.gain.value = this.musicVol;
+    if (this.sfxBus) this.sfxBus.gain.value = this.sfxVol;
+    if (this.track) this.track.volume = this.musicVol * 0.8;
+    try { localStorage.setItem('primal-vol', JSON.stringify([this.musicVol, this.sfxVol])); } catch (e) {}
+  },
+  loadVolumes() { try { const v = JSON.parse(localStorage.getItem('primal-vol') || 'null'); if (v) { this.musicVol = v[0]; this.sfxVol = v[1]; } } catch (e) {} },
+  setMuted(m) { this.muted = m; if (this.track) { if (m) this.track.pause(); else if (this.musicOn) this.track.play().catch(() => {}); } },
   tone(f = 160, d = 0.08, type = 'square', vol = 0.035, slide = 0.45, when = 0) {
     if (this.muted || !this.ctx) return;
     const t = this.ctx.currentTime + when;
@@ -245,7 +299,7 @@ const Audio = {
     if (slide !== 1) o.frequency.exponentialRampToValueAtTime(Math.max(25, f * slide), t + d);
     a.gain.setValueAtTime(vol, t);
     a.gain.exponentialRampToValueAtTime(0.0008, t + d);
-    o.connect(a); a.connect(this.master);
+    o.connect(a); a.connect(this.out || this.master);
     o.start(t); o.stop(t + d + 0.02);
   },
   noise(d = 0.15, vol = 0.05, hp = 800, when = 0) {
@@ -258,7 +312,7 @@ const Audio = {
     const s = this.ctx.createBufferSource(); s.buffer = buf;
     const f = this.ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = hp;
     const a = this.ctx.createGain(); a.gain.value = vol;
-    s.connect(f); f.connect(a); a.connect(this.master);
+    s.connect(f); f.connect(a); a.connect(this.out || this.master);
     s.start(t);
   },
   sfx(name) {
@@ -303,10 +357,33 @@ const Audio = {
     { bpm: 162, bass: [0, 0, 12, 0, 5, 5, 17, 5, 7, 7, 19, 7, 10, 10, 22, 12], lead: [24, 27, 29, 31, 29, 27, 24, null, 31, 34, 36, 34, 31, 29, 27, null] },
     { bpm: 96, bass: [0, null, 7, null, 5, null, 3, null, 0, null, 7, null, 8, null, 7, null], lead: [12, null, null, null, 15, null, 14, null, 12, null, null, null, 19, null, 17, null] },
   ],
-  playSong(i) { this.song = i; this.musicOn = true; this.step = 0; this.next = 0; },
-  stopSong() { this.musicOn = false; },
+  /* brani MP3 facoltativi in assets/music (sigla, capitolo1..8, boss, titani, finale):
+     se il file c'è si sente quello, altrimenti la musica sintetizzata */
+  FILES: ['capitolo1', 'capitolo2', 'capitolo3', 'capitolo4', 'capitolo5', 'capitolo6', 'capitolo7', 'capitolo8', 'sigla'],
+  playSong(i, name) {
+    name = name || this.FILES[i] || '';
+    if (this.musicOn && this.song === i && this.trackName === name) return;
+    this.song = i; this.musicOn = true; this.step = 0; this.next = 0;
+    this.playFile(name);
+  },
+  playFile(name) {
+    if (this.track) { this.track.pause(); this.track = null; }
+    this.trackName = name;
+    if (!name || this.fileOK[name] === false) return;
+    try {
+      const a = document.createElement('audio');
+      a.src = `assets/music/${name}.mp3`; a.loop = true; a.volume = this.musicVol * 0.8; a.preload = 'auto';
+      a.onerror = () => { this.fileOK[name] = false; if (this.track === a) this.track = null; };
+      a.onplaying = () => { this.fileOK[name] = true; };
+      this.track = a;
+      if (!this.muted) a.play().catch(() => {});
+    } catch (e) { this.fileOK[name] = false; this.track = null; }
+  },
+  stopSong() { this.musicOn = false; if (this.track) { this.track.pause(); this.track = null; } this.trackName = ''; },
   update() {
     if (!this.ctx || !this.musicOn || this.muted) return;
+    if (this.track && this.fileOK[this.trackName] !== false) return;   // MP3 in riproduzione (o in caricamento)
+    this.out = this.musicBus;
     const s = this.SONGS[this.song % this.SONGS.length];
     const stepDur = 60 / s.bpm / 2;
     const now = this.ctx.currentTime;
@@ -323,6 +400,7 @@ const Audio = {
       this.step++;
       this.next += stepDur;
     }
+    this.out = this.sfxBus;
   },
 };
 
@@ -351,6 +429,34 @@ const KEYMAPS = {
   },
 };
 const PADMAP = { jump: [0], special: [1], punch: [2], shoot: [3], team: [4], dodge: [5, 7, 6], start: [9] };
+const DEFAULT_KEYS = JSON.stringify({ kb: KEYMAPS.kb, kbA: KEYMAPS.kbA, kbB: KEYMAPS.kbB, pad: PADMAP });
+/* tasti personalizzati (OPZIONI → COMANDI), salvati nel browser */
+function loadKeymaps() {
+  try {
+    const k = JSON.parse(localStorage.getItem('primal-keymap') || 'null');
+    if (!k) return;
+    for (const s of ['kb', 'kbA', 'kbB']) if (k[s]) Object.assign(KEYMAPS[s], k[s]);
+    if (k.pad) Object.assign(PADMAP, k.pad);
+  } catch (e) {}
+}
+function saveKeymaps() { try { localStorage.setItem('primal-keymap', JSON.stringify({ kb: KEYMAPS.kb, kbA: KEYMAPS.kbA, kbB: KEYMAPS.kbB, pad: PADMAP })); } catch (e) {} }
+function resetKeymaps() {
+  const d = JSON.parse(DEFAULT_KEYS);
+  for (const s of ['kb', 'kbA', 'kbB']) { for (const a in KEYMAPS[s]) delete KEYMAPS[s][a]; Object.assign(KEYMAPS[s], d[s]); }
+  for (const a in PADMAP) delete PADMAP[a]; Object.assign(PADMAP, d.pad);
+  try { localStorage.removeItem('primal-keymap'); } catch (e) {}
+}
+const PAD_NAMES = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'SELECT', 'START', 'L3', 'R3', '↑', '↓', '←', '→', 'HOME'];
+function codeLabel(code) {
+  if (!code) return '?';
+  const fixed = { Space: 'SPAZIO', ShiftLeft: 'SHIFT', ShiftRight: 'SHIFT DX', ControlLeft: 'CTRL', ControlRight: 'CTRL DX', AltLeft: 'ALT', AltRight: 'ALT GR', Enter: 'INVIO', Escape: 'ESC', Backspace: '⌫', Tab: 'TAB',
+    ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓', NumpadEnter: 'NUM INVIO', NumpadDecimal: 'NUM ,', CapsLock: 'MAIUSC', Comma: ',', Period: '.', Minus: '-', Semicolon: 'Ò', Quote: 'À', BracketLeft: 'È', BracketRight: '+', Backslash: 'Ù', Slash: '-', Backquote: '\\', IntlBackslash: '<' };
+  if (fixed[code]) return fixed[code];
+  if (code.startsWith('Key')) return code.slice(3);
+  if (code.startsWith('Digit')) return code.slice(5);
+  if (code.startsWith('Numpad')) return 'NUM' + code.slice(6);
+  return code.toUpperCase().slice(0, 6);
+}
 
 const Input = {
   keys: {}, keyEdge: {}, padPrev: {}, padEdge: {},

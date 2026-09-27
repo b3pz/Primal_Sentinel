@@ -281,7 +281,7 @@ const CHAPTER_CINES = [
       draw(k, t) {
         coverImage('story_cores', 1.02, 0.5, 0.45);
         const CAPS = [266, 354, 443, 531, 620];
-        HEROES.forEach((h, i) => { const [x, y] = coverPoint('story_cores', 1.02, 0.5, 0.45, CAPS[i], 243); glowAt(x, y, 110, h.color, 0.45 + Math.sin(t * 2 + i) * 0.15); });
+        HEROES.slice(0, CORE_HEROES).forEach((h, i) => { const [x, y] = coverPoint('story_cores', 1.02, 0.5, 0.45, CAPS[i], 243); glowAt(x, y, 110, h.color, 0.45 + Math.sin(t * 2 + i) * 0.15); });
       } },
   ],
 ];
@@ -406,4 +406,5 @@ CHAPTER_CINES.final = [
 // the finale ends on the five titans at dawn
 CHAPTER_CINES[7][2] = { d: 6.5, sub: ['', 'I titani tornano a dormire sotto la città. Questa volta, come custodi.'], cues: [[0.5, 'morph']],
   draw(k, t) { stillArt('cine_dawn', t); } };
-const MID_CINE = { 2: 'awake', 4: 'union', 7: 'final' };
+/* the Tiranno rosso now wakes up in the middle of chapter 3 (the heroes ride it), before the duel there is only the dialogue */
+const MID_CINE = { 2: null, 4: 'union', 7: 'final' };

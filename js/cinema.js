@@ -164,7 +164,7 @@ function drawIntro(t) {
     const CAPS = [266, 354, 443, 531, 620];
     const P = (px, py) => coverPoint('story_cores', zoom, 0.5, 0.45, px, py);
     const [, sc] = coverPoint('story_cores', zoom, 0.5, 0.45, 0, 0, true);
-    HEROES.forEach((h, i) => {
+    HEROES.slice(0, CORE_HEROES).forEach((h, i) => {
       const on = clamp((k - 0.8 - i * 0.55) * 2, 0, 1);
       if (!on) return;
       const [cx, cy] = P(CAPS[i], 243);
@@ -252,7 +252,7 @@ function drawIntro(t) {
       // coloured explosion + title
       const kk = k - 9.2;
       g.save(); g.globalCompositeOperation = 'lighter';
-      HEROES.forEach((h, i) => { g.globalAlpha = clamp(1 - kk / 2, 0, 0.6); g.fillStyle = h.color; g.beginPath(); g.arc(xs[i], 470, 80 + kk * 260, 0, 7); g.fill(); });
+      HEROES.slice(0, CORE_HEROES).forEach((h, i) => { g.globalAlpha = clamp(1 - kk / 2, 0, 0.6); g.fillStyle = h.color; g.beginPath(); g.arc(xs[i], 470, 80 + kk * 260, 0, 7); g.fill(); });
       g.restore();
       const a = clamp((kk - 0.4) * 2, 0, 1);
       if (a > 0) drawLogo(W / 2, 200, 0.62 + (1 - a) * 0.3, t, a);
@@ -288,7 +288,7 @@ function drawDialog(v) {
   }
   // actors on stage: heroes of the players on the left, speaker on the right if villain
   const heroes = v.heroes && v.heroes.length ? v.heroes : [0];
-  heroes.forEach((h, i) => { drawShadow(360 + i * 95, 560, 34); spr('fighters', HEROES[h].id + '_0', 360 + i * 95, 560, { scale: 1.0, face: 1, alpha: 0.95 }); });
+  heroes.forEach((h, i) => { drawShadow(360 + i * 95, 560, 34); heroSpr(h, 0, 360 + i * 95, 560, { scale: 1.0, face: 1, alpha: 0.95 }); });
   const sp = SPEAKERS[who];
   if (sp && !HEROES.some((h) => h.name === who)) {
     const [sheet, key] = sp;
@@ -332,7 +332,7 @@ function drawEnding(t, heroes) {
   g.fillStyle = `rgba(255,190,120,${0.1 + Math.sin(t * 0.5) * 0.04})`; g.fillRect(0, 0, W, H);
   const tx = 640;
   const hs = heroes && heroes.length ? [...new Set([...heroes, 0, 1, 2, 3, 4])] : [0, 1, 2, 3, 4];
-  hs.slice(0, 5).forEach((h, i) => { drawShadow(160 + i * 110, 650, 34); spr('fighters', HEROES[h].id + '_0', 160 + i * 110, 650, { scale: 1.0 }); });
+  hs.slice(0, 6).forEach((h, i) => { drawShadow(160 + i * 110, 650, 34); heroSpr(h, 0, 160 + i * 110, 650, { scale: 1.0 }); });
   const credits = [
     ['PRIMAL SENTINELS', 'IL CUORE DEI TITANI'],
     ['IDEATO E SVILUPPATO DA', 'b3pZ'],
@@ -369,7 +369,7 @@ function drawContinue(v) {
   ptxt(v.cr < 0 ? 'CREDITI INFINITI' : `CREDITI RIMASTI: ${v.cr}`, W / 2, 500, 14, v.cr === 1 ? '#ff8a7a' : '#c8d6e4', 'center');
   if (Math.floor(v.t * 3) % 2) ptxt('PREMI START O ATTACCO', W / 2, 560, 16, '#ffe08a', 'center');
   // a fallen ranger in the dark
-  spr('fighters', (HEROES[(Game.players[0] || { hero: 0 }).hero] || HEROES[0]).id + '_14', W / 2, 680, { scale: 1.1, alpha: 0.9 });
+  heroSpr((Game.players[0] || { hero: 0 }).hero, 14, W / 2, 680, { scale: 1.1, alpha: 0.9 });
 }
 function drawFinal(v) {
   g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
@@ -420,5 +420,6 @@ function drawSummary(v) {
     ptitle(st.rank || 'C', 0, 60, 150, '#ffffff', col);
     g.restore();
   }
+  (st.unlock || []).forEach((u, i) => { if (t > 2.4 + i * 0.4) { panel(760, 520 + i * 44, 460, 36, '#ffd35a', 0.9); ptxt('SBLOCCATO! ' + u, 990, 544 + i * 44, 10, Math.floor(t * 6) % 2 ? '#ffffff' : '#ffd35a', 'center'); } });
   if (t > 2.2 && Math.floor(t * 2) % 2) ptxt('PREMI ATTACCO PER CONTINUARE', W / 2, H - 30, 12, '#ffffff', 'center');
 }

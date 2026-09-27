@@ -1,5 +1,5 @@
 # PRIMAL SENTINELS — Il cuore dei titani
-Ideato e sviluppato da b3pZ. Build 1.5: campagna completa in 8 capitoli, da 1 a 4 giocatori.
+Ideato e sviluppato da b3pZ. Build 1.6: campagna completa in 8 capitoli, modalità extra, da 1 a 4 giocatori.
 
 ## Avvio
 Estrai tutto lo ZIP e apri `index.html` con Chrome, Edge o Firefox (Mac o Windows).
@@ -13,6 +13,14 @@ Non serve installare nulla. Per GitHub Pages pubblica il contenuto della cartell
 - **Cooperativa online con codice**: uno crea la stanza e comunica il codice di 5 caratteri,
   gli altri lo inseriscono. Fino a 4 giocatori, ciascuno sul proprio PC.
 - **Capitoli**: riparti da un capitolo già sbloccato (il salvataggio è locale nel browser).
+- **Modalità extra**: Boss Rush (gli 8 boss di fila), Sopravvivenza (ondate infinite, un boss ogni 5),
+  Sfida a tempo (un capitolo sbloccato, senza dialoghi, conta il cronometro). Senza continui.
+- **Classifiche** con le iniziali (3 lettere, come in sala giochi) per storia, Boss Rush, Sopravvivenza
+  e Sfida a tempo (il miglior tempo di ogni capitolo).
+- **Galleria**: Sentinels, nemici, boss, titani, cinematiche da rivedere e luoghi, man mano che li sblocchi.
+- **Opzioni**: volume della musica e degli effetti separati, audio acceso/spento, schermo intero,
+  **tasti personalizzabili** (tastiera per 1 giocatore, le due metà della tastiera per 2 giocatori, controller).
+- Se resti sul titolo parte il giro del cabinato: intro, classifica e una **demo giocata dal computer**.
 
 ## Comandi
 | | Tastiera (1 giocatore) | Tastiera 1P (in due) | Tastiera 2P (in due) | Controller |
@@ -40,11 +48,52 @@ quando servono: colpo di squadra pronto, "SPRIGIONA IL TUO POTERE!", "AFFERRALO!
 - **Colpo di squadra**: la squadra si riunisce, le cinque armi diventano il Cannone Primordiale.
 - I fusti rossi esplodono. Senza energia lo speciale costa un po' di vita, come nei cabinati.
 
+**In squadra** (cooperativa locale e online):
+- **Rianimare**: quando un compagno va K.O. resta a terra con un cerchio che si svuota (8 secondi).
+  Avvicinati e **tieni premuto ATTACCO** finché si rialza: non perde la vita.
+- **Lancio del compagno**: quando un compagno salta accanto a te premi ATTACCO e lo scagli come un proiettile.
+- **Presa doppia**: se un compagno ha afferrato un nemico, premi ATTACCO davanti al nemico: lo sollevate
+  insieme e lo schiantate a terra, con un'onda d'urto sugli altri.
+- **Cibo condiviso**: chi mangia recupera tutto, i compagni vicini metà.
+
+**Evocazione del titano**: con almeno 3 Sigilli dei Titani trovati (in tutto il gioco) puoi evocare il tuo
+titano una volta per capitolo **tenendo premuto COLPO DI SQUADRA** (quando la barra squadra non è piena).
+Il titano attraversa lo schermo travolgendo i nemici.
+
 **Duelli giganti** (capitoli 3, 5 e 8): tutti i giocatori pilotano insieme il titano o Concordia.
 Attacco = pugno, pistola = colpo pesante, schivata tenuta = parata, salto = passo rapido.
 Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale.
 
 
+
+## Novità della 1.6.2
+- **Nuove pose dei boss** (8 ciascuno) per Centipede, Trivor, Mimesi, Kharon, il Custode e Vespera: guardia, passo,
+  carica, attacco, mossa speciale, colpito, a terra, in ginocchio (quando la guardia viene sfondata).
+- **Kharon giocabile** usa ora le stesse 8 pose (anche la mossa speciale e la caduta a terra).
+- Le nuove pose si vedono anche nella Galleria. `tools/build_boss_poses.py` le rigenera.
+
+## Novità della 1.6.1
+- **Sfondi HD** per i capitoli 2-8 (scalo merci, parco, teatro, città in fiamme, fabbrica dei titani, Velo, alba),
+  allineati al pavimento di gioco (`tools/build_hd_bg.py` li rigenera dalle immagini originali).
+
+## Novità della 1.6
+- **Capitolo 2 · la galleria**: il treno entra in un tunnel buio. Travi basse (tieni SCHIVATA per abbassarti)
+  e barriere sul tetto (salta). Un avviso con il tasto giusto compare prima di ognuna.
+- **Capitolo 3 · in sella al Tiranno rosso**: a metà capitolo il titano si risveglia e la squadra gli sale in
+  groppa. Attacco = morso, salto = codata, speciale = ruggito che stordisce tutti, pistola = ognuno spara
+  dalla groppa. Il titano ha la sua barra di vita; prima del boss torna nella foresta.
+- **Capitolo 8 · il crollo**: prima di Vespera la fortezza si sgretola e lo schermo scorre da solo; frammenti
+  che cadono (guarda il cerchio a terra), nemici del Velo e il vuoto che avanza da sinistra.
+- **Mosse in coppia, rianimazione, cibo condiviso** (vedi "In squadra") e **evocazione del titano**.
+- **Rallentatore e lampo bianco** sull'ultimo colpo a ogni boss e ai mostri giganti.
+- **Kharon giocabile** (si sblocca finendo la storia) con la sua Onda del traghettatore; per ora usa le pose del
+  boss, quando arriva la sua tavola verrà sostituita.
+- **Costumi alternativi**: OMBRA (12 sigilli) e ORO (finisci la storia). Nella scelta dei giocatori: ▲▼.
+- **Modalità extra, classifiche con iniziali, demo del cabinato, galleria, opzioni, tasti personalizzabili,
+  volume separato** (vedi Modalità).
+- **Musica MP3 facoltativa**: metti i brani in `assets/music` con i nomi indicati in `assets/music/LEGGIMI.txt`
+  (sigla, capitolo1…capitolo8, boss, titani, finale); se mancano si sente la musica sintetizzata.
+- Tutorial con due pagine nuove: IN SQUADRA e TITANO E GALLERIA.
 
 ## Novità della 1.5
 - **Duelli giganti con pose vere**: Tiranno rosso e Concordia hanno pose per morso/pugno, codata/montante,
@@ -114,8 +163,9 @@ Server di incontro personale (facoltativo): `index.html?peer=indirizzo:porta`.
 
 ## Verifiche eseguite
 - Sintassi di tutti gli script e caricamento sia da server locale sia da file (`file://`).
-- Partite simulate da un bot con 1, 2 e 4 giocatori su tutti gli 8 capitoli e i 3 duelli giganti:
-  tutti completabili, senza errori.
+- Partite simulate da giocatori controllati dal computer con 1, 2 e 4 giocatori su tutti gli 8 capitoli
+  (galleria, cavalcata del Tiranno e crollo compresi) e sui 3 duelli giganti: tutti completabili, senza errori.
+- Boss Rush completo, Sopravvivenza oltre l'ondata 20, Sfida a tempo, inserimento delle iniziali e classifiche.
 - Cooperativa locale con due tastiere e con due controller simulati.
 - Cooperativa online tra due browser reali: stanza, lobby, scelta degli eroi, intro, dialoghi,
   livello, duello gigante e uscita di un giocatore.
@@ -126,4 +176,6 @@ Server di incontro personale (facoltativo): `index.html?peer=indirizzo:porta`.
 `assets/sprites`: atlanti ritagliati · `assets/bg`: fondali · `assets/source`: tavole originali
 `vendor/peerjs.min.js`: libreria di rete · `tools/`: script Python che rigenerano gli asset
 `assets/fonts`: font pixel con licenza libera SIL OFL (Press Start 2P, Pixelify Sans, Bungee)
-`artbook.html`: catalogo visivo · `ASSET_STATUS.md`: inventario.
+`artbook.html`: catalogo visivo · `ASSET_STATUS.md`: inventario · `assets/music`: brani MP3 facoltativi.
+`js/extra.js`: galleria, cavalcata, crollo, mosse in coppia, evocazione, modalità · `js/modes.js`: menu extra,
+classifiche, demo, galleria, opzioni · `js/cpu.js`: giocatore controllato dal computer (demo e test).

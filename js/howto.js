@@ -7,11 +7,16 @@
 const HOWTO_PAGE = 8.4;
 const SCHEMES = ['kb', 'pad', 'kb2'];
 const SCHEME_NAMES = { kb: 'TASTIERA', pad: 'CONTROLLER', kb2: 'DUE GIOCATORI SU UNA TASTIERA' };
-const ACT_KEYS = {
-  kb: { up: 'W', left: 'A', down: 'S', right: 'D', punch: 'J', shoot: 'K', special: 'L', jump: 'SPAZIO', dodge: 'SHIFT', team: 'I' },
-  pad: { up: '▲', left: '◀', down: '▼', right: '▶', punch: 'X', shoot: 'Y', special: 'B', jump: 'A', dodge: 'RB', team: 'LB' },
-  kb2: { up: 'W', left: 'A', down: 'S', right: 'D', punch: 'F', shoot: 'G', special: 'R', jump: 'SPAZIO', dodge: 'SHIFT', team: 'T' },
-};
+/* key labels follow the key maps (they can be changed in OPZIONI → COMANDI) */
+function actKeys(scheme) {
+  if (scheme === 'pad') {
+    const b = (a) => PAD_NAMES[(PADMAP[a] || [])[0]] || '?';
+    return { up: '▲', left: '◀', down: '▼', right: '▶', punch: b('punch'), shoot: b('shoot'), special: b('special'), jump: b('jump'), dodge: b('dodge'), team: b('team') };
+  }
+  const m = KEYMAPS[scheme === 'kb2' ? 'kbA' : scheme === 'kbB' ? 'kbB' : 'kb'];
+  const k = (a) => codeLabel((m[a] || [])[0]);
+  return { up: k('u'), left: k('l'), down: k('d'), right: k('r'), punch: k('punch'), shoot: k('shoot'), special: k('special'), jump: k('jump'), dodge: k('dodge'), team: k('team') };
+}
 const walkF = (t) => [1, 2, 3, 2][Math.floor(t * 8) % 4];
 
 /* each page: title, caption(keys, state) and a script(t) → { hero pose, enemy, lit actions } */
@@ -133,6 +138,49 @@ const HOWTO = [
     },
   },
   {
+    title: 'IN SQUADRA', cap: (k) => `VICINO A UN COMPAGNO K.O. TIENI ${k.punch}: LO RIANIMI · ${k.punch} MENTRE SALTA: LO LANCI · ${k.punch} SU UN NEMICO GIÀ AFFERRATO: PRESA DOPPIA · IL CIBO SI DIVIDE`,
+    run(t, loop) {
+      const mate = (HOWTO_STATE.hero + 1 + (loop % 4)) % 5;
+      let f = 0, lit = [], x = 300, enemy = { f: 0, x: 600 }, partner = { hero: mate, x: 430, y: 600, face: 1, f: 14, ko: 0 }, note = '';
+      if (t < 2.6) {
+        // revive
+        x = 300 + clamp(t / 0.6, 0, 1) * 60; f = t < 0.6 ? walkF(t) : 4; lit = t < 0.6 ? ['right'] : t < 2 ? ['punch'] : [];
+        partner.ko = clamp((t - 0.6) / 1.4, 0, 1);
+        if (t > 2) { partner.f = t < 2.2 ? 4 : 0; partner.ko = 0; note = 'IN PIEDI!'; } else note = t > 0.6 ? 'RIANIMA…' : 'K.O.!';
+        enemy.hide = true;
+      } else if (t < 5) {
+        // partner throw
+        const k = t - 2.6; x = 380; partner.x = 420; partner.f = 12;
+        partner.z = k < 0.5 ? Math.sin(k / 0.5 * Math.PI / 2) * 90 : 90;
+        if (k > 0.5 && k < 0.7) { lit = ['punch']; f = 5; }
+        if (k > 0.6) { const q = clamp((k - 0.6) / 0.8, 0, 1); partner.x = 420 + q * 240; partner.z = 90 + Math.sin(q * Math.PI) * 60 - q * 90; partner.rot = q * 12; }
+        if (k > 1.4) { partner.f = 0; partner.rot = 0; partner.z = 0; partner.x = 660; }
+        if (k > 1.1) { enemy.f = 7; enemy.rot = -clamp((k - 1.1) * 4, 0, 1.5); enemy.x = 600 + clamp(k - 1.1, 0, 0.5) * 120; }
+        note = k > 0.5 && k < 1.6 ? 'LANCIO IN COPPIA!' : '';
+      } else {
+        // double grab
+        const k = t - 5; x = 400; f = 4; partner.x = 560; partner.face = -1; partner.f = 0;
+        enemy.x = 470; enemy.f = 7; enemy.face = -1; enemy.z = 14;
+        if (k > 0.6) { lit = ['punch']; partner.f = 8; }
+        if (k > 0.7) { const q = clamp((k - 0.7) / 0.5, 0, 1); enemy.z = Math.sin(q * Math.PI) * 150; enemy.rot = q * 3; f = 8; partner.f = q > 0.5 ? 9 : 8; }
+        if (k > 1.2) { enemy.z = 0; enemy.rot = -1.5; f = 9; partner.f = 9; }
+        note = k > 0.6 ? 'PRESA DOPPIA!' : 'PRESO!';
+        lit = k > 0.6 && k < 0.9 ? ['punch'] : [];
+      }
+      return { x, y: 580, face: 1, f, lit, enemy, partner, note };
+    },
+  },
+  {
+    title: 'TITANO E GALLERIA', cap: (k) => `CON 3 SIGILLI: TIENI ${k.team} PER EVOCARE IL TUO TITANO (UNA VOLTA PER CAPITOLO) · TIENI ${k.dodge}: TI ABBASSI SOTTO LE TRAVI`,
+    run(t) {
+      let f = 0, lit = [], note = '', beast = null, beam = null, x = 360;
+      if (t < 1.2) { lit = ['team']; f = 4; note = 'TIENI PREMUTO…'; }
+      else if (t < 3.6) { f = 0; beast = { x: -250 + (t - 1.2) * 520, f: t < 1.5 ? 'roar' : 'run' }; note = 'EVOCAZIONE!'; }
+      else { const k = t - 3.6; beam = 760 - k * 300; const duck = beam < 560 && beam > 180; if (duck) { f = 4; lit = ['dodge']; } note = duck ? 'ABBASSATI!' : ''; }
+      return { x, y: 580, face: 1, f, lit, note, beast, beam, duck: lit.includes('dodge'), enemy: { f: beast && beast.x > 420 ? 7 : 0, x: 600, rot: beast && beast.x > 500 ? -1.4 : 0 } };
+    },
+  },
+  {
     title: 'COLPO DI SQUADRA', cap: (k) => `COLPISCI PER RIEMPIRE LA BARRA SQUADRA · ${k.team}: LE CINQUE ARMI DIVENTANO IL CANNONE PRIMORDIALE`,
     run(t) {
       const bar = clamp(t / 2.2, 0, 1);
@@ -170,7 +218,7 @@ function drawKey(x, y, label, lit, color, w = 58, h = 54) {
 function shadeCol(c) { return c === '#ffffff' ? '#9aa6b2' : c + '99'; }
 
 function drawKeyboard(x, y, lit, color, scheme) {
-  const k = ACT_KEYS[scheme === 'kb2' ? 'kb2' : 'kb'];
+  const k = actKeys(scheme === 'kb2' ? 'kb2' : 'kb');
   const L = (a) => lit.includes(a);
   const lab = (t, xx, yy) => ptxt(t, xx, yy, 8, '#9fb4c8', 'center');
   // movement cluster
@@ -191,7 +239,7 @@ function drawKeyboard(x, y, lit, color, scheme) {
   drawKey(x, y + 160, k.dodge, L('dodge'), color, 124);
   drawKey(x + 150, y + 160, k.jump, L('jump'), color, 280);
   lab('SCHIVATA', x + 62, y + 236); lab('SALTO', x + 290, y + 236);
-  if (scheme === 'kb2') ptxt('2P: FRECCE · K ATTACCO · L PISTOLA · I SALTO · O SPECIALE · P SQUADRA', x + 215, y + 272, 8, '#ffcf7a', 'center');
+  if (scheme === 'kb2') { const b = actKeys('kbB'); ptxt(`2P: ${b.up}${b.left}${b.down}${b.right} · ${b.punch} ATTACCO · ${b.shoot} PISTOLA · ${b.jump} SALTO · ${b.special} SPECIALE · ${b.team} SQUADRA`, x + 215, y + 272, 8, '#ffcf7a', 'center'); }
 }
 function drawPad(x, y, lit, color) {
   const L = (a) => lit.includes(a);
@@ -241,6 +289,9 @@ function puppet(heroIdx, s) {
   const key = `${id}_${f}`;
   const z = s.z || 0;
   drawShadow(s.x, s.y, 36, z);
+  if (s.ko) { g.save(); g.strokeStyle = '#7bf0b1'; g.lineWidth = 8; g.beginPath(); g.arc(s.x, s.y - 120, 22, -Math.PI / 2, -Math.PI / 2 + s.ko * Math.PI * 2); g.stroke(); g.restore(); ptxt('K.O.', s.x, s.y - 116, 9, '#fff', 'center'); }
+  if (s.rot) { spr('fighters', key, s.x, s.y - z - 60, { scale: 1.0, face: s.face, rot: s.rot }); return; }
+  if (s.duck) { spr('fighters', key, s.x, s.y - z, { scale: 1.0, face: s.face, sy: 0.78 }); return; }
   if (s.ghost) for (let i = 2; i >= 1; i--) spr('fighters', key, s.x - s.face * i * 24, s.y - z, { scale: 1.0, face: s.face, alpha: 0.2 * (3 - i) });
   spr('fighters', key, s.x, s.y - z, { scale: 1.0, face: s.face });
   if (s.slash) { g.save(); g.globalCompositeOperation = 'lighter'; g.translate(s.x, s.y - 95); g.strokeStyle = HEROES[heroIdx].glow; g.lineWidth = s.slash === 2 ? 20 : 13; g.globalAlpha = 0.7; g.beginPath(); g.arc(0, 0, s.slash === 2 ? 150 : 120, -1.6, 0.8); g.stroke(); g.restore(); }
@@ -290,8 +341,11 @@ function drawHowto(pg, t, scheme, hero, opt = {}) {
     if (s.enemy) actors.push([s.enemy.y || 580, () => enemyPuppet(s.enemy)]);
     if (s.enemy2) actors.push([580, () => enemyPuppet(s.enemy2)]);
     actors.push([s.y + 0.1, () => puppet(s.hero ?? hero, s)]);
+    if (s.partner) actors.push([s.partner.y, () => puppet(s.partner.hero, s.partner)]);
+    if (s.beast) actors.push([700, () => { drawShadow(s.beast.x, 640, 110); spr('giants', `beast_${BEAST_OF[s.hero ?? hero]}_${s.beast.f}`, s.beast.x, 640, { scale: 0.9, face: 1 }); }]);
     actors.sort((a, b) => a[0] - b[0]).forEach((a) => a[1]());
     if (s.fx) drawSpecialFx(s.fx, s, color);
+    if (s.beam !== null && s.beam !== undefined) { g.fillStyle = '#05070c'; g.fillRect(s.beam - 22, vy + 236, 44, 94); g.fillStyle = '#c07a2a'; g.fillRect(s.beam - 18, vy + 240, 36, 86); g.fillStyle = '#ffd35a'; for (let k = 0; k < 3; k++) g.fillRect(s.beam - 18, vy + 248 + k * 28, 36, 8); g.strokeStyle = '#222'; g.lineWidth = 4; g.beginPath(); g.moveTo(s.beam, vy); g.lineTo(s.beam, vy + 236); g.stroke(); }
     if (s.ammoHud !== undefined) { ptxt('COLPI', vx + 20, vy + 30, 8, '#bfe6ff'); ptxt('×' + s.ammoHud, vx + 90, vy + 32, 14, '#bfe6ff'); }
     if (s.en !== undefined) { ptxt('ENERGIA', vx + 20, vy + 30, 8, '#9fc8ea'); segBar(vx + 20, vy + 40, 200, 10, s.en / 100, 0, '#5fc2ff', 5); }
     if (s.team !== undefined) { ptxt('BARRA SQUADRA', vx + 20, vy + 30, 8, '#ffd35a'); segBar(vx + 20, vy + 40, 260, 10, s.team, 0, s.team >= 1 ? '#ffd35a' : '#9d8cff', 10); }
@@ -309,7 +363,7 @@ function drawHowto(pg, t, scheme, hero, opt = {}) {
   ptitle('COME SI GIOCA', W / 2, 62, 30, '#fff6d6', '#ffb03a');
   ptxt(`${pg + 1}/${HOWTO.length} · ${P.title}`, 40, 98, 12, color);
   // caption
-  const cap = P.cap(ACT_KEYS[scheme], s);
+  const cap = P.cap(actKeys(scheme), s);
   panel(40, 600, W - 80, 56, color, 0.85);
   const lines = wrapCap(cap, W - 140);
   lines.forEach((ln, i) => ptxt(ln, W / 2, 626 + i * 20 - (lines.length - 1) * 9, 11, '#f4f7fa', 'center'));

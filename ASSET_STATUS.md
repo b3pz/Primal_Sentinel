@@ -37,3 +37,12 @@ squadra: realizzati trasformando le pose esistenti (rotazione, spostamento, scie
 | source/heroes-civil.png | i 5 protagonisti in borghese per intro, capitolo 1 e cinematiche |
 | source/items-hd.png | armi, pistola, Cannone Primordiale, caricatore, cibo, energia, moneta, frammento |
 Ritagliate da `tools/build_hd.py` (bordo scuro di 1 px per eliminare l'alone del generatore).
+
+## 1.6 — in attesa delle nuove tavole
+- **Sfondi HD** (7): sostituiranno `assets/bg/*.jpg`; il pavimento deve iniziare intorno a y 465.
+- **Pose dei boss** (8 per Centipede, Trivor, Mimesi, Kharon, Custode, Vespera): oggi usano 6 pose.
+- **Kharon giocabile** (16 pose come gli eroi): oggi usa le 6 pose del boss (`heroSprite` in `js/core.js`
+  passa automaticamente alla tavola nuova quando nell'atlante `fighters` compare `kharon_0`).
+- **Musica** (MP3 di Suno): vanno in `assets/music` con i nomi di `assets/music/LEGGIMI.txt`.
+- Riutilizzati per le novità: `rexb_0..7` (cavalcata del capitolo 3), `beast_*_run/roar` (evocazione),
+  `rock` (frammenti del crollo del capitolo 8); travi e barriere della galleria sono disegnate dal codice.

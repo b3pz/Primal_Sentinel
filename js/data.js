@@ -15,6 +15,20 @@ const HEROES = [
     special: 'PIOGGIA D\'ALA', weapon: 'ARCO D\'ALA', specialText: 'Tre frecce alate (da lontano)', titan: 'Pterosauro rosa' },
   { id: 'onyx', name: 'ONYX', civil: 'Bruno', role: 'Potente', color: '#b9c6d4', glow: '#e3ecf5', power: 1.25, speed: 222, hp: 140,
     special: 'SCURE TELLURICA', weapon: 'ASCIA ZANNA', specialText: 'Colpo d\'ascia che spacca il suolo (da vicino)', titan: 'Mastodonte nero' },
+  // sbloccabile: finisci la storia una volta
+  { id: 'kharon', name: 'KHARON', civil: 'Kharon', role: 'Comandante', color: '#d24a5a', glow: '#ff8a9a', power: 1.1, speed: 245, hp: 130,
+    special: 'ONDA DEL TRAGHETTATORE', weapon: 'SPADA DEL VELO', specialText: 'Due onde di spada rasoterra (lunga distanza)', titan: 'Tiranno rosso', sheet: 'bosses', unlock: true },
+];
+/* i cinque Sentinels "di base" (Kharon è un personaggio extra) */
+const CORE_HEROES = 5;
+/* titano evocabile da ogni eroe (fotogrammi beast_<nome>_run/roar dell'atlante giants) */
+const BEAST_OF = ['rex', 'tri', 'cat', 'ptero', 'mammoth', 'rex'];
+const BEAST_NAME = { rex: 'TIRANNO ROSSO', tri: 'TRICERATOPO BLU', cat: 'FELINO GIALLO', ptero: 'PTEROSAURO ROSA', mammoth: 'MASTODONTE NERO' };
+/* costumi alternativi (ricolorazioni) */
+const SKINS = [
+  { name: 'ORIGINALE' },
+  { name: 'OMBRA', filter: 'brightness(0.62) saturate(0.55) contrast(1.35) hue-rotate(200deg)', tint: '#241040', need: 'Trova 12 Sigilli dei Titani' },
+  { name: 'ORO', filter: 'sepia(1) saturate(2.4) brightness(1.12) hue-rotate(-8deg) contrast(1.08)', tint: '#ffc23a', need: 'Completa la storia' },
 ];
 
 /* Frame convention of the fighters atlas (per character):
@@ -108,12 +122,13 @@ const LEVELS = [
     ],
   },
   {
-    n: 2, id: 'convoglio', title: 'IL CONVOGLIO DEI PRIGIONIERI', place: 'STAZIONE MERCI', bg: 'rail', length: 4600, music: 1, train: 1650,
+    n: 2, id: 'convoglio', title: 'IL CONVOGLIO DEI PRIGIONIERI', place: 'STAZIONE MERCI', bg: 'rail', length: 5600, music: 1, train: 1650,
     zones: [
       { x: 650, name: 'LO SCALO MERCI', w: [['soldier', 3], ['lancer', 2]], c: ['suit'], p: [['crate', 500, 600], ['barrel', 900, 560]] },
       { x: 1650, name: 'I VAGONI DEI PRIGIONIERI', w: [['lancer', 3], ['soldier', 3], ['brute', 1]], c: ['girl', 'scientist'], p: [['crate', 1900, 650], ['crate', 2100, 540]] },
-      { x: 2700, name: 'LA LOCOMOTIVA', w: [['brute', 2], ['lancer', 3], ['soldier', 2]], c: ['elder', 'kid'], p: [['barrel', 2600, 620], ['crate', 3000, 540]] },
-      { x: 3700, name: 'CENTIPEDE', boss: 'centipede', p: [] },
+      { x: 2700, name: 'LA GALLERIA', tunnel: 18, w: [['lancer', 2], ['dog', 2], ['soldier', 3], ['lancer', 2]], c: [], p: [['crate', 3050, 600]] },
+      { x: 3700, name: 'LA LOCOMOTIVA', w: [['brute', 2], ['lancer', 3], ['soldier', 2]], c: ['elder', 'kid'], p: [['barrel', 3600, 620], ['crate', 4000, 540]] },
+      { x: 4700, name: 'CENTIPEDE', boss: 'centipede', p: [] },
     ],
     weapons: [['pipe', 1200, 640], ['oar', 2400, 560]],
     intro: [
@@ -126,12 +141,13 @@ const LEVELS = [
     ],
   },
   {
-    n: 3, id: 'foresta', title: 'LA FORESTA DI ACCIAIO', place: 'PARCO PREISTORICO', bg: 'park', length: 4600, music: 2,
+    n: 3, id: 'foresta', title: 'LA FORESTA DI ACCIAIO', place: 'PARCO PREISTORICO', bg: 'park', length: 5600, music: 2,
     zones: [
       { x: 650, name: 'L\'INGRESSO DEL PARCO', w: [['soldier', 4], ['lancer', 2]], c: [], p: [['crate', 520, 600], ['bin', 950, 540]] },
       { x: 1650, name: 'LE MONTAGNE RUSSE', w: [['brute', 2], ['lancer', 3], ['soldier', 2]], c: ['tourist'], p: [['barrel', 1500, 560], ['crate', 1900, 650]] },
-      { x: 2700, name: 'LA SERRA ABBANDONATA', w: [['lancer', 4], ['brute', 2]], c: [], p: [['crate', 2600, 540], ['barrel', 3000, 650]] },
-      { x: 3700, name: 'TRIVOR', boss: 'trivor', p: [] },
+      { x: 2700, name: 'IL RECINTO DEL TIRANNO', ride: 'start', w: [['soldier', 5], ['lancer', 4], ['brute', 3], ['dog', 4]], c: [], p: [['crate', 2600, 540], ['barrel', 3000, 650]] },
+      { x: 3700, name: 'LA SERRA ABBANDONATA', ride: 'end', w: [['lancer', 5], ['brute', 3], ['soldier', 5], ['shield', 2]], c: ['tourist'], p: [['barrel', 3650, 560], ['crate', 4000, 650]] },
+      { x: 4700, name: 'TRIVOR', boss: 'trivor', p: [] },
     ],
     weapons: [['oar', 1150, 600]],
     giant: { player: 'rex', enemy: 'trivor', bg: 'park' },
@@ -231,12 +247,13 @@ const LEVELS = [
     ],
   },
   {
-    n: 8, id: 'alba', title: 'L\'ULTIMA ALBA', place: 'LA FORTEZZA DEL VELO', bg: 'dawn', length: 4600, music: 7,
+    n: 8, id: 'alba', title: 'L\'ULTIMA ALBA', place: 'LA FORTEZZA DEL VELO', bg: 'dawn', length: 7300, music: 7,
     zones: [
       { x: 650, name: 'LE ROVINE DELL\'ALBA', w: [['shade', 3], ['brute', 2], ['lancer', 2]], c: [], p: [['crate', 520, 600], ['barrel', 950, 650]] },
       { x: 1650, name: 'I FRAMMENTI DELLA CITTÀ', w: [['segment', 3], ['lancer', 3], ['brute', 2]], c: ['kid', 'elder'], p: [['crate', 1500, 540], ['crate', 1950, 660]] },
       { x: 2700, name: 'IL CUORE DELLA FORTEZZA', w: [['shade', 4], ['brute', 3]], c: [], p: [['barrel', 2600, 560], ['barrel', 3050, 650]] },
-      { x: 3700, name: 'VESPERA', boss: 'vespera', p: [] },
+      { x: 3700, name: 'IL CROLLO DELLA CITTÀ', escape: 2600, p: [] },
+      { x: 6300, name: 'VESPERA', boss: 'vespera', p: [] },
     ],
     weapons: [['pipe', 1150, 600], ['oar', 2350, 560]],
     giant: { player: 'concordia', enemy: 'eclipse', bg: 'dawn', final: true },
@@ -293,11 +310,11 @@ const PLATS = {
 };
 const LEVEL_EXTRAS = [
   { plats: [['car', 1080, 548], ['dumpster', 2330, 582], ['shelter', 2390, 540], ['car', 3330, 660]], sigils: [[1080, 525, 'top'], [2420, 520, 'top'], [3150, 560, 'crate']], drones: { 2: 1 }, more: { 2: [['shield', 1]] } },
-  { plats: [], sigils: [[500, 600, 'crate'], [2100, 540, 'crate'], [3300, 505, 'floor']], drones: {}, more: { 0: [['dog', 2]], 2: [['grenadier', 2]] } },
-  { plats: [['dumpster', 1300, 560], ['dumpster', 2320, 650]], sigils: [[1300, 540, 'top'], [2600, 540, 'crate'], [3380, 690, 'floor']], drones: { 1: 2, 2: 2 }, more: { 0: [['dog', 3]], 1: [['grenadier', 2]], 2: [['shield', 2]] } },
+  { plats: [], sigils: [[500, 600, 'crate'], [2100, 540, 'crate'], [4300, 505, 'floor']], drones: {}, more: { 0: [['dog', 2]], 3: [['grenadier', 2]] } },
+  { plats: [['dumpster', 1300, 560], ['car', 4350, 650]], sigils: [[1300, 540, 'top'], [2600, 540, 'crate'], [4350, 628, 'top']], drones: { 1: 2, 2: 2 }, more: { 0: [['dog', 3]], 1: [['grenadier', 2]], 2: [['shield', 2]], 3: [['dog', 3]] } },
   { plats: [], sigils: [[520, 600, 'crate'], [1900, 540, 'crate'], [3050, 660, 'crate']], drones: {}, more: { 1: [['ninja', 2]], 2: [['ninja', 3]] } },
   { plats: [['car', 1100, 650], ['dumpster', 2100, 582], ['shelter', 2160, 540]], sigils: [[1100, 628, 'top'], [2180, 520, 'top'], [3050, 640, 'crate']], drones: { 0: 1, 1: 2, 2: 2 }, more: { 0: [['shield', 2]], 1: [['grenadier', 2]], 2: [['ninja', 2], ['shield', 2]] } },
   { plats: [['dumpster', 1250, 600]], sigils: [[1250, 580, 'top'], [930, 660, 'crate'], [3000, 540, 'crate']], drones: { 2: 2 }, more: { 0: [['dog', 3]], 1: [['shield', 2]], 2: [['grenadier', 2], ['ninja', 2]] } },
   { plats: [['rock', 1250, 600], ['rock', 2350, 560]], sigils: [[520, 600, 'crate'], [1950, 540, 'crate'], [2650, 560, 'crate']], drones: { 0: 2, 2: 2 }, more: { 0: [['ninja', 3]], 1: [['grenadier', 2], ['dog', 3]], 2: [['shield', 3]] } },
-  { plats: [['rock', 1300, 600], ['rock', 2400, 620]], sigils: [[1300, 578, 'top'], [1500, 540, 'crate'], [1950, 660, 'crate']], drones: { 1: 2, 2: 2 }, more: { 0: [['ninja', 3], ['dog', 3]], 1: [['shield', 2], ['grenadier', 2]], 2: [['ninja', 3], ['shield', 2]] } },
+  { plats: [['rock', 1300, 600], ['rock', 2400, 620], ['rock', 4500, 580], ['rock', 5400, 640]], sigils: [[1300, 578, 'top'], [1500, 540, 'crate'], [4500, 558, 'top']], drones: { 1: 2, 2: 2 }, more: { 0: [['ninja', 3], ['dog', 3]], 1: [['shield', 2], ['grenadier', 2]], 2: [['ninja', 3], ['shield', 2]] } },
 ];

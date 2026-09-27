@@ -80,7 +80,7 @@ const Net = {
       }
       case 'pick': {
         const p = this.lobby.find((q) => q.id === id);
-        if (p && !this.lobby.some((q) => q.id !== id && q.hero === m.hero)) p.hero = m.hero;
+        if (p && HEROES[m.hero] && !this.lobby.some((q) => q.id !== id && q.hero === m.hero)) p.hero = m.hero;
         if (p) p.ready = !!m.ready;
         this.pushLobby();
         break;
