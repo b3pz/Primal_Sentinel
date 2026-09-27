@@ -66,6 +66,14 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.6.7
+- **Muri invisibili morbidi**: vicino ai bordi dell'arena si viene spinti con dolcezza verso il centro (più forte
+  quando si è circondati), così non si resta incastrati contro il bordo dello schermo. Anche i nemici non si
+  ammucchiano ai lati.
+- Chi viene scaraventato contro il bordo **rimbalza** (eroi e nemici), invece di finire fuori dallo schermo.
+- **Lo speciale va sempre dentro l'arena**: l'eroe si gira da solo verso il lato con più nemici (o verso il centro
+  se è su un bordo) e fa un passo via dal bordo.
+
 ## Novità della 1.6.6
 - **ARGO, il Guardiano dei Cuori**: il mentore nella colonna di luce. Dà le missioni all'inizio dei capitoli,
   conosceva Kharon mille anni fa e saluta i Sentinels nel finale.

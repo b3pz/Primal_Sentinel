@@ -421,6 +421,16 @@ function stepPlayer(S, p, c, dt) {
   }
   // bounds
   const lo = S.cam + 40, hi = S.camLock !== null ? S.camLock + W - 40 : Math.min(S.L.length - 40, S.cam + W - 40);
+  // soft invisible walls: near the edges of the arena you are gently pushed back toward the centre,
+  // harder when enemies are cornering you, so nobody stays stuck against the border of the screen
+  if (!['knock', 'fall', 'cannon', 'grab', 'grabatk'].includes(p.st) && p.z <= groundAt(S, p.x, p.y) + 2) {
+    const EDGE = 120;
+    const cornered = S.enemies.some((e) => e.hp > 0 && Math.abs(e.x - p.x) < 160 && Math.abs(e.y - p.y) < 60);
+    const push = (cornered ? 260 : 150) * dt;
+    if (p.x < lo + EDGE) tryMove(S, p, Math.min(lo + EDGE - p.x, push * (lo + EDGE - p.x) / EDGE), 0);
+    if (p.x > hi - EDGE && (S.camLock !== null || S.escape)) tryMove(S, p, -Math.min(p.x - hi + EDGE, push * (p.x - hi + EDGE) / EDGE), 0);
+  }
+  if (p.st === 'knock' && (p.x <= lo || p.x >= hi)) { p.vx = -p.vx * 0.45; sparks(S, p.x, p.y - 60, '#ffffff', 6, 'dust'); }
   p.x = clamp(p.x, lo, hi);
   p.y = clamp(p.y, FOOT_TOP(), FLOOR_BOTTOM);
 
@@ -621,6 +631,15 @@ function special(S, p) {
     // desperation: costs health like classic arcades
     if (p.hp > 12) { p.hp -= 8; floatText(S, p.x, p.y - 170, '-8', '#ff8a7a', 16); } else { sfx(S, 'hurt'); return; }
   } else p.en -= 40;
+  // the special is always thrown into the arena: face the side with more enemies (or the centre when at a border)
+  {
+    const lo = S.cam + 40, hi = S.camLock !== null ? S.camLock + W - 40 : S.cam + W - 40;
+    let l = 0, r = 0;
+    for (const e of S.enemies) if (e.hp > 0 && e.x > S.cam - 20 && e.x < S.cam + W + 20) { const w = (e.boss ? 3 : 1) * (Math.abs(e.x - p.x) < 300 ? 3 : 1); if (e.x < p.x) l += w; else r += w; }
+    if (l || r) p.face = r >= l ? 1 : -1;
+    else if (p.x < lo + 200) p.face = 1; else if (p.x > hi - 200) p.face = -1;
+    if (p.x < lo + 80 && p.face === 1 || p.x > hi - 80 && p.face === -1) p.x += p.face * 40;   // step off the border
+  }
   p.st = 'special'; p.t = 0; p.hit = new Set(); p.inv = 0.7; p.spk = hero.id;
   sfx(S, 'special'); ev(S, { t: 'flash', c: hero.glow, v: 0.25 });
   ev(S, { t: 'pop', x: Math.round(p.x), y: Math.round(p.y - 200), s: hero.special + '!', c: hero.color, big: 1 });
@@ -811,7 +830,9 @@ function stepEnemy(S, e, dt) {
         }
         for (const o of S.props) if (o.hp > 0 && Math.abs(o.x - e.x) < 50 && Math.abs(o.y - e.y) < 40) hitProp(S, o, S.players.find((q) => q.id === e.thrower));
       }
-      e.x = clamp(e.x, S.cam - 40, S.cam + W + 40);
+      // inside an arena bodies bounce off the invisible walls instead of flying off screen
+      if (S.camLock !== null) { const a = S.camLock + 40, b = S.camLock + W - 40; if (e.x < a || e.x > b) { e.x = clamp(e.x, a, b); e.vx = -e.vx * 0.4; } }
+      else e.x = clamp(e.x, S.cam - 40, S.cam + W + 40);
       if (e.z <= 0 && e.t > 0.1 && inGap(S.L, e.x, e.y)) {
         // knocked off the train!
         e.st = 'fall'; e.t = 0; e.z = 0; if (e.hp > 0) { const q = S.players.find((pp) => pp.id === (e.thrower || e.killer)); if (q) { q.score += e.def.score + 300; q.kos++; } e.hp = 0; }
@@ -845,7 +866,11 @@ function stepEnemy(S, e, dt) {
   if (['walk', 'idle', 'enter'].includes(e.st) && !d.flying) { const gz = Math.max(groundAt(S, e.x, e.y), inGap(S.L, e.x, e.y, -30) ? 55 : 0); e.z = e.z < gz ? Math.min(gz, e.z + 600 * dt) : Math.max(gz, e.z - 600 * dt); }
   if (!['knock', 'thrown', 'held', 'dead', 'enter', 'rise', 'slam'].includes(e.st)) {
     e.y = clamp(e.y, FLOOR_TOP, FLOOR_BOTTOM);
-    if (S.camLock !== null) e.x = clamp(e.x, S.camLock + 30, S.camLock + W - 30);
+    if (S.camLock !== null) {
+      e.x = clamp(e.x, S.camLock + 30, S.camLock + W - 30);
+      // enemies don't pile up against the borders either
+      if (['idle', 'walk'].includes(e.st)) { if (e.x < S.camLock + 110) e.x += 90 * dt; if (e.x > S.camLock + W - 110) e.x -= 90 * dt; }
+    }
   }
 }
 
