@@ -858,12 +858,23 @@ function stepEnemy(S, e, dt) {
       }
       break;
     }
+    case 'hop': {
+      // jumping across the gap between two wagons
+      e.x += e.hopDir * 300 * dt; e.z += e.vz * dt; e.vz -= 1500 * dt;
+      if (e.z <= 0 && e.vz < 0) { e.z = 0; if (inGap(S.L, e.x, e.y)) e.vz = 320; else { e.st = 'walk'; e.t = 0; sparks(S, e.x, e.y, '#9aa0b0', 5, 'dust'); } }
+      break;
+    }
     case 'down': if (e.t > 0.85) { e.st = 'getup'; e.t = 0; } break;
     case 'getup': if (e.t > 0.3) { e.st = 'walk'; e.t = 0; e.inv = 0.3; e.cool = 0.8; } break;
     case 'fall': e.z -= 900 * dt * Math.min(1, e.t * 3); if (e.t > 0.8) { e.st = 'dead'; e.t = 2; } break;
   }
-  // walking enemies leap over the gaps between wagons and climb on cars and dumpsters
-  if (['walk', 'idle', 'enter'].includes(e.st) && !d.flying) { const gz = Math.max(groundAt(S, e.x, e.y), inGap(S.L, e.x, e.y, -30) ? 55 : 0); e.z = e.z < gz ? Math.min(gz, e.z + 600 * dt) : Math.max(gz, e.z - 600 * dt); }
+  // walking enemies jump over the gaps between wagons (a real jump) and climb on cars and dumpsters
+  if (['walk', 'idle', 'enter'].includes(e.st) && !d.flying) {
+    const dir = Math.sign(Math.round(e.x - (e._px ?? e.x)));
+    if (S.L.train && dir && trainOn(S.L, e.x) && (inGap(S.L, e.x + dir * 60, e.y, -30) || inGap(S.L, e.x, e.y, -30))) { e.st = 'hop'; e.t = 0; e.vz = 560; e.hopDir = dir; e.face = dir; }
+    else { const gz = groundAt(S, e.x, e.y); e.z = e.z < gz ? Math.min(gz, e.z + 600 * dt) : Math.max(gz, e.z - 600 * dt); }
+  }
+  e._px = e.x;
   if (!['knock', 'thrown', 'held', 'dead', 'enter', 'rise', 'slam'].includes(e.st)) {
     e.y = clamp(e.y, FLOOR_TOP, FLOOR_BOTTOM);
     if (S.camLock !== null) {
@@ -1329,7 +1340,7 @@ function enemyFrame(e) {
     let f = 0, rot = 0;
     switch (e.st) {
       case 'walk': case 'enter': f = [1, 0, 2, 0][Math.floor(e.walk) % 4]; break;
-      case 'wind': f = 3; break; case 'atk': f = 4; break;
+      case 'wind': case 'hop': f = 3; break; case 'atk': f = 4; break;
       case 'hurt': case 'held': case 'block': f = d.shield && e.st === 'block' ? 3 : 5; break;
       case 'knock': case 'thrown': f = 5; rot = -Math.min(1, e.t * 4) * 1.4; break;
       case 'down': case 'dead': case 'fall': f = 5; rot = -1.45; break;
@@ -1345,7 +1356,7 @@ function enemyFrame(e) {
     // centipede segments use the 6-frame villain layout
     switch (e.st) {
       case 'walk': case 'enter': f = [1, 0, 2, 0][Math.floor(e.walk) % 4]; break;
-      case 'wind': f = 3; break; case 'atk': f = 4; break;
+      case 'wind': case 'hop': f = 3; break; case 'atk': f = 4; break;
       case 'hurt': case 'held': f = 5; break;
       case 'knock': case 'thrown': f = 5; rot = -Math.min(1, e.t * 4) * 1.4; break;
       case 'down': case 'dead': f = 5; rot = -1.4; break;
@@ -1355,7 +1366,7 @@ function enemyFrame(e) {
   }
   switch (e.st) {
     case 'walk': case 'enter': f = [1, 2, 3, 2][Math.floor(e.walk) % 4]; break;
-    case 'wind': f = 4; break;
+    case 'wind': case 'hop': f = 4; break;
     case 'atk': f = e.kick ? 6 : 5; break;
     case 'hurt': case 'held': f = 7; break;
     case 'knock': case 'thrown': f = 7; rot = -Math.min(1, e.t * 4) * Math.PI / 2 * 0.95; break;

@@ -66,6 +66,10 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.6.8
+- Sul treno i nemici **saltano davvero** tra un vagone e l'altro (rincorsa, salto ad arco e atterraggio),
+  invece di galleggiare sopra il buco.
+
 ## Novità della 1.6.7
 - **Muri invisibili morbidi**: vicino ai bordi dell'arena si viene spinti con dolcezza verso il centro (più forte
   quando si è circondati), così non si resta incastrati contro il bordo dello schermo. Anche i nemici non si
