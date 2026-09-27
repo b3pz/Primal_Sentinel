@@ -6,11 +6,16 @@
 const screenEl = document.querySelector('#screen');
 const SAVE_KEY = 'primal-sentinels-progress';
 
+/* phones: the tap that opened a menu must not also press the button that appears under the finger */
+let lastPointerDown = 0;
+addEventListener('pointerdown', () => { lastPointerDown = performance.now(); }, true);
+screenEl.addEventListener('click', (e) => { if (e.isTrusted && e.detail > 0 && lastPointerDown < (UI.shownAt || 0)) { e.stopPropagation(); e.preventDefault(); } }, true);
 const UI = {
   typing() { const a = document.activeElement; return a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA'); },
   show(html, cls = '') {
     screenEl.className = cls;
     screenEl.innerHTML = html;
+    this.shownAt = performance.now();
     const f = screenEl.querySelector('[autofocus]') || screenEl.querySelector('button');
     if (f) f.focus();
   },
@@ -74,7 +79,7 @@ const Game = {
         <button id="howto">COME SI GIOCA</button>
         <button id="options">OPZIONI</button>
       </nav>
-      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.6.9</div>`, 'menu');
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.7</div>`, 'menu');
     UI.on('#play', () => { this.modeKind = 'campaign'; this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
     UI.on('#extras', () => this.extras());
@@ -109,7 +114,7 @@ const Game = {
     this.mode = 'howto';
     this.howT = 0; this.howPg = 0; this.howThen = then; this.howFooter = footer;
     const dev = (this.players[0] && this.players[0].device) || this.lastDevice || 'kb';
-    this.howScheme = dev.startsWith('pad') ? 'pad' : this.local.twoKeyboards ? 'kb2' : 'kb';
+    this.howScheme = dev === 'touch' ? 'touch' : dev.startsWith('pad') ? 'pad' : this.local.twoKeyboards ? 'kb2' : 'kb';
     UI.hide();
     FX.team = null;
   },
@@ -220,6 +225,15 @@ const Game = {
       const c = Input.read(dev);
       if (!slots.some((s) => s.dev === dev) && (c.pressed.jump || c.pressed.punch || c.pressed.start)) this.joinSlot(dev);
     }
+    if (Touch.on && !slots.some((s) => s.dev === 'touch')) { const c = Touch.read(); if (c.pressed.jump || c.pressed.punch || c.pressed.start || Touch.tap) this.joinSlot('touch'); }
+    // touch: tap a Sentinel to choose it, tap it again to confirm
+    const ts = Touch.tap && slots.find((s) => s.dev === 'touch');
+    if (ts && ts.t > 0.2 && !ts.ready && Touch.tap.y > 250 && Touch.tap.y < 600) {
+      const n = this.heroCount(), h = [...Array(n).keys()].find((k) => Math.abs(Touch.tap.x - (140 + k * (1000 / (n - 1)))) < 1000 / (n - 1) / 2);
+      if (h !== undefined && !slots.some((o) => o !== ts && o.ready && o.hero === h)) {
+        if (h === ts.hero) { ts.ready = true; Audio.sfx('confirm'); } else { ts.hero = h; Audio.sfx('select'); }
+      }
+    }
     // per-slot controls
     for (const s of slots) {
       s.t += dt;
@@ -286,63 +300,88 @@ const Game = {
     this.beginCampaign();
   },
 
+  /* character select, arcade style: all the Sentinels stand in the Chamber of the Hearts with Argo
+     behind them; each player's choice steps forward onto the emblem of its titan */
   drawLobby(online = false) {
-    coverImage('story_cores', 1.05, 0.5, 0.5);
-    g.fillStyle = 'rgba(3,8,16,.72)'; g.fillRect(0, 0, W, H);
-    txt(online ? 'COOPERATIVA ONLINE' : 'SCEGLI IL TUO SENTINEL', W / 2, 70, 38, '#f5dcad', 'center', 900);
-    if (this.modeKind !== 'campaign') ptxt(MODE_NAMES[this.modeKind] + (this.modeKind === 'timeattack' ? ` · CAPITOLO ${this.taLevel + 1}` : ''), W / 2, 104, 12, '#9fe8ff', 'center');
-    const slots = online ? Net.lobby.map((p) => ({ hero: p.hero, ready: p.ready, name: p.name, me: p.id === Net.myId, host: p.host })) : this.lobbySlots;
+    const t = this.lobbyT || 0;
+    const dt = Math.min(0.05, Math.max(0, t - (this._lobPrevT ?? t))); this._lobPrevT = t;
+    coverImage('story_cores', 1.08, 0.5, 0.42);
+    g.fillStyle = 'rgba(3,6,16,.55)'; g.fillRect(0, 0, W, H);
+    // reflective floor
+    const fl = g.createLinearGradient(0, 430, 0, H); fl.addColorStop(0, 'rgba(10,14,30,.2)'); fl.addColorStop(0.25, 'rgba(8,10,22,.9)'); fl.addColorStop(1, 'rgba(2,3,8,.98)');
+    g.fillStyle = fl; g.fillRect(0, 430, W, H - 430);
+    g.strokeStyle = 'rgba(111,200,255,.12)'; g.lineWidth = 2;
+    for (let i = 0; i < 6; i++) { g.beginPath(); g.ellipse(W / 2, 640, 200 + i * 130, 40 + i * 22, 0, 0, 7); g.stroke(); }
+    // Argo watches from his column
+    if (frameOf('mentors', 'argo_0')) { glowAt(W / 2, 250, 220, '#6fc8ff', 0.35 + Math.sin(t * 2) * 0.06); spr('mentors', Math.floor(t * 0.7) % 5 === 4 ? 'argo_4' : 'argo_0', W / 2, 440, { scale: 0.78, alpha: 0.9 }); }
+    const slots = online ? Net.lobby.map((p) => ({ hero: p.hero, ready: p.ready, name: p.name, me: p.id === Net.myId, host: p.host, skin: 0 })) : this.lobbySlots;
+    const n = this.heroCount();
+    const PC = ['#ffd35a', '#5fe0ff', '#7bf0b1', '#ff8ad8'];
+    const anim = this._lobAnim || (this._lobAnim = {});
+    const xs = (i) => 140 + i * (1000 / (n - 1));
+    // who is on each hero
+    const on = {};
+    slots.forEach((s, i) => { (on[s.hero] = on[s.hero] || []).push([i, s]); });
+    const order = [...Array(n).keys()].sort((a, b) => (anim[a] || 0) - (anim[b] || 0));
+    for (const h of order) {
+      const sel = on[h];
+      anim[h] = lerp(anim[h] || 0, sel ? 1 : 0, Math.min(1, dt * 10));
+      const a = anim[h], hero = HEROES[h];
+      const x = xs(h), y = lerp(470 + Math.abs(h - (n - 1) / 2) * 10, 560, a), sc = lerp(1.0, 1.3, a);
+      // emblem disc of the titan under the chosen Sentinel
+      g.save(); g.globalAlpha = 0.25 + a * 0.75;
+      g.fillStyle = hero.color + '55'; g.beginPath(); g.ellipse(x, y + 4, 80 * sc, 20 * sc, 0, 0, 7); g.fill();
+      g.strokeStyle = hero.color; g.lineWidth = 3; g.stroke();
+      g.fillStyle = hero.color + '33'; g.beginPath(); g.ellipse(x, y + 4, 56 * sc, 13 * sc, 0, 0, 7); g.fill();
+      const bk = `beast_${BEAST_OF[h]}_roar`, bf = frameOf('giants', bk);
+      if (bf) { g.save(); g.translate(x, y + 4); g.scale(1, 0.24); spr('giants', bk, 0, 50, { scale: 0.42 * sc, img: tinted('giants', bk, hero.color, 'source-atop', 0.85), alpha: 0.55 }); g.restore(); }
+      g.restore();
+      // reflection
+      g.save(); g.translate(x, y); g.scale(1, -0.35); g.globalAlpha = 0.18; heroSpr(h, 0, 0, 0, { scale: sc, face: h < n / 2 ? 1 : -1 }); g.restore();
+      const ready = sel && sel.some(([, s]) => s.ready);
+      const fr = ready ? 8 : sel ? (Math.floor(t * 2 + h) % 6 === 0 ? 4 : 0) : 0;
+      if (a > 0.5) glowAt(x, y - 110, 120 * sc, hero.color, 0.3 * a);
+      heroSpr(h, fr, x, y, { scale: sc, face: h < n / 2 ? 1 : -1, alpha: 0.55 + a * 0.45, skin: sel ? sel[0][1].skin || 0 : 0 });
+      if (ready && a > 0.9) glowAt(x, y - 120, 150, hero.color, 0.25 + Math.sin(t * 10) * 0.15);
+      // player markers above the head
+      (sel || []).forEach(([i, s], k) => {
+        const my = y - 220 * sc / 1.2 - 34 - k * 40 + Math.sin(t * 5) * 4;
+        const col = PC[i];
+        g.fillStyle = '#05070c'; g.beginPath(); g.moveTo(x - 22, my + 6); g.lineTo(x + 22, my + 6); g.lineTo(x, my + 28); g.fill();
+        g.fillStyle = col; g.beginPath(); g.moveTo(x - 17, my + 8); g.lineTo(x + 17, my + 8); g.lineTo(x, my + 24); g.fill();
+        ptitle(`${i + 1}P`, x, my, 22, '#ffffff', col);
+        if (s.ready) ptxt('PRONTO!', x, my - 30, 10, col, 'center');
+      });
+    }
+    ptitle(online ? 'COOPERATIVA ONLINE' : 'SCEGLI IL TUO SENTINEL', W / 2, 64, 34, '#fff6d6', '#ffd35a');
+    if (this.modeKind !== 'campaign') ptxt(MODE_NAMES[this.modeKind] + (this.modeKind === 'timeattack' ? ` · CAPITOLO ${this.taLevel + 1}` : ''), W / 2, 96, 12, '#9fe8ff', 'center');
+    // bottom: one card per player with the strengths and weaknesses of the chosen Sentinel
     for (let i = 0; i < 4; i++) {
-      const x = 40 + i * 305, y = 120, w = 285, h = 470;
-      const s = slots[i];
-      g.fillStyle = s ? 'rgba(10,22,36,.92)' : 'rgba(10,22,36,.5)'; g.fillRect(x, y, w, h);
+      const x = 16 + i * 316, y = 612, w = 304, h = 100, s = slots[i];
+      panel(x, y, w, h, s ? PC[i] : '#2a3a4c', s ? 0.9 : 0.55);
       if (!s) {
-        g.strokeStyle = '#2a4052'; g.setLineDash([8, 6]); g.strokeRect(x + 1, y + 1, w - 2, h - 2); g.setLineDash([]);
-        txt(`${i + 1}P`, x + w / 2, y + 180, 40, '#2e4a60', 'center', 900);
-        if (!online) {
-          const lines = ['PER UNIRTI PREMI', 'Controller: A o X', !this.local.twoKeyboards && slots.some((q) => q.dev && q.dev.startsWith('kb')) ? 'Tastiera 2: K o Num1' : !slots.some((q) => q.dev && q.dev.startsWith('kb')) ? 'Tastiera: F, J o Spazio' : ''];
-          lines.forEach((l, k) => txt(l, x + w / 2, y + 250 + k * 28, k ? 15 : 13, k ? '#9fb4c8' : '#6f8aa2', 'center', 800));
-        } else txt('IN ATTESA…', x + w / 2, y + 250, 15, '#6f8aa2', 'center', 800);
+        ptxt(`${i + 1}P`, x + 20, y + 30, 14, '#3a5068');
+        if (!online) ptxt(!this.local.twoKeyboards && slots.some((q) => q.dev && q.dev.startsWith('kb')) ? 'CONTROLLER: A · TASTIERA 2: K' : slots.some((q) => q.dev && q.dev.startsWith('kb')) ? 'CONTROLLER: A O X · TOCCO' : 'PREMI ATTACCO PER UNIRTI', x + 20, y + 62, 8, '#6f8aa2');
+        else ptxt('IN ATTESA…', x + 20, y + 62, 9, '#6f8aa2');
         continue;
       }
       const hero = HEROES[s.hero];
-      g.fillStyle = hero.color; g.fillRect(x, y, w, 5);
-      const grd = g.createRadialGradient(x + w / 2, y + 250, 10, x + w / 2, y + 250, 200);
-      grd.addColorStop(0, hero.color + '55'); grd.addColorStop(1, 'rgba(0,0,0,0)');
-      g.fillStyle = grd; g.fillRect(x, y, w, h);
-      const devName = online ? (s.me ? 'TU' : s.name) + (s.host ? ' · HOST' : '') : s.dev === 'kb' ? 'TASTIERA' : s.dev === 'kbA' ? 'TASTIERA 1 (WASD)' : s.dev === 'kbB' ? 'TASTIERA 2 (FRECCE)' : 'CONTROLLER ' + (+s.dev.slice(3) + 1);
-      txt(`${i + 1}P · ${devName}`, x + 16, y + 34, 14, '#c8d6e4', 'left', 800);
-      const f = Math.floor(this.lobbyT * 3) % 4 === 3 && !s.ready ? 4 : s.ready ? 5 : 0;
-      drawShadow(x + w / 2, y + 330, 40);
-      heroSpr(s.hero, f, x + w / 2, y + 330, { scale: 1.2, face: 1, skin: s.skin || 0 });
-      if (!s.ready && (!online || s.me)) { txt('◀', x + 22, y + 230, 26, '#ffcf7a', 'center', 900); txt('▶', x + w - 22, y + 230, 26, '#ffcf7a', 'center', 900); }
-      txt(hero.name, x + w / 2, y + 372, 30, hero.color, 'center', 900);
-      txt(`${hero.role.toUpperCase()} · ${hero.civil}`, x + w / 2, y + 396, 13, '#c8d6e4', 'center', 800);
-      txt(hero.special, x + w / 2, y + 420, 12, '#ffcf7a', 'center', 800);
-      if (!online && this.skinsUnlocked().length > 1 && !s.ready) ptxt(`▲▼ COSTUME: ${SKINS[s.skin || 0].name}`, x + w / 2, y + 60, 8, '#ffd35a', 'center');
-      else if (s.skin) ptxt(`COSTUME ${SKINS[s.skin].name}`, x + w / 2, y + 60, 8, '#ffd35a', 'center');
-      const taken = !s.ready && slots.some((o) => o !== s && o.ready && o.hero === s.hero);
-      if (s.ready) { g.fillStyle = hero.color; g.fillRect(x + 20, y + 436, w - 40, 26); txt('PRONTO!', x + w / 2, y + 455, 16, '#0b1118', 'center', 900); }
-      else txt(taken ? 'GIÀ SCELTO' : online && !s.me ? 'STA SCEGLIENDO…' : 'ATTACCO: PRONTO · SPARO: ESCI', x + w / 2, y + 455, 12, taken ? '#ff8a7a' : '#9fb4c8', 'center', 800);
+      const devName = online ? (s.me ? 'TU' : s.name) + (s.host ? ' · HOST' : '') : s.dev === 'kb' ? 'TASTIERA' : s.dev === 'kbA' ? 'TASTIERA 1' : s.dev === 'kbB' ? 'TASTIERA 2' : s.dev === 'touch' ? 'TOUCH' : 'CONTROLLER ' + (+s.dev.slice(3) + 1);
+      ptxt(`${i + 1}P · ${devName}`, x + 18, y + 22, 8, PC[i]);
+      ptxt(hero.name, x + w - 14, y + 22, 11, hero.color, 'right');
+      txt(hero.trait || hero.specialText, x + 18, y + 46, 12, '#fff1c6', 'left', 700);
+      if (hero.pro) { txt('+ ' + hero.pro, x + 18, y + 68, 12, '#9ff0c0', 'left', 600); txt('− ' + hero.con, x + 18, y + 89, 12, '#ffb0a0', 'left', 600); }
+      if (!online && this.skinsUnlocked().length > 1 && !s.ready) ptxt(`▲▼ ${SKINS[s.skin || 0].name}`, x + w / 2 + 20, y + 22, 7, '#ffd35a', 'center');
     }
     if (online) {
-      g.fillStyle = 'rgba(4,10,20,.85)'; g.fillRect(40, 610, W - 80, 80);
-      if (Net.error) txt(Net.error, W / 2, 658, 18, '#ff9a8a', 'center', 800);
+      g.fillStyle = 'rgba(4,10,20,.88)'; g.fillRect(0, 110, W, 44);
+      if (Net.error) txt(Net.error, W / 2, 140, 16, '#ff9a8a', 'center', 800);
       else if (Net.role === 'host') {
-        txt('CODICE STANZA', 80, 645, 14, '#9fb4c8', 'left', 800);
-        txt(Net.code || '·····', 80, 680, 34, '#ffcf7a', 'left', 900);
-        txt(Net.status, 330, 650, 15, '#c8d6e4', 'left', 700);
         const allReady = Net.lobby.length > 0 && Net.lobby.every((p) => p.ready);
-        txt(allReady ? (Net.lobby.length > 1 ? 'TUTTI PRONTI · PREMI START / INVIO PER PARTIRE' : 'SEI SOLO: PUOI PARTIRE ANCHE COSÌ (START / INVIO)') : 'SCEGLI L\'EROE E PREMI PUGNO QUANDO SEI PRONTO', 330, 678, 15, allReady ? '#7bf0b1' : '#9fb4c8', 'left', 800);
-      } else {
-        txt(Net.status || (Net.myId ? 'Connesso alla stanza ' + Net.code : ''), W / 2, 645, 16, '#c8d6e4', 'center', 700);
-        txt('Scegli l\'eroe con ◀ ▶ e premi PUGNO. L\'host avvierà la partita.', W / 2, 675, 15, '#9fb4c8', 'center', 700);
-      }
-      txt('ESC: ESCI DALLA STANZA', W - 60, 700, 11, '#6f8aa2', 'right', 700);
-    } else {
-      txt('◀ ▶ SCEGLI · J / X: PRONTO · K / Y: ANNULLA · ESC: MENU', W / 2, 640, 15, '#9fb4c8', 'center', 800);
-      txt('Quando tutti sono pronti la partita inizia. In più giocatori i nemici sono più numerosi.', W / 2, 668, 13, '#6f8aa2', 'center', 700);
-    }
+        ptxt(`CODICE STANZA: ${Net.code || '·····'}`, 40, 140, 14, '#ffcf7a');
+        ptxt(allReady ? 'TUTTI PRONTI · START / INVIO PER PARTIRE' : 'SCEGLI E PREMI ATTACCO', W - 40, 140, 10, allReady ? '#7bf0b1' : '#9fb4c8', 'right');
+      } else ptxt(Net.status || (Net.myId ? 'CONNESSO ALLA STANZA ' + Net.code + ' · L\'HOST AVVIERÀ LA PARTITA' : ''), W / 2, 140, 10, '#c8d6e4', 'center');
+    } else ptxt(Touch.on && this.lobbySlots.some((s) => s.dev === 'touch') ? 'TOCCA UN SENTINEL PER SCEGLIERLO · TOCCALO DI NUOVO: PRONTO · INDIETRO: ANNULLA' : '◀ ▶ SCEGLI · ATTACCO: PRONTO · PISTOLA: ANNULLA · ESC: MENU', W / 2, this.modeKind !== 'campaign' ? 118 : 98, 8, '#9fb4c8', 'center');
   },
 
   /* ---------------- online ---------------- */
@@ -431,7 +470,9 @@ const Game = {
   /* ---------------- campaign flow ---------------- */
   beginCampaign() {
     UI.hide();
+    UPGRADES = null;
     if (this.modeKind && this.modeKind !== 'campaign') { this.beginMode(); return; }
+    this.shop = { coins: 0, lv: { hp: 0, en: 0, ammo: 0, team: 0, cr: 0 } }; UPGRADES = this.shop.lv;
     for (const p of this.players) { p.score = 0; p.lives = 3; }
     this.credits = DIFF.credits;
     if (this.diffKey() === 'arcade') this.startLevel = 0;
@@ -450,6 +491,7 @@ const Game = {
   enterStage(idx, cp) {
     this.S = newStage(idx, this.simPlayers(), cp);
     this.S.credits = this.credits;
+    this.S.coinBase = this.shop ? this.shop.coins : 0;
     this.S.summonOK = this.sigilTotal() >= 3;
     { const z = LEVELS[idx].zones[cp]; if (cp && z && z.ride === 'end') startRide(this.S); }
     if (!cp) this.chapterCont = 0;
@@ -474,7 +516,7 @@ const Game = {
       return;
     }
     this.carryScores(this.S.players);
-    if (r === 'bonus') { Audio.playSong(8); this.afterClear(); return; }
+    if (r === 'bonus') { if (this.shop) this.shop.coins += this.S.coins + (this.S.bonusWin ? 6 : 0); Audio.playSong(8); this.afterClear(); return; }
     const S = this.S;
     this.stats = { lvl: this.levelIdx, time: S.t + (this.stageTimeBefore || 0), saved: S.saved, sigils: S.sigils.slice(), dmg: S.dmgTaken, cont: (this.chapterCont || 0) + S.contUsed,
       players: S.players.map((p) => ({ h: p.hero, n: p.name, sc: p.score, ko: p.kos, cb: p.maxCombo })) };
@@ -487,6 +529,7 @@ const Game = {
     this.levelClear();
   },
   levelClear() {
+    if (this.shop && this.S && !this.S.coinsBanked) { this.shop.coins += this.S.coins; this.S.coinsBanked = true; }
     this.saveProgress(this.levelIdx + 1);
     const before = this.sigilTotal();
     if (this.stats) this.saveSigils(this.levelIdx, this.stats.sigils);
@@ -507,7 +550,9 @@ const Game = {
       this.S.credits = this.credits; this.mode = 'stage'; FX.parts = []; Audio.playSong(3);
       return;
     }
-    this.bonusDone = false;
+    // Sette's shop: spend the coins before the next chapter
+    if (!this.shopDone && this.modeKind === 'campaign' && this.levelIdx < LEVELS.length - 1) { this.shopDone = true; this.openShop(() => this.afterClear()); return; }
+    this.bonusDone = false; this.shopDone = false;
     // an animated cinematic tells what happens between this chapter and the next
     this.playCine(this.levelIdx, () => {
       if (this.levelIdx >= LEVELS.length - 1) { this.mode = 'ending'; this.endT = 0; this.unlockMsg = !this.unlocks().story; this.setUnlock('story'); Audio.playSong(8, 'finale'); }
@@ -678,6 +723,7 @@ const Game = {
         break;
       }
       case 'demo': this.tickDemo(dt); break;
+      case 'shop': this.tickShop(dt, this.controls()); break;
       case 'entry': this.tickEntry(dt, this.controls()); break;
       case 'scores': this.tickScores(dt, this.controls()); break;
       case 'gallery': this.controls(); this.tickGallery(dt); break;
@@ -704,6 +750,8 @@ const Game = {
         const val = E.kind === 'timeattack' ? 'TEMPO ' + fmtTime(r.tm) : E.kind === 'survival' ? `ONDATE ${r.w} · ${r.s} PUNTI` : E.kind === 'bossrush' ? `BOSS ${r.b}/8 · ${r.s} PUNTI` : `${r.s} PUNTI`;
         return { m: 'entry', kind: E.kind, t: +E.t.toFixed(2), letters: E.letters.slice(), pos: E.pos, h: cur.p.hero, pl: this.players.indexOf(cur.p) + 1, val }; }
       case 'scores': { const s = this.sc; const kind = BOARDS[s.b].id; return { m: 'scores', b: s.b, t: +s.t.toFixed(2), lvl: s.lvl, rows: this.sortBoard(kind, this.boardList(kind, s.lvl)).slice(0, kind === 'timeattack' ? 5 : 10), me: this.lastRec || null }; }
+      case 'shop': { const U = this.shopUI; if (!U) return null; return { m: 'shop', t: +U.t.toFixed(2), i: U.i, msg: U.msg, mood: U.mood, mt: +U.moodT.toFixed(2), coins: this.shop.coins,
+        items: this.shopItems().map((it) => ({ name: it.name, desc: it.desc, lv: this.shop.lv[it.k], max: it.cost.length, cost: it.cost[this.shop.lv[it.k]] ?? null })) }; }
       case 'gallery': return { m: 'gallery', pg: this.gal.pg, i: this.gal.i, t: +this.gal.t.toFixed(2) };
       case 'over': return { m: 'over' };
     }
@@ -720,6 +768,7 @@ const Game = {
       case 'entry': drawEntry(v); break;
       case 'scores': drawScores(v); break;
       case 'gallery': drawGallery(v); break;
+      case 'shop': drawShop(v); break;
       case 'giant': renderGiant(v); break;
       case 'dlg': drawDialog(v); break;
       case 'intro':
@@ -730,7 +779,7 @@ const Game = {
       case 'final': drawFinal(v); break;
       case 'summary': drawSummary(v); break;
       case 'howto': {
-        const scheme = this.online === 'client' ? ((this.lastDevice || 'kb').startsWith('pad') ? 'pad' : 'kb') : v.sc;
+        const scheme = this.online === 'client' ? ((this.lastDevice || 'kb') === 'touch' ? 'touch' : (this.lastDevice || 'kb').startsWith('pad') ? 'pad' : 'kb') : v.sc;
         const hero = ((this.players[0] && this.players[0].hero) || 0) % CORE_HEROES;
         this.howT = v.t;
         drawHowto(v.pg, v.t, scheme, this.online === 'client' ? (Net.lobby.find((p) => p.id === Net.myId) || { hero: 0 }).hero : hero, { footer: v.f || undefined });
@@ -780,7 +829,9 @@ function frame(ts) {
   const dt = Math.min(0.1, (ts - lastT) / 1000 || STEP);
   lastT = ts;
   // remember the last device that pressed something (for auto-join)
-  if (Object.keys(Input.keyEdge).length) Game.lastDevice = 'kb';
+  const tk = Touch.inject();
+  if (Object.keys(Input.keyEdge).length && !tk) Game.lastDevice = 'kb';
+  if (Touch.on) { const tc = Touch.read(); if (Object.values(tc.pressed).some(Boolean) || tc.l || tc.r) Game.lastDevice = 'touch'; Touch.update(); }
   for (const p of Input.pads()) { const c = Input.read('pad' + p.index); if (Object.values(c.pressed).some(Boolean)) Game.lastDevice = 'pad' + p.index; }
   if (Input.keyEdge.KeyM && !UI.typing() && !Game.capture) Audio.setMuted(!Audio.muted);
 
@@ -838,6 +889,7 @@ function frame(ts) {
 
 /* ---------------- boot ---------------- */
 Input.init();
+Touch.init();
 const IMAGES = [
   ['fighters', 'assets/sprites/fighters.png'], ['bosses', 'assets/sprites/bosses.png'], ['titans', 'assets/sprites/titans.png'], ['giants', 'assets/sprites/giants.png'], ['extra', 'assets/sprites/extra.png'], ['bosses2', 'assets/sprites/bosses2.png'], ['heroes2', 'assets/sprites/heroes2.png'], ['mentors', 'assets/sprites/mentors.png'],
   ['cine_run', 'assets/bg/cine_run.jpg'], ['cine_duel', 'assets/bg/cine_duel.jpg'], ['cine_rex', 'assets/bg/cine_rex.jpg'], ['cine_cavern', 'assets/bg/cine_cavern.jpg'], ['cine_cockpit', 'assets/bg/cine_cockpit.jpg'], ['cine_dawn', 'assets/bg/cine_dawn.jpg'],
@@ -887,7 +939,7 @@ function drawTitle(t) {
   const y = lerp(-320, 225, bounce) + (k >= 1 ? Math.sin(Math.min(1, (t - 0.8) * 4) * Math.PI) * -12 * Math.max(0, 1 - (t - 0.8) * 2) : 0);
   drawLogo(W / 2, y, 0.74, t);
   if (t > 0.8 && t < 1.2) { g.fillStyle = `rgba(255,255,255,${(1.2 - t) * 2})`; g.fillRect(0, 0, W, H); }
-  if (t > 1.3 && Math.floor(t * 2.2) % 2 === 0) ptitle('PREMI START', W / 2, 452, 24, '#ffffff', '#ffd35a');
+  if (t > 1.3 && Math.floor(t * 2.2) % 2 === 0) ptitle(Touch.on ? 'TOCCA LO SCHERMO' : 'PREMI START', W / 2, 452, 24, '#ffffff', '#ffd35a');
   ptxt('© 2026 b3pZ · 1-4 GIOCATORI · COOPERATIVA ONLINE', W / 2, 486, 9, '#9fb4c8', 'center');
   ptxt('CREDITI  99', W - 24, H - 16, 9, '#6f8aa2', 'right');
 }

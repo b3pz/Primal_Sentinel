@@ -431,7 +431,7 @@ function drawScores(v) {
 }
 function drawDemoOverlay(t) {
   g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, H / 2 - 40, W, 80);
-  if (Math.floor(t * 1.6) % 2) ptitle('DEMO · PREMI START', W / 2, H / 2 + 14, 28, '#ffffff', '#ffd35a');
+  if (Math.floor(t * 1.6) % 2) ptitle(Touch.on ? 'DEMO · TOCCA LO SCHERMO' : 'DEMO · PREMI START', W / 2, H / 2 + 14, 28, '#ffffff', '#ffd35a');
   drawLogo(W - 150, H - 70, 0.2, t);
 }
 const GAL_TEXT = {
@@ -532,4 +532,88 @@ function drawGallery(v) {
     g.strokeStyle = '#6fd8d3'; g.lineWidth = 3; g.strokeRect(330, 200, 880, 420);
   }
   ptxt('▲▼ SEZIONE · ◀ ▶ SCORRI · ESC / B: MENU', W / 2 + 130, H - 22, 9, '#9fb4c8', 'center');
+}
+
+/* ============================================================
+   LA BOTTEGA DI SETTE (1.7): tra un capitolo e l'altro la squadra
+   spende le monete raccolte (monete, frammenti, sigilli, boss,
+   zone liberate e civili salvati) in potenziamenti che valgono
+   per tutta la partita.
+   ============================================================ */
+const SHOP_ITEMS = [
+  { k: 'hp', name: 'CUORE RINFORZATO', desc: '+15 vita massima per tutti', cost: [6, 10, 14] },
+  { k: 'en', name: 'NUCLEO DI ENERGIA', desc: 'Più energia all\'inizio, si ricarica più in fretta', cost: [5, 9, 13] },
+  { k: 'ammo', name: 'CARICATORI EXTRA', desc: '+6 colpi di pistola e caricatore più capiente', cost: [4, 7, 10] },
+  { k: 'team', name: 'SINTONIA DI SQUADRA', desc: 'La barra squadra parte già carica di un terzo', cost: [8, 14] },
+  { k: 'cr', name: 'GETTONE', desc: '+1 credito per continuare', cost: [12, 16, 20] },
+];
+Object.assign(Game, {
+  openShop(then) {
+    this.mode = 'shop'; UI.hide();
+    this.shopUI = { i: 0, t: 0, then, msg: 'BENVENUTI NELLA MIA BOTTEGA!', mood: 'hello', moodT: 0, prev: {} };
+    Audio.playSong(8, 'sigla');
+  },
+  shopItems() { return SHOP_ITEMS.filter((it) => it.k !== 'cr' || this.credits !== Infinity); },
+  tickShop(dt, ctrls) {
+    const U = this.shopUI, items = this.shopItems();
+    U.t += dt; U.moodT -= dt;
+    // every player (local or online) can shop: edge-detect their directions
+    let up = false, down = false, buy = false, leave = false;
+    for (const [id, c] of Object.entries(ctrls)) {
+      const p = U.prev[id] || {};
+      if (c.u && !p.u) up = true; if (c.d && !p.d) down = true;
+      if (c.pressed.punch) buy = true; if (c.pressed.jump || c.pressed.start) leave = true;
+      U.prev[id] = { u: c.u, d: c.d };
+    }
+    if (Input.keyEdge.Enter || Input.keyEdge.Escape) leave = true;
+    const n = items.length + 1;   // last row = continue
+    if (up) { U.i = (U.i + n - 1) % n; Audio.sfx('select'); }
+    if (down) { U.i = (U.i + 1) % n; Audio.sfx('select'); }
+    if (U.t < 0.4) return;
+    if (buy && U.i === items.length) leave = true;
+    else if (buy) {
+      const it = items[U.i], lv = this.shop.lv[it.k], cost = it.cost[lv];
+      if (cost === undefined) { U.msg = 'QUESTO È AL MASSIMO!'; U.mood = 'point'; U.moodT = 1.2; Audio.sfx('empty'); }
+      else if (this.shop.coins < cost) { U.msg = 'SERVONO PIÙ MONETE! AHI AHI...'; U.mood = 'panic'; U.moodT = 1.4; Audio.sfx('hurt'); }
+      else {
+        this.shop.coins -= cost; this.shop.lv[it.k]++;
+        if (it.k === 'cr') this.credits++;
+        U.msg = pick(['AFFARE FATTO!', 'OTTIMA SCELTA!', 'VI STARÀ BENISSIMO!']); U.mood = 'joy'; U.moodT = 1.2; Audio.sfx('team');
+      }
+    }
+    if (leave) { Audio.sfx('confirm'); const then = U.then; U.then = null; this.shopUI = null; then && then(); }
+  },
+});
+function drawShop(v) {
+  coverImage('story_cores', 1.05, 0.5, 0.5);
+  g.fillStyle = 'rgba(3,6,14,.78)'; g.fillRect(0, 0, W, H);
+  ptitle('LA BOTTEGA DI SETTE', W / 2, 70, 34, '#fff6d6', '#ffb03a');
+  ptxt('POTENZIAMENTI PER TUTTA LA SQUADRA · VALGONO FINO ALLA FINE DELLA PARTITA', W / 2, 100, 9, '#9fb4c8', 'center');
+  // Sette at the counter
+  const pose = v.mood === 'joy' && v.mt > 0 ? (Math.floor(v.t * 6) % 2 ? 'sette_7' : 'sette_5') : v.mood === 'panic' && v.mt > 0 ? (Math.floor(v.t * 5) % 2 ? 'sette_3' : 'sette_0') : v.mood === 'point' && v.mt > 0 ? 'sette_4' : Math.floor(v.t) % 4 === 3 ? 'sette_2' : 'sette_6';
+  drawShadow(230, 600, 70); spr('mentors', pose, 230, 600, { scale: 2.1 });
+  panel(60, 150, 340, 70, '#ffd35a', 0.9);
+  const lines = wrapText(v.msg, 300, 15);
+  lines.slice(0, 2).forEach((l, i) => txt(l, 76, 180 + i * 24, 15, '#fff1c6', 'left', 700));
+  // wallet
+  const fc = frameOf('items', 'coin');
+  panel(60, 630, 340, 60, '#ffd35a', 0.9);
+  if (fc) g.drawImage(IMG.items, fc[0], fc[1], fc[2], fc[3], 80, 642, fc[2], fc[3]);
+  ptitle(`${v.coins}`, 190, 675, 28, '#ffffff', '#ffd35a', 'left');
+  ptxt('MONETE', 330, 668, 9, '#ffd35a', 'center');
+  // items
+  v.items.forEach((it, i) => {
+    const y = 150 + i * 92, sel = v.i === i;
+    panel(450, y, 770, 80, sel ? '#ffd35a' : '#3a5068', sel ? 0.95 : 0.8);
+    ptxt(it.name, 474, y + 28, 13, sel ? '#ffd35a' : '#e8eef4');
+    txt(it.desc, 474, y + 58, 15, '#c8d6e4', 'left', 600);
+    for (let k = 0; k < it.max; k++) { g.fillStyle = k < it.lv ? '#ffd35a' : '#26384a'; g.fillRect(1010 + k * 26, y + 16, 20, 20); }
+    ptxt(it.cost === null ? 'MAX' : `${it.cost}`, 1196, y + 62, 14, it.cost === null ? '#7bf0b1' : it.cost <= v.coins ? '#ffffff' : '#ff8a7a', 'right');
+    if (it.cost !== null && fc) g.drawImage(IMG.items, fc[0], fc[1], fc[2], fc[3], 1110, y + 44, fc[2] * 0.6, fc[3] * 0.6);
+    if (sel) ptxt('▶', 458, y + 30, 11, '#ffd35a');
+  });
+  const cy = 150 + v.items.length * 92, sel = v.i === v.items.length;
+  panel(450, cy, 770, 50, sel ? '#7bf0b1' : '#3a5068', 0.9);
+  ptxt('CONTINUA LA MISSIONE ▶', 835, cy + 32, 13, sel ? '#7bf0b1' : '#c8d6e4', 'center');
+  ptxt('▲▼ SCEGLI · ATTACCO: COMPRA · SALTO / START: CONTINUA', W / 2 + 190, H - 12, 9, '#9fb4c8', 'center');
 }

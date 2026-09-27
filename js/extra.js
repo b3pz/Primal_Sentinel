@@ -363,5 +363,7 @@ function extraHud(S) {
   if (S.sv) o.sv = S.sv.wave;
   if (S.taT !== undefined) o.ta = +S.taT.toFixed(1);
   if (S.L.rush) o.rush = S.L.n;
+  if (S.coinBase !== undefined) o.cn = S.coinBase + S.coins;
+  if (S.vs) o.vs = [S.vs.k, +S.vs.t.toFixed(2), S.players.filter((p) => !p.out).map((p) => p.hero)];
   return o;
 }

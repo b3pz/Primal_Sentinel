@@ -475,6 +475,7 @@ function renderStage(v) {
   g.restore();
   drawHUD(v.hud, t);
   if (v.hud.tw) drawBeamWarning(v.hud.tw, t);
+  if (v.hud.vs) drawBossVs(v.hud.vs);
   if (!(FX.team && FX.team.arena)) drawTeamPose();
   else if (FX.team.t < 1.6) ptitle(FX.team.t < 1.5 ? 'COLPO DI SQUADRA!' : 'CANNONE PRIMORDIALE!', W / 2, 170, 30, '#fff6d6', '#ffb03a');
   else ptitle('CANNONE PRIMORDIALE!', W / 2, 170, 34, '#fff6d6', '#ff6a3a');
@@ -497,12 +498,14 @@ function drawPortrait(hero, x, y, s = 0.52, dim = false) {
 }
 
 /* key names for the on-screen hints, depending on the device of each local player */
+const TOUCH_LABEL = { punch: 'ATTACCO', shoot: 'PISTOLA', jump: 'SALTO', special: 'SPECIALE', dodge: 'SCHIVA', team: 'SQUADRA', start: 'II' };
 function keyName(device, action) {
   // labels follow the (possibly customised) key maps
   const kbL = (map) => codeLabel((map[action] || [])[0]);
   const padL = () => PAD_NAMES[(PADMAP[action] || [])[0]] || '?';
   if (!device || device === 'remote') return kbL(KEYMAPS.kb) + '/' + padL();
   if (device.startsWith('pad')) return padL();
+  if (device === 'touch') return TOUCH_LABEL[action] || action.toUpperCase();
   if (device === 'kb' || !Game.local.twoKeyboards) return kbL(KEYMAPS.kb);
   return kbL(KEYMAPS[device === 'kbA' ? 'kbA' : 'kbB']);
 }
@@ -547,6 +550,7 @@ function drawHUD(h, t) {
   if (h.bt !== undefined) { panel(W / 2 - 110, 20, 220, 64, '#c07bff', 0.85); ptitle(String(Math.ceil(h.bt)), W / 2, 72, 40, h.bt < 8 ? '#ffd0c0' : '#fff6d6', h.bt < 8 ? '#ff4a3a' : '#c07bff'); }
   // credits and sigils
   ptxt(h.cr < 0 ? 'CREDITI LIBERI' : `CREDITI ${h.cr}`, 22, H - 14, 9, h.cr === 0 ? '#ff8a7a' : '#9fb4c8');
+  if (h.cn !== undefined) { const fc = frameOf('items', 'coin'); if (fc) g.drawImage(IMG.items, fc[0], fc[1], fc[2], fc[3], 200, H - 32, fc[2] * 0.6, fc[3] * 0.6); ptxt(`×${h.cn}`, 226, H - 14, 9, '#ffd35a'); }
   if (h.sg >= 0) ptxt(`SIGILLI ${h.sg || 0}/3`, W - 22, H - 14, 9, '#ffd35a', 'right');
   // team meter
   const full = h.team >= 100;
@@ -1150,4 +1154,68 @@ function drawTeamArena(cam) {
     }
     g.restore();
   }
+}
+
+/* "CONTRO": presentation of a boss with its strengths and weaknesses (1.7) */
+function drawBossVs([key, k, heroes]) {
+  const B = BOSSES[key], I = BOSS_INFO[key] || { str: [], weak: [] };
+  if (!B) return;
+  const s = B.sprite || key;
+  const inA = clamp(k / 0.45, 0, 1), out = clamp((k - 4.25) / 0.35, 0, 1);
+  const ease = 1 - Math.pow(1 - inA, 3);
+  g.save();
+  g.globalAlpha = 1 - out;
+  g.fillStyle = 'rgba(3,5,12,.82)'; g.fillRect(0, 0, W, H);
+  // diagonal split: Sentinels on the left, the boss on the right
+  const sl = -W * (1 - ease);
+  const grdL = g.createLinearGradient(0, 0, W / 2, 0); grdL.addColorStop(0, '#0b2a4a'); grdL.addColorStop(1, '#10385f');
+  g.fillStyle = grdL; g.beginPath(); g.moveTo(sl, 0); g.lineTo(sl + W / 2 + 90, 0); g.lineTo(sl + W / 2 - 90, H); g.lineTo(sl, H); g.fill();
+  const sr = W * (1 - ease);
+  const grdR = g.createLinearGradient(W / 2, 0, W, 0); grdR.addColorStop(0, '#4a0b12'); grdR.addColorStop(1, '#2a0508');
+  g.fillStyle = grdR; g.beginPath(); g.moveTo(sr + W / 2 + 90, 0); g.lineTo(sr + W, 0); g.lineTo(sr + W, H); g.lineTo(sr + W / 2 - 90, H); g.fill();
+  // speed lines
+  g.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 14; i++) { const y = (i * 53 + k * 900) % H; g.fillStyle = 'rgba(255,255,255,.05)'; g.fillRect(0, y, W, 3); }
+  g.globalCompositeOperation = 'source-over';
+  // heroes
+  const hs = heroes && heroes.length ? heroes : [0];
+  hs.forEach((h, i) => {
+    const sp = hs.length <= 2 ? 180 : hs.length === 3 ? 140 : 112, x = sl + 300 + (i - (hs.length - 1) / 2) * sp, y = 520 + (i % 2) * 30;
+    glowAt(x, y - 110, 120, HEROES[h].color, 0.35);
+    drawShadow(x, y, 40); heroSpr(h, k > 1 ? 8 : 0, x, y, { scale: 1.25, face: 1 });
+  });
+  // boss
+  const p8 = frameOf('bosses2', `${s}P_0`);
+  const bs = p8 ? 'bosses2' : 'bosses', bk = p8 ? `${s}P_${k > 1.2 && k < 2.4 ? 2 : k >= 2.4 ? 4 : 0}` : `${s}_0`;
+  const f = frameOf(bs, bk);
+  const bsc = f ? Math.min(2.2, 360 / f[3]) : 1.5;
+  glowAt(sr + 960, 380, 220, '#ff5a3a', 0.3);
+  drawShadow(sr + 960, 560, 90); spr(bs, bk, sr + 960, 560, { scale: bsc, face: -1 });
+  // VS
+  if (k > 0.35) {
+    const pop = clamp((k - 0.35) / 0.2, 0, 1), sc = 1 + (1 - pop) * 1.5;
+    g.save(); g.translate(W / 2, 300); g.scale(sc, sc); g.globalAlpha *= pop;
+    ptitle('VS', 0, 30, 90, '#ffffff', '#ffd35a');
+    g.restore();
+    if (k < 0.7) { g.fillStyle = `rgba(255,255,255,${(0.7 - k) * 2})`; g.fillRect(0, 0, W, H); }
+  }
+  // name, strengths, weaknesses
+  if (k > 0.6) {
+    const a = clamp((k - 0.6) * 3, 0, 1);
+    g.globalAlpha = (1 - out) * a;
+    ptitle(B.name, 960, 90, 34, '#fff6d6', '#ff6a3a');
+    ptxt(B.title, 960, 122, 11, '#ffc0b0', 'center');
+    panel(730, 590, 520, 116, '#ff5a3a', 0.9);
+    ptxt('PUNTI DI FORZA', 750, 614, 10, '#ff9a8a');
+    I.str.slice(0, 3).forEach((t2, i) => { if (k > 0.9 + i * 0.25) txt('✚ ' + t2, 750, 640 + i * 22, 14, '#ffd0c8', 'left', 700); });
+    panel(30, 590, 560, 116, '#58e0a0', 0.9);
+    ptxt('PUNTI DEBOLI · COME BATTERLO', 50, 614, 10, '#7bf0b1');
+    I.weak.slice(0, 3).forEach((t2, i) => { if (k > 1.6 + i * 0.25) txt('➜ ' + t2, 50, 640 + i * 22, 14, '#d8ffe8', 'left', 700); });
+    ptitle('SENTINELS', sl + 300, 90, 30, '#fff6d6', '#5fc2ff');
+  }
+  g.globalAlpha = 1 - out;
+  if (k > 3.5 && k < 4.1) ptitle('PRONTI…', W / 2, 460, 40, '#ffffff', '#ffb03a');
+  else if (k >= 4.1) ptitle('VIA!', W / 2, 470, 64, '#ffffff', '#ff5a3a');
+  else if (k > 1 && Math.floor(k * 2) % 2) ptxt('ATTACCO: SALTA', W / 2, 560, 9, '#9fb4c8', 'center');
+  g.restore();
 }

@@ -10,7 +10,8 @@ const INTRO_SUBS = [
   [9, 13.5, '', 'Poi la terra tremò. E il cielo si spaccò in due.'],
   [13.8, 22, '', 'Gli uomini senza volto uscirono dagli specchi delle vetrine.'],
   [22.5, 31, 'OLTRE IL VELO', '«Riportatemi i Cuori.» — Vespera, la Regina del Velo.'],
-  [31.5, 38, 'SOTTO LA CITTÀ', 'Cinque macchine addormentate da millenni risposero al suo nome.'],
+  [31.5, 34.9, 'LA CAMERA DEI CUORI', '«Cuori, svegliatevi. Scegliete i vostri custodi.» — Argo, il Guardiano.'],
+  [35.1, 38, 'SOTTO LA CITTÀ', 'Cinque macchine addormentate da millenni aprirono gli occhi.'],
   [38.5, 45, '', 'Ma i Cuori scelsero qualcun altro. Cinque persone qualunque.'],
   [45.2, 52, '', ''],
 ];
@@ -183,6 +184,14 @@ function drawIntro(t) {
       for (let y = foot - f[3] * hs; y < foot; y += 3) g.fillRect(cx - f[2] * hs / 2, y, f[2] * hs, 1);
       g.restore();
     });
+    // Argo, the Guardian of the Hearts, lights up in his column and wakes the Hearts
+    if (frameOf('mentors', 'argo_6') && k > 0.1) {
+      const a = clamp((k - 0.1) / 0.5, 0, 1);
+      const key = k < 0.9 ? 'argo_6' : k < 1.4 ? 'argo_2' : Math.floor(k * 7) % 2 ? 'argo_1' : 'argo_0';
+      glowAt(1110, 520, 230, '#6fc8ff', 0.35 * a);
+      spr('mentors', key, 1110, 715, { scale: 0.92, alpha: a });
+      if (k > 0.8 && k < 1.2) { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = (1.2 - k) * 2; g.fillStyle = '#bfe6ff'; g.fillRect(1090, 0, 40, 720); g.restore(); }
+    }
     if (k > 3.6) {
       // cut to the cavern where the five titans sleep, their eyes lighting up one by one
       const a = clamp((k - 3.6) / 0.5, 0, 1);

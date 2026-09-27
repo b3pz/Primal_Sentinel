@@ -5,10 +5,11 @@
    (tastiera, controller o due giocatori) si illuminano a tempo.
    ============================================================ */
 const HOWTO_PAGE = 8.4;
-const SCHEMES = ['kb', 'pad', 'kb2'];
-const SCHEME_NAMES = { kb: 'TASTIERA', pad: 'CONTROLLER', kb2: 'DUE GIOCATORI SU UNA TASTIERA' };
+const SCHEMES = ['kb', 'pad', 'kb2', 'touch'];
+const SCHEME_NAMES = { kb: 'TASTIERA', pad: 'CONTROLLER', kb2: 'DUE GIOCATORI SU UNA TASTIERA', touch: 'TOUCH (TELEFONO / TABLET)' };
 /* key labels follow the key maps (they can be changed in OPZIONI → COMANDI) */
 function actKeys(scheme) {
+  if (scheme === 'touch') return { up: '▲', left: '◀', down: '▼', right: '▶', punch: 'ATTACCO', shoot: 'PISTOLA', special: 'SPECIALE', jump: 'SALTO', dodge: 'SCHIVA', team: 'SQUADRA' };
   if (scheme === 'pad') {
     const b = (a) => PAD_NAMES[(PADMAP[a] || [])[0]] || '?';
     return { up: '▲', left: '◀', down: '▼', right: '▶', punch: b('punch'), shoot: b('shoot'), special: b('special'), jump: b('jump'), dodge: b('dodge'), team: b('team') };
@@ -274,6 +275,35 @@ function drawPad(x, y, lit, color) {
   lab('MUOVI', dx, y + 250); lab('SQUADRA', x + 95, y - 12); lab('SCHIVATA', x + 365, y - 12);
   lab('X ATTACCO · Y PISTOLA', cx, y + 250); lab('A SALTO · B SPECIALE', cx, y + 266);
 }
+/* a phone lying sideways with the touch controls of the game */
+function drawTouchPad(x, y, lit, color) {
+  const L = (a) => lit.includes(a);
+  g.save();
+  g.fillStyle = '#05070c'; roundRect(x - 6, y + 14, 472, 250, 34); g.fill();
+  g.fillStyle = '#1b2330'; roundRect(x, y + 20, 460, 238, 30); g.fill();
+  g.fillStyle = '#0b1320'; g.fillRect(x + 26, y + 36, 408, 206);
+  // stick
+  const sx = x + 110, sy = y + 170, mv = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] };
+  let kx = 0, ky = 0; for (const k in mv) if (L(k)) { kx += mv[k][0]; ky += mv[k][1]; }
+  g.strokeStyle = '#ffffff55'; g.lineWidth = 3; g.beginPath(); g.arc(sx, sy, 52, 0, 7); g.stroke();
+  g.fillStyle = kx || ky ? color : '#ffffff40'; g.beginPath(); g.arc(sx + kx * 26, sy + ky * 26, 24, 0, 7); g.fill();
+  // buttons
+  const b = (bx, by, r, label, on, col) => {
+    g.fillStyle = on ? '#ffffff' : col + '55'; g.beginPath(); g.arc(bx, by, r, 0, 7); g.fill();
+    g.strokeStyle = col; g.lineWidth = 3; g.stroke();
+    if (on) { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.5; g.fillStyle = col; g.beginPath(); g.arc(bx, by, r + 14, 0, 7); g.fill(); g.restore(); }
+    ptxt(label, bx, by + 4, 7, on ? '#10161e' : '#ffffff', 'center', false);
+  };
+  const rx = x + 438, ry = y + 244, u = 3.1;   // bottom-right corner, 1 vmin ≈ 3.1 px here
+  b(rx - 18 * u, ry - 20 * u, 11 * u, 'ATTACCO', L('punch'), '#ffd35a');
+  b(rx - 41 * u, ry - 10 * u, 8 * u, 'SALTO', L('jump'), '#5fe0ff');
+  b(rx - 40 * u, ry - 31 * u, 7.5 * u, 'SPECIALE', L('special'), '#ff7a5a');
+  b(rx - 10 * u, ry - 42 * u, 7 * u, 'PISTOLA', L('shoot'), '#b9c7d6');
+  b(rx - 29 * u, ry - 47 * u, 6.2 * u, 'SCHIVA', L('dodge'), '#7bf0b1');
+  b(rx - 9 * u, ry - 62 * u, 6 * u, 'SQUADRA', L('team'), '#ff8ad8');
+  g.restore();
+  ptxt('LEVETTA: MUOVI · IN FONDO: CORSA', sx, y + 290, 8, '#dfe8f0', 'center');
+}
 function roundRect(x, y, w, h, r) {
   g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
 }
@@ -358,6 +388,7 @@ function drawHowto(pg, t, scheme, hero, opt = {}) {
   panel(cx - 20, vy, 520, vh, color, 0.9);
   ptxt(SCHEME_NAMES[scheme], cx + 240, vy + 34, 10, '#9fe8ff', 'center');
   if (scheme === 'pad') drawPad(cx + 10, cy + 20, s.lit, color);
+  else if (scheme === 'touch') drawTouchPad(cx + 10, cy, s.lit, color);
   else drawKeyboard(cx + 20, cy + 30, s.lit, color, scheme);
   // Sette presents the lesson from the corner of the control panel
   if (frameOf('mentors', 'sette_0')) { const pose = lt < 1.2 ? 'sette_5' : Math.floor(lt * 2) % 4 === 0 ? 'sette_2' : 'sette_4'; spr('mentors', pose, 1175, vy + vh - 6, { scale: 0.8, face: -1 }); }
@@ -369,7 +400,7 @@ function drawHowto(pg, t, scheme, hero, opt = {}) {
   panel(40, 600, W - 80, 56, color, 0.85);
   const lines = wrapCap(cap, W - 140);
   lines.forEach((ln, i) => ptxt(ln, W / 2, 626 + i * 20 - (lines.length - 1) * 9, 11, '#f4f7fa', 'center'));
-  ptxt(opt.footer || '◀ ▶ PAGINA · ▲ ▼ TASTIERA/CONTROLLER · PUGNO: ESCI', W / 2, 700, 9, '#8a9aac', 'center');
+  ptxt(opt.footer || (scheme === 'touch' ? '◀ ▶ PAGINA · ▲ ▼ ALTRI COMANDI · ATTACCO: ESCI' : '◀ ▶ PAGINA · ▲ ▼ TASTIERA/CONTROLLER · PUGNO: ESCI'), W / 2, 700, 9, '#8a9aac', 'center');
   // progress dots
   HOWTO.forEach((_, i) => { g.fillStyle = i === pg ? color : '#2a3848'; g.fillRect(W - 40 - (HOWTO.length - i) * 18, 88, 12, 12); });
   if (FX.team) drawTeamPose();

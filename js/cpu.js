@@ -83,6 +83,13 @@ function cpuRaw(S, p, k) {
   // dodge an incoming heavy blow now and then
   if (tgt.st === 'wind' && Math.abs(dx) < 140 && Math.abs(dy) < 30 && (k + p.id * 7) % 37 === 0) { c.pressed.dodge = true; goX(-dx); return c; }
   const want = tgt.boss ? 150 : 80;
+  // standing on a car or a rock while the enemy is on the street below: step off the front
+  const onTop = groundAt(S, p.x, p.y);
+  if (onTop > 40 && p.z >= onTop - 4 && (tgt.z || 0) < 20 && Math.abs(dx) < 260) {
+    const b = S.plats.find((q) => p.x > q.x - q.w / 2 && p.x < q.x + q.w / 2 && p.y > q.y - q.d && p.y <= q.y + 1);
+    if (b && b.y + 12 <= FLOOR_BOTTOM) { c.d = 1; c.u = 0; return c; }
+    c.u = 1; c.d = 0; return c;
+  }
   goY(dy);
   if (Math.abs(dx) > want) {
     goX(dx);
@@ -91,7 +98,7 @@ function cpuRaw(S, p, k) {
   if (Math.abs(dx) <= want && Math.abs(dy) > 12 && groundAt(S, p.x, p.y + Math.sign(dy) * 20) > p.z + 10 && p.st !== 'jump') c.pressed.jump = true;
   else if (Math.sign(dx) !== p.face) goX(dx);
   else if (Math.abs(dy) <= 20) {
-    if (k % 9 === p.id % 9) c.pressed.punch = true;
+    if (k % 9 === p.id % 9 && (Math.abs(dx) < want + 40 || p.z > 60)) c.pressed.punch = true;
     if (k % 50 === (p.id * 3) % 50 && p.ammo > 4) c.pressed.shoot = true;
     const near = targets.filter((e) => Math.abs(e.x - p.x) < 260).length;
     if (p.en >= 40 && (near >= 3 || tgt.boss) && k % 45 === 0) c.pressed.special = true;

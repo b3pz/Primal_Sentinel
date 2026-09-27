@@ -66,3 +66,42 @@ nav.grid2 button.primary{grid-column:1 / span 2}
 .keygrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:1000px;margin-top:10px}
 .keygrid button{display:flex;justify-content:space-between;gap:10px}
 .keygrid button b{color:#ffd35a;font-weight:400}
+
+/* ---------- 1.7: touch controls (phones & tablets) ---------- */
+body.touch{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+body.touch #screen{touch-action:pan-y}
+#touch{position:fixed;inset:0;pointer-events:none;z-index:20;font-family:Pixelify,"Trebuchet MS",sans-serif}
+#touch.hide{display:none}
+#touch .tzone{position:absolute;left:0;top:14%;bottom:0;width:48%;pointer-events:auto;touch-action:none}
+#touch .tbase{position:absolute;width:30vmin;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);border:2px solid #ffffff55;background:radial-gradient(circle,#ffffff14 0 45%,#ffffff08 70%);opacity:0;transition:opacity .12s}
+#touch .tbase.active{opacity:1}
+#touch .tknob{position:absolute;left:50%;top:50%;width:44%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);background:radial-gradient(circle at 35% 30%,#fff9 0,#ffffff40 45%,#ffffff22 100%);border:2px solid #ffffffaa}
+/* hint where the stick lives when not touched */
+#touch.game .tzone::after{content:"";position:absolute;left:max(15vmin,calc(50vw - 88.9vh + 17vmin));top:66%;width:22vmin;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);border:2px dashed #ffffff26}
+#touch .tbtn{position:absolute;aspect-ratio:1;border-radius:50%;transform:translate(50%,50%);opacity:.72;pointer-events:auto;touch-action:none;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#ffffff38,#ffffff10 60%,#00000030);border:2px solid #ffffff70;box-shadow:0 0 0 2px #0006,inset 0 -4px 0 #0003;color:#fff;text-shadow:0 2px 0 #000}
+#touch .tbtn span{font-size:clamp(7px,2.3vmin,14px);letter-spacing:.04em;font-weight:700;opacity:.9}
+#touch .tbtn.down{opacity:1;transform:translate(50%,50%) scale(.9);background:radial-gradient(circle,#ffffff80,#ffffff30)}
+#touch .t-punch{border-color:#ffd35acc;background:radial-gradient(circle at 35% 30%,#ffd35a70,#ffd35a20 60%,#00000030)}
+#touch .t-jump{border-color:#5fe0ffcc;background:radial-gradient(circle at 35% 30%,#5fe0ff60,#5fe0ff18 60%,#00000030)}
+#touch .t-special{border-color:#ff7a5acc;background:radial-gradient(circle at 35% 30%,#ff7a5a60,#ff7a5a18 60%,#00000030)}
+#touch .t-shoot{border-color:#b9c7d6cc}
+#touch .t-dodge{border-color:#7bf0b1cc}
+#touch .t-team{border-color:#ff8ad8cc;background:radial-gradient(circle at 35% 30%,#ff8ad860,#ff8ad818 60%,#00000030)}
+#touch .tpause{border-radius:14px}
+#touch:not(.game) .t-shoot span::after{content:" / INDIETRO"}
+#touch:not(.game) .t-team,#touch:not(.game) .t-special,#touch:not(.game) .tpause{display:none}
+#rotate{display:none}
+@media (orientation:portrait){
+  body.touch #rotate{display:flex;position:fixed;inset:0;z-index:50;background:#050c14;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;color:#ffd35a;font-family:Pixelify,sans-serif}
+  body.touch #rotate b{font-size:26px;letter-spacing:.08em}
+  body.touch #rotate span{color:#c8d6e4;font-size:15px}
+  body.touch #rotate .phone{width:54px;height:92px;border:4px solid #ffd35a;border-radius:10px;animation:rot 2s ease-in-out infinite}
+}
+@keyframes rot{0%,20%{transform:rotate(0)}50%,80%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
+body.touch main{box-shadow:none}
+/* select screen: tap the Sentinels themselves; only a small BACK button stays */
+#touch.lobby .tbtn{display:none}
+#touch.lobby .t-shoot{display:grid;right:auto!important;left:9vmin;bottom:calc(100vh - 8vmin)!important;width:15vmin!important;aspect-ratio:2.2;transform:translate(-50%,50%);border-radius:12px}
+#touch.lobby .t-shoot span{font-size:0}
+#touch.lobby .t-shoot span::after{content:"◀ INDIETRO";white-space:nowrap;font-size:clamp(7px,2vmin,12px)}
+#touch.lobby .t-shoot.down{transform:translate(-50%,50%) scale(.9)}

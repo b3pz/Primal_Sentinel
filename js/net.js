@@ -18,7 +18,15 @@ const Net = {
   options() {
     const q = new URLSearchParams(location.search);
     const custom = q.get('peer');
-    const base = { debug: 1, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478' }] } };
+    const ice = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }, { urls: 'stun:global.stun.twilio.com:3478' }, { urls: 'stun:stun.cloudflare.com:3478' }];
+    // phones on 4G/5G often sit behind a carrier NAT: a TURN relay fixes that.
+    // ?turn=turn:host:3478&tu=user&tp=password  (remembered on this device)
+    try {
+      if (q.get('turn')) localStorage.setItem('primal-turn', JSON.stringify({ urls: q.get('turn'), username: q.get('tu') || '', credential: q.get('tp') || '' }));
+      const t = JSON.parse(localStorage.getItem('primal-turn') || 'null');
+      if (t && t.urls) ice.push(t);
+    } catch (e) {}
+    const base = { debug: 1, config: { iceServers: ice } };
     if (custom) {
       const [host, port] = custom.split(':');
       return { ...base, host, port: +(port || 9000), path: q.get('peerpath') || '/', secure: q.get('peersecure') === '1' };

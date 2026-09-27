@@ -15,8 +15,9 @@ function newStage(levelIdx, players, checkpoint = 0, Lover = null) {
     banner: { text: L.place, sub: `CAPITOLO ${L.n}`, t: 3 }, cleared: false, clearT: 0, bossId: 0, endT: 0,
     hitstop: 0, flashT: 0, checkpoint, ambientT: 1.5, giant: null, result: null,
     plats: [], sigils: [], saved: 0, dmgTaken: 0, contUsed: 0, credits: Infinity,
-    boost: 1, slowT: 0, summonOK: false, summonUsed: false, pairMoves: 0, revives: 0,
+    boost: 1, slowT: 0, summonOK: false, summonUsed: false, pairMoves: 0, revives: 0, coins: 0,
   };
+  const UP = (!Lover || Lover.bonus) && typeof UPGRADES !== 'undefined' && UPGRADES ? UPGRADES : null;   // la Bottega di Sette
   const X = (!Lover && LEVEL_EXTRAS[levelIdx]) || { plats: [], sigils: [], drones: {}, more: {} };
   for (const [type, x, y] of X.plats) S.plats.push({ id: nid(), type, x, y, ...PLATS[type] });
   // waves of every zone, with the extra drone waves of this chapter
@@ -32,6 +33,14 @@ function newStage(levelIdx, players, checkpoint = 0, Lover = null) {
       tapT: 0, tapDir: 0, run: false, hold: 0, holdN: 0, walk: 0, respawn: 0, out: false, kos: 0, maxCombo: 0, hits: 0, ammo: 12, ammoT: 0, gz: 0,
     });
   });
+  if (UP) {
+    for (const p of S.players) {
+      p.max += 15 * UP.hp; p.hp = p.max;
+      p.ammoMax = 20 + 6 * UP.ammo; p.ammo = 12 + 6 * UP.ammo;
+      p.en = Math.min(100, 60 + 15 * UP.en); p.enRate = 1 + 0.35 * UP.en;
+    }
+    S.team = 34 * UP.team;
+  }
   S.cam = clamp(startX - 380, 0, L.length - W);
   if (levelIdx === 0 && !checkpoint && !Lover) {
     S.phase = 'morph';
@@ -131,6 +140,12 @@ function startMove(S, p, name) {
 function stepStage(S, ctrls, dt) {
   S.events.length = 0;
   if (S.hitstop > 0) { S.hitstop -= dt; return; }
+  // boss presentation: the action waits (any ATTACK / START skips it)
+  if (S.vs) {
+    S.vs.t += dt;
+    if (S.vs.t > 0.6 && Object.values(ctrls).some((c) => c.pressed.punch || c.pressed.start || c.pressed.jump)) S.vs.t = Math.max(S.vs.t, 4.1);
+    if (S.vs.t > 4.6) S.vs = null; else return;
+  }
   // last blow on a boss: slow motion
   if (S.slowT > 0) { S.slowT -= dt; dt *= 0.3; }
   S.t += dt;
@@ -173,7 +188,7 @@ function stepPlayer(S, p, c, dt) {
   p.inv = Math.max(0, p.inv - dt);
   p.comboT = Math.max(0, p.comboT - dt);
   p.tapT = Math.max(0, p.tapT - dt);
-  if (!S.L.noRegen) p.en = Math.min(100, p.en + dt * 1.8);
+  if (!S.L.noRegen) p.en = Math.min(100, p.en + dt * 1.8 * (p.enRate || 1));
   if (p.ammo < 4) { p.ammoT += dt; if (p.ammoT > 5) { p.ammoT = 0; p.ammo++; } } else p.ammoT = 0;
 
   if (p.out) {
@@ -242,6 +257,7 @@ function stepPlayer(S, p, c, dt) {
       p.tapT = 0.28; p.tapDir = dir;
     }
   }
+  if (c.dash && dx && free) p.run = true;   // touch stick pushed all the way
   if (!dx) p.run = false;
   p._prevDir = dx;
 
@@ -270,6 +286,7 @@ function stepPlayer(S, p, c, dt) {
       if (c.pressed.team && S.team >= 100) { teamAttack(S, p); break; }
       if (c.pressed.special) { special(S, p); break; }
       if (c.pressed.jump) { p.st = 'jump'; p.t = 0; p.vz = LOW_GRAVITY.includes(S.lvl) && !S.L.bonus ? 650 : 620; p.jdx = dx * (p.run ? 1.35 : 1); p.jdy = dy; sfx(S, 'jump'); break; }
+      if (c.pressed.dodge && hero.id === 'kharon' && !dx) { p.st = 'parry'; p.t = 0; sfx(S, 'weapon'); break; }   // trait: Kharon parries
       if (c.pressed.dodge) { p.st = 'dodge'; p.t = 0; p.inv = 0.38; p.ddir = dx || -p.face; sfx(S, 'dodge'); break; }
       if (c.pressed.shoot) { p.aim = c.u ? 1 : 0; shoot(S, p); break; }
       if (c.pressed.punch) {
@@ -296,10 +313,13 @@ function stepPlayer(S, p, c, dt) {
       p.jdx = lerp(p.jdx, dx * (p.run ? 1.35 : 1), Math.min(1, dt * 8)); p.jdy = lerp(p.jdy, dy, Math.min(1, dt * 8));
       if (dx) p.face = dx;
       tryMove(S, p, p.jdx * hero.speed * 1.05 * dt, p.jdy * hero.speed * 0.55 * dt);
+      // traits: Lyra jumps again in mid air, Aura glides holding the jump button
+      if (hero.id === 'lyra' && c.pressed.jump && !p.dbl && p.t > 0.08) { p.dbl = true; p.vz = 470; sfx(S, 'jump'); sparks(S, p.x, p.y - p.z, hero.glow, 8, 'trail'); }
+      if (hero.id === 'aura' && c.held.jump && p.vz < -60) { p.vz = -60; p.glide = true; if (Math.random() < 0.4) sparks(S, p.x - p.face * 30, p.y - p.z - 80, hero.glow, 1, 'trail'); } else p.glide = false;
       if (c.pressed.punch && !p.airDone) { p.airDone = true; p.atk = 'air'; p.hit = new Set(); sfx(S, 'kick'); }
       if (c.pressed.shoot && p.ammo > 0 && !p.airShot) { p.airShot = true; p.aim = c.u ? 1 : c.d ? -1 : 0; fireBolt(S, p); }
       if (p.atk === 'air') hitScan(S, p, MOVES.air);
-      { const gz = groundAt(S, p.x, p.y); if (p.z <= gz && p.vz <= 0) { p.z = gz; p.vz = 0; p.st = 'land'; p.t = 0; p.atk = null; p.airDone = false; p.airShot = false; } }
+      { const gz = groundAt(S, p.x, p.y); if (p.z <= gz && p.vz <= 0) { p.z = gz; p.vz = 0; p.st = 'land'; p.t = 0; p.atk = null; p.airDone = false; p.airShot = false; p.dbl = false; p.glide = false; } }
       break;
     }
     case 'land': if (p.t > 0.08) p.st = 'idle'; break;
@@ -314,7 +334,8 @@ function stepPlayer(S, p, c, dt) {
       if (p.t > 0.3) p.st = c.held.dodge ? 'duck' : 'idle';
       break;
     }
-    case 'duck': if (!c.held.dodge) { p.st = 'idle'; p.t = 0; } break;   // crouched (tunnel beams pass over)
+    case 'duck': if (!c.held.dodge) { p.st = 'idle'; p.t = 0; } break;
+    case 'parry': if (p.t > 0.45) { p.st = c.held.dodge ? 'duck' : 'idle'; p.t = 0; } break;   // crouched (tunnel beams pass over)
     case 'revive': {
       const q = S.players.find((qq) => qq.id === p.revId);
       if (!q || q.st !== 'ko' || !c.held.punch || Math.abs(q.x - p.x) > 130) { p.st = 'idle'; p.t = 0; break; }
@@ -451,7 +472,10 @@ function stepPlayer(S, p, c, dt) {
       if (d.score) { p.score += d.score; floatText(S, p.x, p.y - 170, `+${d.score}`, '#ffd76a'); }
       if (d.team) S.team = Math.min(100, S.team + d.team);
       if (d.sigil) { if (!S.sigils.includes(it.sigil)) S.sigils.push(it.sigil); p.score += 2000; ev(S, { t: 'pop', x: Math.round(p.x), y: Math.round(p.y - 210 - p.z), s: `SIGILLO ${S.sigils.length}/3`, c: '#ffd35a', big: 1 }); sfx(S, 'team'); }
-      if (d.ammo) { p.ammo = Math.min(20, p.ammo + d.ammo); floatText(S, p.x, p.y - 170, `+${d.ammo} COLPI`, '#bfe6ff'); sfx(S, 'reload'); }
+      if (it.type === 'coin') S.coins++;
+      if (it.type === 'gem') S.coins += 3;
+      if (d.sigil) S.coins += 3;
+      if (d.ammo) { p.ammo = Math.min(p.ammoMax || 20, p.ammo + d.ammo); floatText(S, p.x, p.y - 170, `+${d.ammo} COLPI`, '#bfe6ff'); sfx(S, 'reload'); }
       sfx(S, 'pickup');
     }
   }
@@ -492,6 +516,7 @@ function throwEnemy(S, p, e) {
 function hitScan(S, p, m) {
   const hero = heroOf(p);
   let reach = m.reach, dmg = m.dmg * hero.power, depth = m.depth;
+  if (hero.id === 'azur') reach += 34;   // trait: the trident reaches further
   if (m.weapon && p.weapon) { reach += ITEMS[p.weapon.type].reach; dmg *= ITEMS[p.weapon.type].dmg; }
   let landed = false;
   for (const e of S.enemies) {
@@ -502,6 +527,7 @@ function hitScan(S, p, m) {
       p.hit.add(e.id);
       landed = true;
       damageEnemy(S, p, e, dmg, { knock: m.knock || (m.air && true), heavy: m.knock });
+      if (hero.id === 'ignis' && m.sig) { e.burn = 2.2; e.burnBy = p.id; }   // trait: the fire sword sets enemies alight
     }
   }
   for (const o of S.props) {
@@ -607,6 +633,20 @@ function damageEnemy(S, p, e, dmg, opt = {}) {
 function hurtPlayer(S, p, dmg, opt = {}) {
   if (p.inv > 0 || p.st === 'dead' || p.st === 'ko' || p.out || p.st === 'down' || p.st === 'knock' || p.st === 'pose' || p.st === 'cannon' || p.st === 'pairslam') return false;
   if (p.riding) return hurtRide(S, dmg, opt);
+  const hid = heroOf(p).id;
+  if (p.st === 'parry' && ((opt.from ?? p.x + p.face) - p.x) * p.face >= 0) {
+    // Kharon's parry: the blow is deflected and the attacker is left open
+    sparks(S, p.x + p.face * 50, p.y - 110, '#ffffff', 14, 'slash'); sfx(S, 'weapon'); ev(S, { t: 'pop', x: Math.round(p.x), y: Math.round(p.y - 200), s: 'PARATA!', c: heroOf(p).color });
+    for (const e of S.enemies) if (!e.boss && e.hp > 0 && (e.x - p.x) * p.face > 0 && Math.abs(e.x - p.x) < 170 && Math.abs(e.y - p.y) < 50) { e.st = 'hurt'; e.t = -0.7; }
+    p.inv = 0.3; S.team = Math.min(100, S.team + 4);
+    return false;
+  }
+  // trait: Onyx doesn't flinch under light blows and takes a bit less damage
+  if (hid === 'onyx' && !opt.knock && dmg <= 12 && p.hp > dmg && p.z <= 0 && !['grab', 'grabatk'].includes(p.st)) {
+    dmg = Math.max(1, Math.round(dmg * DIFF.dmg * 0.8)); p.hp -= dmg; S.dmgTaken += dmg; p.inv = 0.35;
+    sparks(S, p.x, p.y - 95, '#e3ecf5', 8); sfx(S, 'hit'); p.flash = 0.1;
+    return true;
+  }
   if (p.st === 'grab' || p.st === 'grabatk') {
     const e = S.enemies.find((e) => e.id === p.hold); if (e) { e.st = 'hurt'; e.t = 0; e.holder = 0; } p.hold = 0;
   }
@@ -756,6 +796,11 @@ function stepEnemy(S, e, dt) {
   e.t += dt;
   e.inv = Math.max(0, e.inv - dt);
   e.flash = Math.max(0, (e.flash || 0) - dt);
+  if (e.burn > 0 && e.hp > 0) {
+    e.burn -= dt; e.burnT = (e.burnT || 0) + dt;
+    if (Math.random() < dt * 14) sparks(S, e.x + rand(-20, 20), e.y - rand(40, 130) - (e.z || 0), pick(['#ff8a3a', '#ffd35a']), 1, 'fire');
+    if (e.burnT > 0.5) { e.burnT = 0; const by = S.players.find((q) => q.id === e.burnBy); e.hp -= 3; if (by) by.score += 30; if (e.hp <= 0) { e.hp = 1; damageEnemy(S, by, e, 2, { knock: true, silent: true }); } }
+  }
   if (e.boss) return stepBoss(S, e, dt);
   const d = e.def;
   const scale = 1 + S.lvl * 0.04;
@@ -804,8 +849,14 @@ function stepEnemy(S, e, dt) {
         const mx = clamp(ddx, -1, 1) * Math.min(Math.abs(ddx), sp * dt), my = clamp(ddy, -1, 1) * Math.min(Math.abs(ddy), sp * 0.6 * dt);
         if (groundAt(S, e.x + mx, e.y + my) <= 40 || (e.z || 0) > 40) { e.x += mx; e.y += my; }
         else if (groundAt(S, e.x + mx, e.y) <= 40) e.x += mx;
-        else if (groundAt(S, e.x, e.y + my) <= 40) e.y += my;
-        else e.y += (e.y < 600 ? -1 : 1) * sp * 0.6 * dt;
+        else {
+          // walk around the obstacle: to its front or back edge, whichever is nearer (and inside the street)
+          const b = S.plats.find((q) => q.h > 40 && e.x + mx * 4 > q.x - q.w / 2 && e.x + mx * 4 < q.x + q.w / 2 && e.y > q.y - q.d - 2 && e.y <= q.y + 2);
+          let dir = e.y < 600 ? -1 : 1;
+          if (b) { const front = b.y + 14, back = b.y - b.d - 14; dir = (back < FLOOR_TOP + 4 || (front <= FLOOR_BOTTOM && front - e.y < e.y - back)) ? 1 : -1; }
+          const ny = clamp(e.y + dir * sp * 0.7 * dt, FLOOR_TOP, FLOOR_BOTTOM);
+          if (groundAt(S, e.x, ny) <= 40) e.y = ny;
+        }
         e.st = 'walk'; e.walk += dt * 7.5;
       } else e.st = 'idle';
       const inRange = d.ranged ? Math.abs(p.x - e.x) < 520 && Math.abs(p.y - e.y) < 90 : Math.abs(p.x - e.x) < d.reach + 8 && Math.abs(p.y - e.y) < 22;
@@ -1107,6 +1158,7 @@ function killBoss(S, e, p) {
   S.hitstop = 0.25; S.slowT = 1.6; shake(S, 20); sfx(S, 'boom'); ev(S, { t: 'flash', c: '#ffffff', v: 1 });
   ev(S, { t: 'pop', x: Math.round(e.x), y: Math.round(e.y - 260), s: 'K.O.!', c: '#ffd35a', big: 1 });
   if (p && p.score !== undefined) p.score += 5000;
+  S.coins += 5;
   for (const o of S.enemies) if (!o.boss && o.hp > 0) { o.hp = 0; o.st = 'knock'; o.t = 0; o.vx = (o.x > e.x ? 1 : -1) * 300; o.vz = 300; o.z = 1; }
   S.shots = [];
 }
@@ -1220,6 +1272,8 @@ function stepZones(S, dt) {
       if (z.boss) {
         const b = spawnBoss(S, z.boss, S.camLock + W + 120, 600);
         S.bossT0 = S.t;
+        S.vs = { k: z.boss, t: 0 };   // "CONTRO" presentation with strengths and weaknesses
+        sfx(S, 'bosswind'); sfx(S, 'boom');
         S.banner = { text: BOSSES[z.boss].name, sub: BOSSES[z.boss].title, t: 3, boss: true };
         sfx(S, 'siren');
       } else {
@@ -1246,6 +1300,7 @@ function stepZones(S, dt) {
   else if (S.wave >= zw.length - 1 && alive === 0 && !mechZoneBlocked(S) && !S.enemies.some((e) => e.st === 'knock')) {
     // zone clear
     S.zoneOn = false; S.camLock = null; S.zoneIdx++;
+    S.coins += 1 + S.civs.filter((c) => c.mode === 'cower').length;
     if (z.ride === 'end' && S.ride) endRide(S, true);
     for (const c of S.civs) if (c.mode === 'cower') { S.saved++; c.mode = 'saved'; c.face = -1; c.t = 0; if (c.caged) { c.caged = false; ev(S, { t: 'uncage', x: Math.round(c.x), y: Math.round(c.y) }); } for (const p of alivePlayers(S)) p.score += 300; }
     const zz = L.zones[S.zoneIdx];
@@ -1319,6 +1374,7 @@ function playerFrame(p) {
     case 'getup': f = 4; rot = -(1 - p.t / 0.3) * 0.6; break;
     case 'fall': f = 7; rot = p.t * 3; break;
     case 'duck': case 'revive': f = 4; break;
+    case 'parry': f = 8; break;
     case 'ko': f = 14; break;
     case 'cannon': f = 12; rot = p.t * 14 * p.face; break;
     case 'pairslam': f = p.t < 0.25 ? 8 : 9; break;

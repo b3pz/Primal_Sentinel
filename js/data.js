@@ -6,19 +6,25 @@
 
 const HEROES = [
   { id: 'ignis', name: 'IGNIS', civil: 'Marco', role: 'Equilibrato', color: '#ff5b4f', glow: '#ff8a5a', power: 1.0, speed: 250, hp: 120,
-    special: 'LAMA DI FUOCO', weapon: 'SPADA ZANNA', specialText: 'Onda di fuoco in avanti (media distanza)', titan: 'Tiranno rosso' },
+    special: 'LAMA DI FUOCO', weapon: 'SPADA ZANNA', specialText: 'Onda di fuoco in avanti (media distanza)', titan: 'Tiranno rosso',
+    trait: 'FIAMMA: i colpi di spada incendiano i nemici', pro: 'Equilibrato, danni nel tempo', con: 'Nessun vantaggio in difesa' },
   { id: 'azur', name: 'AZUR', civil: 'Davide', role: 'Tecnico', color: '#5d9bff', glow: '#8cc4ff', power: 0.95, speed: 262, hp: 115,
-    special: 'CARICA DEL TRICORNO', weapon: 'LANCIA TRICORNO', specialText: 'Affondo in carica (media distanza)', titan: 'Triceratopo blu' },
+    special: 'CARICA DEL TRICORNO', weapon: 'LANCIA TRICORNO', specialText: 'Affondo in carica (media distanza)', titan: 'Triceratopo blu',
+    trait: 'PORTATA: la lancia colpisce più lontano', pro: 'Tiene i nemici a distanza', con: 'Meno vita di Ignis' },
   { id: 'lyra', name: 'LYRA', civil: 'Nadia', role: 'Veloce', color: '#f7d046', glow: '#ffe98a', power: 0.85, speed: 300, hp: 105,
-    special: 'DANZA DEI PUGNALI', weapon: 'PUGNALI FELINI', specialText: 'Raffica di fendenti (da vicino)', titan: 'Felino giallo' },
+    special: 'DANZA DEI PUGNALI', weapon: 'PUGNALI FELINI', specialText: 'Raffica di fendenti (da vicino)', titan: 'Felino giallo',
+    trait: 'DOPPIO SALTO: salta di nuovo in aria', pro: 'La più veloce, agilissima', con: 'Poca vita, colpi leggeri' },
   { id: 'aura', name: 'AURA', civil: 'Sofia', role: 'Distanza', color: '#ff78bb', glow: '#ffb2da', power: 0.9, speed: 268, hp: 110,
-    special: 'PIOGGIA D\'ALA', weapon: 'ARCO D\'ALA', specialText: 'Tre frecce alate (da lontano)', titan: 'Pterosauro rosa' },
+    special: 'PIOGGIA D\'ALA', weapon: 'ARCO D\'ALA', specialText: 'Tre frecce alate (da lontano)', titan: 'Pterosauro rosa',
+    trait: 'PLANATA: tieni SALTO in aria per planare', pro: 'Colpisce da lontano, ottima contro i droni', con: 'Debole nel corpo a corpo' },
   { id: 'onyx', name: 'ONYX', civil: 'Bruno', role: 'Potente', color: '#b9c6d4', glow: '#e3ecf5', power: 1.25, speed: 222, hp: 140,
-    special: 'SCURE TELLURICA', weapon: 'ASCIA ZANNA', specialText: 'Colpo d\'ascia che spacca il suolo (da vicino)', titan: 'Mastodonte nero' },
+    special: 'SCURE TELLURICA', weapon: 'ASCIA ZANNA', specialText: 'Colpo d\'ascia che spacca il suolo (da vicino)', titan: 'Mastodonte nero',
+    trait: 'CORAZZA: i colpi leggeri non lo fermano', pro: 'Il più forte e resistente', con: 'Il più lento' },
   // sbloccabile: finisci la storia una volta
   // il sesto Sentinel: liberato dalla corazza del Velo, Kharon indossa l'armatura verde del primo pilota
   { id: 'kharon', name: 'KHARON', civil: 'Kharon', role: 'Sesto Sentinel', color: '#3fd06a', glow: '#9dffbf', power: 1.1, speed: 245, hp: 130,
-    special: 'ONDA DEL TRAGHETTATORE', weapon: 'SPADA DEL PRIMO PILOTA', specialText: 'Due onde di spada rasoterra (lunga distanza)', titan: 'Tiranno rosso', sheet: 'bosses', unlock: true },
+    special: 'ONDA DEL TRAGHETTATORE', weapon: 'SPADA DEL PRIMO PILOTA', specialText: 'Due onde di spada rasoterra (lunga distanza)', titan: 'Tiranno rosso', sheet: 'bosses', unlock: true,
+    trait: 'PARATA: SCHIVATA da fermo per parare', pro: 'Forte e completo, onde a lunga distanza', con: 'Parare richiede tempismo' },
 ];
 /* i cinque Sentinels "di base" (Kharon è un personaggio extra) */
 const CORE_HEROES = 5;
@@ -50,6 +56,17 @@ const ENEMIES = {
 
 /* Boss frames: villains 0 guardia · 1-2 passo · 3 carica · 4 attacco · 5 colpito.
    Mastice has 8 frames: 0-2 passo · 3 carica · 4 pugno · 5 schianto · 6 colpito · 7 a terra */
+/* punti di forza e deboli mostrati nella presentazione "CONTRO" prima di ogni boss */
+const BOSS_INFO = {
+  mastice: { str: ['Pugni devastanti', 'Schianto ad area (guarda il cerchio)', 'Carica a testa bassa'], weak: ['Lentissimo', 'Scoperto dopo lo schianto', 'Colpiscilo alle spalle'] },
+  centipede: { str: ['Si divide in segmenti', 'Affondi rapidi', 'Artigli a lunga portata'], weak: ['I segmenti hanno poca vita', 'Fermo dopo l\'affondo', 'Pistola da lontano'] },
+  trivor: { str: ['Trivella in carica', 'Si interra e riemerge sotto di te', 'Colpi pesanti'], weak: ['Il cerchio a terra lo tradisce', 'Lento a girarsi', 'Scoperto dopo la trivella'] },
+  mimesi: { str: ['Crea copie oscure', 'Fendenti velocissimi', 'Copia le vostre mosse'], weak: ['Poca resistenza', 'Distruggi prima le copie', 'Speciale ad area'] },
+  kharon: { str: ['Para i colpi frontali', 'Onde di spada', 'Affondi rapidi'], weak: ['Si gira lentamente in guardia', 'Le armi sfondano la guardia', 'Colpiscilo alle spalle'] },
+  custode: { str: ['Sfere che inseguono', 'Rinforzi continui', 'Spazzate ampie'], weak: ['Lento', 'Le sfere si schivano in verticale', 'Colpi pesanti da vicino'] },
+  kharon2: { str: ['Più veloce e aggressivo', 'Doppia onda di spada', 'Para i colpi frontali'], weak: ['Guardia sfondabile con le armi', 'Scoperto dopo le onde', 'Colpo di squadra'] },
+  vespera: { str: ['Raggio del Velo', 'Teletrasporto', 'Evoca i suoi soldati', 'Sfere che inseguono'], weak: ['Poca difesa da vicino', 'Ferma quando carica il raggio', 'Colpo di squadra e titani'] },
+};
 const BOSSES = {
   mastice: { name: 'MASTICE', title: 'COLOSSO DI ASFALTO', hp: 620, scale: 0.78, speed: 95, reach: 175, dmg: 22, frames: 8, pattern: ['punch', 'slam', 'punch', 'charge'] },
   centipede: { name: 'CENTIPEDE', title: 'IL MOSTRO CHE SI DIVIDE', hp: 680, scale: 1.35, speed: 130, reach: 215, dmg: 20, frames: 6, pattern: ['lunge', 'claw', 'split', 'lunge'] },
@@ -313,6 +330,8 @@ const DIFFS = {
   arcade: { name: 'ARCADE', dmg: 1.3, hp: 1.15, aggro: 1.2, credits: 2, desc: '2 crediti, si parte sempre dal capitolo 1' },
 };
 let DIFF = DIFFS.normal;
+/* upgrades bought at Sette's shop during a story run (see modes.js) */
+let UPGRADES = null;
 
 /* ------------------------------------------------------------
    EXTRA DEI CAPITOLI

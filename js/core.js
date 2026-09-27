@@ -480,6 +480,7 @@ const Input = {
   },
   /* read device → control snapshot {l,r,u,d, held:{}, pressed:{}} */
   read(device) {
+    if (device === 'touch') return Touch.read();
     const c = { l: 0, r: 0, u: 0, d: 0, held: {}, pressed: {} };
     if (device.startsWith('kb')) {
       const map = device === 'kb' ? KEYMAPS.kb : (Game.local.twoKeyboards ? KEYMAPS[device] : KEYMAPS.kb);
@@ -513,6 +514,7 @@ const Input = {
   },
   endFrame() {
     this.keyEdge = {};
+    Touch.endFrame();
     for (const p of this.pads()) this.padPrev[p.index] = p.buttons.map((x) => x.pressed);
   },
 };
@@ -521,6 +523,7 @@ const Input = {
 function packControl(c) {
   let bits = (c.l ? 1 : 0) | (c.r ? 2 : 0) | (c.u ? 4 : 0) | (c.d ? 8 : 0);
   BTN.forEach((b, i) => { if (c.held[b]) bits |= 1 << (4 + i); });
+  if (c.dash) bits |= 1 << 12;
   let edge = 0;
   BTN.forEach((b, i) => { if (c.pressed[b]) edge |= 1 << i; });
   return [bits, edge];
@@ -528,5 +531,6 @@ function packControl(c) {
 function unpackControl(bits, edge) {
   const c = { l: bits & 1 ? 1 : 0, r: bits & 2 ? 1 : 0, u: bits & 4 ? 1 : 0, d: bits & 8 ? 1 : 0, held: {}, pressed: {} };
   BTN.forEach((b, i) => { c.held[b] = !!(bits & (1 << (4 + i))); c.pressed[b] = !!(edge & (1 << i)); });
+  if (bits & (1 << 12)) c.dash = true;
   return c;
 }
