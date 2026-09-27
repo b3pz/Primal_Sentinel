@@ -315,12 +315,26 @@ def ammo():
     return done(c)
 
 
+def sigil():
+    c = Canvas(26, 26)
+    c.ell(1, 1, 24, 24, hexc('7a4a10'))
+    c.ell(2, 2, 23, 23, hexc('ffc73b'))
+    c.ell(4, 4, 21, 21, hexc('e59e22'))
+    c.poly([(7, 7), (11, 7), (13, 13), (15, 7), (19, 7), (13, 19)], hexc('f4f7fa'))   # the V of the armours
+    for i, col in enumerate(('ff4a3d', '3f86ff', 'ffd13a', 'ff5fae', 'd9e2ec')):
+        a = -2.6 + i * 0.55
+        import math
+        x, y = 13 + math.cos(a) * 9.5, 13 + math.sin(a) * 9.5
+        c.ell(x - 1.6, y - 1.6, x + 1.6, y + 1.6, hexc(col))
+    return done(c)
+
+
 WEAPONS = {'w_ignis': w_sword, 'w_azur': w_trident, 'w_lyra': w_daggers, 'w_aura': w_bow, 'w_onyx': w_axe, 'w_gun': w_gun, 'w_cannon': w_cannon}
 
 
 ITEMS = {
     'pizza': pizza, 'chicken': chicken, 'can': can, 'energy': energy, 'coin': coin, 'gem': gem,
-    'ammo': ammo, 'pipe': pipe, 'oar': oar, 'crate': crate, 'barrel': barrel, 'bin': bin_,
+    'sigil': sigil, 'ammo': ammo, 'pipe': pipe, 'oar': oar, 'crate': crate, 'barrel': barrel, 'bin': bin_,
     'plank0': lambda: plank(0), 'plank1': lambda: plank(1), 'plank2': lambda: plank(2), 'plank3': lambda: plank(3),
 }
 

@@ -1,5 +1,5 @@
 # PRIMAL SENTINELS — Il cuore dei titani
-Ideato e sviluppato da b3pZ. Build 1.3: campagna completa in 8 capitoli, da 1 a 4 giocatori.
+Ideato e sviluppato da b3pZ. Build 1.4: campagna completa in 8 capitoli, da 1 a 4 giocatori.
 
 ## Avvio
 Estrai tutto lo ZIP e apri `index.html` con Chrome, Edge o Firefox (Mac o Windows).
@@ -43,6 +43,23 @@ quando servono: colpo di squadra pronto, "SPRIGIONA IL TUO POTERE!", "AFFERRALO!
 **Duelli giganti** (capitoli 3, 5 e 8): tutti i giocatori pilotano insieme il titano o Concordia.
 Attacco = pugno, pistola = colpo pesante, schivata tenuta = parata, salto = passo rapido.
 Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale.
+
+
+## Novità della 1.4
+- **Difficoltà** (menu principale): Facile (crediti infiniti), Normale (4 crediti per tutta la partita),
+  Arcade (2 crediti, sempre dal capitolo 1, nemici più forti).
+- **Crediti e GAME OVER**: quando la squadra è a terra compare CONTINUA? 10…0. Finiti i crediti è
+  GAME OVER definitivo e si ricomincia da capo, anche a un passo da Vespera.
+- **Combo**: attacco ×4 = pugno, calcio e due colpi con l'arma, con una scia colorata ben visibile.
+- **Presa**: cammina contro un nemico per afferrarlo (vale per tutti tranne boss e droni);
+  a schermo compaiono i tasti per ginocchiata e lanci.
+- **Pistola**: 12 colpi, fino a 20; caricatori frequenti; sotto i 4 colpi si ricarica da sola lentamente.
+  Su + sparo = colpo in diagonale verso l'alto, necessario contro i **droni del Velo**.
+- **Guardia dei boss**: una barra mostra la guardia; i colpi con l'arma la sfondano e il boss resta stordito.
+- **Scenari su più livelli**: auto, cassonetti e pensiline dove salire con il salto (il salto si può dirigere in aria).
+- **Nemici dal basso** e, nei capitoli del Velo, da portali che si aprono nel pavimento.
+- **Sigilli dei Titani**: 3 per capitolo, nascosti sopra le piattaforme, nelle casse o in angoli; si vedono in CAPITOLI.
+- **Riepilogo di fine capitolo** con tempo, danni, civili salvati, continui, sigilli e voto S/A/B/C.
 
 ## Cosa contiene questa versione
 - 8 capitoli giocabili con la trama del documento di progetto, ognuno con 3 zone,

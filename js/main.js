@@ -66,15 +66,22 @@ const Game = {
         <button class="primary" id="play" autofocus>GIOCA · 1-4 GIOCATORI</button>
         <button id="online">COOPERATIVA ONLINE</button>
         <button id="chapters">CAPITOLI${prog > 0 ? ` · ${prog + 1}/8` : ''}</button>
+        <button id="diff">DIFFICOLTÀ: ${DIFF.name}</button>
         <button id="howto">COME SI GIOCA</button>
         <button id="audio">AUDIO: ${Audio.muted ? 'SPENTO' : 'ACCESO'}</button>
       </nav>
-      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.3</div>`, 'menu');
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.4</div>`, 'menu');
     UI.on('#play', () => { this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
     UI.on('#chapters', () => this.chapters());
     UI.on('#howto', () => this.howto(() => this.menu()));
     UI.on('#audio', () => { Audio.muted = !Audio.muted; this.menu(); });
+    UI.on('#diff', () => {
+      const keys = Object.keys(DIFFS); const k = keys[(keys.indexOf(this.diffKey()) + 1) % keys.length];
+      DIFF = DIFFS[k]; try { localStorage.setItem('primal-diff', k); } catch (e) {}
+      this.menu(); const b = screenEl.querySelector('#diff'); if (b) b.focus();
+    });
+    { const b = screenEl.querySelector('#diff'); if (b) b.title = DIFF.desc; }
   },
   /* title screen: logo + PREMI START, attract mode after a while */
   title() {
@@ -132,15 +139,22 @@ const Game = {
     this.afterCine = then;
     UI.hide();
   },
+  diffKey() { return Object.keys(DIFFS).find((k) => DIFFS[k] === DIFF) || 'normal'; },
+  sigilsSaved() { try { return JSON.parse(localStorage.getItem('primal-sigils') || '{}'); } catch (e) { return {}; } },
+  saveSigils(lvl, list) {
+    try { const all = this.sigilsSaved(); all[lvl] = [...new Set([...(all[lvl] || []), ...list])]; localStorage.setItem('primal-sigils', JSON.stringify(all)); } catch (e) {}
+  },
   progress() { try { return Math.min(7, +(localStorage.getItem(SAVE_KEY) || 0)); } catch (e) { return 0; } },
   saveProgress(i) { try { if (i > this.progress()) localStorage.setItem(SAVE_KEY, String(Math.min(7, i))); } catch (e) {} },
 
   chapters() {
     this.mode = 'menu';
     this.back = () => this.menu();
-    const prog = this.progress();
-    UI.show(`<span class="eyebrow">CAPITOLI</span><h2>Scegli da dove ripartire</h2>
-      <div class="chapters">${LEVELS.map((L, i) => `<button class="chap" data-i="${i}" ${i > prog ? 'disabled' : ''}><b>${L.n}</b><span>${i > prog ? 'BLOCCATO' : L.title}</span><small>${i > prog ? 'Completa il capitolo precedente' : L.place}</small></button>`).join('')}</div>
+    const prog = this.diffKey() === 'arcade' ? 0 : this.progress();
+    const sg = this.sigilsSaved();
+    const tot = Object.values(sg).reduce((a, l) => a + l.length, 0);
+    UI.show(`<span class="eyebrow">CAPITOLI · SIGILLI DEI TITANI ${tot}/24</span><h2>${this.diffKey() === 'arcade' ? 'In modalità Arcade si parte dal capitolo 1' : 'Scegli da dove ripartire'}</h2>
+      <div class="chapters">${LEVELS.map((L, i) => `<button class="chap" data-i="${i}" ${i > prog ? 'disabled' : ''}><b>${L.n}</b><span>${i > prog ? 'BLOCCATO' : L.title}</span><small>${i > prog ? (this.diffKey() === 'arcade' ? 'Solo dal capitolo 1' : 'Completa il capitolo precedente') : L.place + ' · ' + '★'.repeat((sg[i] || []).length) + '☆'.repeat(3 - (sg[i] || []).length)}</small></button>`).join('')}</div>
       <nav><button id="back">INDIETRO</button></nav>`);
     screenEl.querySelectorAll('.chap').forEach((b) => b.onclick = () => { Audio.sfx('confirm'); this.startLevel = +b.dataset.i; this.lobby(); });
     UI.on('#back', () => this.menu());
@@ -395,6 +409,8 @@ const Game = {
   /* ---------------- campaign flow ---------------- */
   beginCampaign() {
     UI.hide();
+    this.credits = DIFF.credits;
+    if (this.diffKey() === 'arcade') this.startLevel = 0;
     this.levelIdx = this.startLevel;
     if (this.startLevel === 0) { this.mode = 'intro'; this.introT = 0; this.prevIntroT = 0; Audio.playSong(8); }
     else this.chapterStart(this.startLevel);
@@ -409,6 +425,8 @@ const Game = {
   simPlayers() { return this.players.filter((p) => p.device !== 'gone').map((p) => ({ id: p.id, hero: p.hero, name: p.name, lives: Math.max(3, p.lives), score: p.score })); },
   enterStage(idx, cp) {
     this.S = newStage(idx, this.simPlayers(), cp);
+    this.S.credits = this.credits;
+    if (!cp) this.chapterCont = 0;
     this.G = null;
     this.mode = 'stage';
     FX.parts = [];
@@ -424,6 +442,9 @@ const Game = {
   stageResult(r) {
     const L = LEVELS[this.levelIdx];
     this.carryScores(this.S.players);
+    const S = this.S;
+    this.stats = { lvl: this.levelIdx, time: S.t + (this.stageTimeBefore || 0), saved: S.saved, sigils: S.sigils.slice(), dmg: S.dmgTaken, cont: (this.chapterCont || 0) + S.contUsed,
+      players: S.players.map((p) => ({ h: p.hero, n: p.name, sc: p.score, ko: p.kos, cb: p.maxCombo })) };
     if (r === 'giant') {
       this.dialog(L.mid, () => { this.G = newGiant(this.levelIdx, this.simPlayers()); this.mode = 'giant'; FX.parts = []; Audio.playSong(7); });
       return;
@@ -432,28 +453,62 @@ const Game = {
   },
   levelClear() {
     this.saveProgress(this.levelIdx + 1);
+    if (this.stats) this.saveSigils(this.levelIdx, this.stats.sigils);
     Audio.playSong(8);
+    this.summary(() => this.afterClear());
+  },
+  afterClear() {
     // an animated cinematic tells what happens between this chapter and the next
     this.playCine(this.levelIdx, () => {
       if (this.levelIdx >= LEVELS.length - 1) { this.mode = 'ending'; this.endT = 0; Audio.playSong(8); }
       else this.chapterStart(this.levelIdx + 1);
     });
   },
+  /* all players down: CONTINUA? 10..0 if there are credits, otherwise GAME OVER */
   gameOver(kind) {
-    this.mode = 'over';
     this.overKind = kind;
     this.back = null;
-    if (this.online === 'host') this.broadcastView({ m: 'over' });
-    UI.show(`<span class="eyebrow">${kind === 'giant' ? 'IL TITANO È CADUTO' : 'IL CUORE È ANCORA ACCESO'}</span><h2>Rialzatevi, Sentinels.</h2>
-      <p>${kind === 'giant' ? 'Il duello gigante ricomincia da capo.' : 'Si riparte dall\'ultima zona raggiunta, con 3 vite ciascuno.'}</p>
-      <nav><button class="primary" id="retry" autofocus>RIPROVA</button><button id="menu">MENU</button></nav>`, 'center');
-    UI.on('#retry', () => {
-      UI.hide();
+    UI.hide();
+    if (this.credits > 0) { this.mode = 'cont'; this.contT = 10.99; Audio.sfx('siren'); }
+    else this.finalOver();
+  },
+  finalOver() {
+    this.mode = 'final'; this.finalT = 0; Audio.stopSong(); Audio.sfx('ko');
+  },
+  tickCont(dt, ctrls) {
+    const before = Math.floor(this.contT);
+    this.contT -= dt;
+    if (Math.floor(this.contT) !== before && this.contT > 0) Audio.sfx('select');
+    if (this.anyPress(ctrls, 'start', 'punch') || Input.keyEdge.Enter) {
+      if (this.contT < 10.5) this.contT = Math.floor(this.contT);   // pressing also speeds up, like arcades
+      this.credits--; this.chapterCont = (this.chapterCont || 0) + 1;
       for (const p of this.players) p.lives = 3;
-      if (kind === 'giant') { this.G = newGiant(this.levelIdx, this.simPlayers()); this.mode = 'giant'; }
-      else this.enterStage(this.levelIdx, this.S.checkpoint);
-    });
-    UI.on('#menu', () => this.menu());
+      Audio.sfx('confirm');
+      if (this.overKind === 'giant') { this.G = newGiant(this.levelIdx, this.simPlayers()); this.mode = 'giant'; }
+      else { const cp = this.S.checkpoint, cont = this.chapterCont; this.enterStage(this.levelIdx, cp); this.chapterCont = cont; }
+      return;
+    }
+    if (this.contT <= 0) this.finalOver();
+  },
+  tickFinal(dt, ctrls) {
+    this.finalT += dt;
+    if (this.finalT > 7 || (this.finalT > 2 && (this.anyPress(ctrls, 'start', 'punch') || Input.keyEdge.Enter))) this.title();
+  },
+  /* end of chapter summary with a rank */
+  summary(then) {
+    this.mode = 'summary'; this.sumT = 0; this.afterSum = then;
+    const st = this.stats || { time: 0, saved: 0, sigils: [], dmg: 0, cont: 0, players: [] };
+    let pts = 0;
+    pts += st.time < 220 ? 2 : st.time < 320 ? 1 : 0;
+    pts += st.dmg < 120 ? 2 : st.dmg < 350 ? 1 : 0;
+    pts += st.cont === 0 ? 2 : 0;
+    pts += st.sigils.length;
+    st.rank = pts >= 8 ? 'S' : pts >= 6 ? 'A' : pts >= 4 ? 'B' : 'C';
+    this.stats = st;
+  },
+  tickSummary(dt, ctrls) {
+    this.sumT += dt;
+    if (this.sumT > 2.2 && (this.anyPress(ctrls, 'start', 'punch', 'jump') || Input.keyEdge.Enter)) { const t = this.afterSum; this.afterSum = null; t && t(); }
   },
   pause() {
     if (this.online === 'client') return;
@@ -462,9 +517,9 @@ const Game = {
     this.back = () => this.resume();
     if (this.online === 'host') this.broadcastView({ m: 'pause' });
     UI.show(`<span class="eyebrow">PAUSA</span><h2>Porto Aurora può aspettare.</h2>
-      <nav class="col"><button class="primary" id="resume" autofocus>RIPRENDI</button><button id="retry">RICOMINCIA LA ZONA</button><button id="help">COME SI GIOCA</button><button id="audio">AUDIO: ${Audio.muted ? 'SPENTO' : 'ACCESO'}</button><button id="menu">ESCI AL MENU</button></nav>`, 'center');
+      <nav class="col"><button class="primary" id="resume" autofocus>RIPRENDI</button><button id="retry" ${this.credits > 0 ? '' : 'disabled'}>RICOMINCIA LA ZONA (1 CREDITO)</button><button id="help">COME SI GIOCA</button><button id="audio">AUDIO: ${Audio.muted ? 'SPENTO' : 'ACCESO'}</button><button id="menu">ESCI AL MENU</button></nav>`, 'center');
     UI.on('#resume', () => this.resume());
-    UI.on('#retry', () => { UI.hide(); if (this.pausedFrom === 'giant') { this.G = newGiant(this.levelIdx, this.simPlayers()); this.mode = 'giant'; } else this.enterStage(this.levelIdx, this.S.checkpoint); });
+    UI.on('#retry', () => { if (!(this.credits > 0)) return; this.credits--; UI.hide(); if (this.pausedFrom === 'giant') { this.G = newGiant(this.levelIdx, this.simPlayers()); this.mode = 'giant'; } else this.enterStage(this.levelIdx, this.S.checkpoint); });
     UI.on('#help', () => { const from = this.pausedFrom; this.howto(() => { this.mode = from; this.pause(); this.pausedFrom = from; }); });
     UI.on('#audio', () => { Audio.muted = !Audio.muted; this.pause(); this.pausedFrom = this.pausedFrom === 'pause' ? 'stage' : this.pausedFrom; });
     UI.on('#menu', () => this.menu());
@@ -530,6 +585,7 @@ const Game = {
           if (pausers.length) { this.pause(); break; }
         }
         stepStage(this.S, c, dt);
+        this.credits = this.S.credits;
         this.pendingEv.push(...this.S.events);
         if (this.S.result) { const r = this.S.result; this.S.result = null; this.stageResult(r); break; }
         if (this.S.players.every((p) => p.out)) this.gameOver('stage');
@@ -545,6 +601,9 @@ const Game = {
         break;
       }
       case 'howto': this.tickHowto(dt, this.controls()); break;
+      case 'cont': this.tickCont(dt, this.controls()); break;
+      case 'final': this.tickFinal(dt, this.controls()); break;
+      case 'summary': this.tickSummary(dt, this.controls()); break;
       case 'cine': {
         const c = this.controls();
         const cn = this.cine;
@@ -572,6 +631,9 @@ const Game = {
       case 'intro': return { m: 'intro', t: +this.introT.toFixed(2) };
       case 'howto': return { m: 'howto', t: +this.howT.toFixed(2), pg: this.howPg, sc: this.howScheme, f: this.howFooter || '' };
       case 'cine': return { m: 'cine', id: this.cine.id, t: +this.cine.t.toFixed(2) };
+      case 'cont': return { m: 'cont', t: +this.contT.toFixed(2), cr: this.credits === Infinity ? -1 : this.credits };
+      case 'final': return { m: 'final', t: +this.finalT.toFixed(2) };
+      case 'summary': return { m: 'summary', t: +this.sumT.toFixed(2), st: this.stats };
       case 'ending': return { m: 'ending', t: +this.endT.toFixed(2), heroes: this.players.map((p) => p.hero) };
       case 'pause': return { m: 'pause' };
       case 'over': return { m: 'over' };
@@ -592,6 +654,9 @@ const Game = {
         if (this.online === 'client') { introSounds(this._cIntroT || 0, v.t); this._cIntroT = v.t; }
         drawIntro(v.t); break;
       case 'ending': drawEnding(v.t, v.heroes); break;
+      case 'cont': drawContinue(v); break;
+      case 'final': drawFinal(v); break;
+      case 'summary': drawSummary(v); break;
       case 'howto': {
         const scheme = this.online === 'client' ? ((this.lastDevice || 'kb').startsWith('pad') ? 'pad' : 'kb') : v.sc;
         const hero = (this.players[0] && this.players[0].hero) || 0;
@@ -707,6 +772,7 @@ const IMAGES = [
   ['theater', 'assets/bg/theater.jpg'], ['siege', 'assets/bg/siege.jpg'], ['graveyard', 'assets/bg/graveyard.jpg'], ['veil', 'assets/bg/veil.jpg'],
   ['dawn', 'assets/bg/dawn.jpg'], ['story_cores', 'assets/bg/story_cores.jpg'], ['logo', 'assets/ui/logo.png'],
 ];
+try { const k = localStorage.getItem('primal-diff'); if (k && DIFFS[k]) DIFF = DIFFS[k]; } catch (e) {}
 Promise.all([loadFonts(), loadImages(IMAGES)]).then(() => {
   document.querySelector('#loading').remove();
   Game.title();

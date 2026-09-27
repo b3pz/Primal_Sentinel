@@ -35,22 +35,27 @@ const HOWTO = [
     },
   },
   {
-    title: 'ATTACCO: LA COMBO', cap: (k) => `${k.punch} ${k.punch} ${k.punch}: PUGNO, CALCIO E COLPO FINALE CON LA TUA ARMA`,
+    title: 'ATTACCO: LA COMBO', cap: (k) => `${k.punch} ${k.punch} ${k.punch} ${k.punch}: PUGNO, CALCIO E DUE COLPI CON LA TUA ARMA`,
     run(t) {
-      const beats = [1.0, 1.4, 1.85];
-      let f = 0, lit = [], weapon = null, enemy = { f: 0, x: 540, rot: 0 };
+      const beats = [0.9, 1.25, 1.62, 2.05];
+      let f = 0, wf = 0, lit = [], enemy = { f: 0, x: 540, rot: 0 };
       beats.forEach((b, i) => {
-        if (t > b && t < b + 0.34) { f = t < b + 0.07 ? 4 : i === 1 ? 6 : 5; lit = ['punch']; if (i === 2) weapon = clamp(-1.5 + (t - b - 0.07) / 0.12 * 1.7, -1.5, 0.2); }
-        if (t > b + 0.08 && t < b + 0.4 && i < 2) enemy.f = 7;
+        if (t > b && t < b + 0.36) {
+          lit = ['punch'];
+          if (i === 0) f = t < b + 0.06 ? 4 : 5;
+          else if (i === 1) f = t < b + 0.06 ? 4 : 6;
+          else wf = t < b + 0.12 ? 8 : i === 3 ? 10 : 9;
+          if (i < 3) enemy.f = 7;
+        }
       });
-      if (t > 1.95) { const k = clamp((t - 1.95) / 0.5, 0, 1); enemy.x = 540 + k * 150; enemy.rot = -k * 1.5; enemy.z = Math.sin(k * Math.PI) * 60; enemy.f = 7; }
-      if (t > 3.8) { enemy.rot = -1.5 * clamp(1 - (t - 3.8) / 0.4, 0, 1); enemy.f = t > 4.2 ? 0 : 4; enemy.z = 0; enemy.x = 690 - clamp((t - 4.2) / 1, 0, 1) * 150; }
-      const note = t > 1 && t < 1.4 ? 'PUGNO' : t > 1.4 && t < 1.85 ? 'CALCIO' : t > 1.85 && t < 2.8 ? 'COLPO CON L\'ARMA!' : '';
-      return { x: 420, y: 580, face: 1, f, lit, weapon, enemy, note };
+      if (t > 2.2) { const k = clamp((t - 2.2) / 0.5, 0, 1); enemy.x = 540 + k * 150; enemy.rot = -k * 1.5; enemy.z = Math.sin(k * Math.PI) * 60; enemy.f = 7; }
+      if (t > 4) { enemy.rot = -1.5 * clamp(1 - (t - 4) / 0.4, 0, 1); enemy.f = t > 4.4 ? 0 : 4; enemy.z = 0; enemy.x = 690 - clamp((t - 4.4) / 1, 0, 1) * 150; }
+      const note = t > 0.9 && t < 1.25 ? 'PUGNO' : t > 1.25 && t < 1.62 ? 'CALCIO' : t > 1.62 && t < 2.05 ? 'ARMA!' : t > 2.05 && t < 2.9 ? 'COLPO FINALE!' : '';
+      return { x: 420, y: 580, face: 1, f, wf, lit, enemy, note, slash: wf ? (wf === 10 ? 2 : 1) : 0 };
     },
   },
   {
-    title: 'LA PISTOLA', cap: (k) => `${k.shoot}: SPARA · POCHI COLPI (IN ALTO A SINISTRA): RACCOGLI I CARICATORI DALLE CASSE`,
+    title: 'LA PISTOLA', cap: (k) => `${k.shoot}: SPARA · ${k.up} + ${k.shoot}: SPARA IN ALTO CONTRO I DRONI · CARICATORI NELLE CASSE E DAI NEMICI`,
     run(t) {
       const shots = [0.9, 1.5, 2.1];
       let f = 0, lit = [], gun = false, bolts = [], ammo = 8, enemy = { f: 0, x: 640 };
@@ -80,11 +85,12 @@ const HOWTO = [
     },
   },
   {
-    title: 'PRESE E LANCI', cap: (k) => `NEMICO STORDITO (SCRITTA PRESA!): ${k.punch} LO AFFERRI · ${k.punch} GINOCCHIATE · INDIETRO + ${k.punch} LO LANCI ALLE SPALLE · ${k.jump} LO LANCI IN AVANTI`,
+    title: 'PRESE E LANCI', cap: (k) => `CAMMINA CONTRO UN NEMICO: LO AFFERRI · ${k.punch} GINOCCHIATE · INDIETRO + ${k.punch} LANCIO ALLE SPALLE · ${k.jump} LANCIO IN AVANTI`,
     run(t) {
       let f = 0, lit = [], x = 440, face = 1, enemy = { f: 7, x: 520, face: -1, tag: t < 1.2 }, enemy2 = { f: 0, x: 250 };
-      if (t > 1.2 && t < 3.1) { f = 4; enemy.x = x + 52; enemy.hide = true; lit = t < 1.35 ? ['punch'] : []; }
-      [1.8, 2.4].forEach((b) => { if (t > b && t < b + 0.26) { lit = ['punch']; } });
+      if (t < 1.2) { f = walkF(t); x = 380 + t * 50; lit = ['right']; }
+      if (t > 1.2 && t < 3.1) { f = 4; enemy.x = x + 52; enemy.z = 14; lit = []; }
+      [1.8, 2.4].forEach((b) => { if (t > b && t < b + 0.26) { lit = ['punch']; f = t > b + 0.08 ? 6 : 4; } });
       if (t > 3.1) {
         face = -1; lit = t < 3.3 ? ['left', 'punch'] : [];
         const k = clamp((t - 3.1) / 0.7, 0, 1);
@@ -92,7 +98,7 @@ const HOWTO = [
         enemy.x = x - 52 - k * 150; enemy.z = Math.sin(k * Math.PI) * 90; enemy.rot = k * 1.5; enemy.face = 1;
         if (k >= 1) { enemy2.f = 7; enemy2.rot = clamp((t - 3.8) * 4, 0, 1.5); enemy2.x = 250 - clamp((t - 3.8) * 150, 0, 60); }
       }
-      return { x, y: 580, face, f, lit, enemy, enemy2, grab: t > 1.2 && t < 3.1, note: t > 1.2 && t < 3.1 ? 'PRESO!' : t > 3.2 && t < 4.6 ? 'LANCIO ALLE SPALLE!' : '' };
+      return { x, y: 580, face, f, lit, enemy, enemy2, note: t > 1.2 && t < 3.1 ? 'PRESO!' : t > 3.2 && t < 4.6 ? 'LANCIO ALLE SPALLE!' : '' };
     },
   },
   {
@@ -231,12 +237,13 @@ function puppet(heroIdx, s) {
   if (s.gun) f = 11;
   else if (s.weapon !== null && s.weapon !== undefined) f = s.fx ? (s.f === 4 ? 8 : 10) : (s.weapon < -0.5 ? 8 : 9);
   else if (s.z > 0 && f === 4) f = 12;
-  if (f === 4 && s.grab) f = 15;
+  if (s.wf) f = s.wf;
   const key = `${id}_${f}`;
   const z = s.z || 0;
   drawShadow(s.x, s.y, 36, z);
   if (s.ghost) for (let i = 2; i >= 1; i--) spr('fighters', key, s.x - s.face * i * 24, s.y - z, { scale: 1.0, face: s.face, alpha: 0.2 * (3 - i) });
   spr('fighters', key, s.x, s.y - z, { scale: 1.0, face: s.face });
+  if (s.slash) { g.save(); g.globalCompositeOperation = 'lighter'; g.translate(s.x, s.y - 95); g.strokeStyle = HEROES[heroIdx].glow; g.lineWidth = s.slash === 2 ? 20 : 13; g.globalAlpha = 0.7; g.beginPath(); g.arc(0, 0, s.slash === 2 ? 150 : 120, -1.6, 0.8); g.stroke(); g.restore(); }
   if (s.weapon !== null && s.weapon !== undefined) drawSigWeapon('w_' + id, key, s.x, s.y - z, s.face, 1.0, s.weapon, HEROES[heroIdx].glow, Game.howT || 0);
   for (const bx of s.bolts || []) { g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = HEROES[heroIdx].glow; g.fillRect(bx - 40, s.y - 108, 50, 10); g.fillStyle = '#fff'; g.fillRect(bx - 20, s.y - 105, 26, 4); g.restore(); }
 }

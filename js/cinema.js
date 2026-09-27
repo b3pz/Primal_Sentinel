@@ -337,3 +337,70 @@ function drawEnding(t, heroes) {
   }
   if (t > 26 && Math.floor(t * 2) % 2) ptxt('PREMI PUGNO PER TORNARE AL MENU', W / 2, H - 30, 12, '#fff', 'center');
 }
+
+/* ---------------- CONTINUA? · GAME OVER · riepilogo ---------------- */
+function drawContinue(v) {
+  if (Game.lastDrawn && Game.lastDrawn.m === 'stage') renderStage({ ...Game.lastDrawn, ev: [] });
+  else if (Game.lastDrawn && Game.lastDrawn.m === 'giant') renderGiant({ ...Game.lastDrawn, ev: [] });
+  g.fillStyle = 'rgba(4,2,8,.8)'; g.fillRect(0, 0, W, H);
+  const n = Math.max(0, Math.floor(v.t));
+  const k = v.t - n;
+  ptitle('CONTINUA?', W / 2, 220, 48, '#ffffff', '#ffb03a');
+  g.save(); g.translate(W / 2, 380); const sc = 1 + (k > 0.8 ? (k - 0.8) * 2 : 0); g.scale(sc, sc);
+  ptitle(String(n), 0, 50, 130, n <= 3 ? '#ffd0c0' : '#fff6d6', n <= 3 ? '#ff4a3a' : '#ffb03a'); g.restore();
+  ptxt(v.cr < 0 ? 'CREDITI INFINITI' : `CREDITI RIMASTI: ${v.cr}`, W / 2, 500, 14, v.cr === 1 ? '#ff8a7a' : '#c8d6e4', 'center');
+  if (Math.floor(v.t * 3) % 2) ptxt('PREMI START O ATTACCO', W / 2, 560, 16, '#ffe08a', 'center');
+  // a fallen ranger in the dark
+  spr('fighters', (HEROES[(Game.players[0] || { hero: 0 }).hero] || HEROES[0]).id + '_14', W / 2, 680, { scale: 1.1, alpha: 0.9 });
+}
+function drawFinal(v) {
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+  const a = clamp(v.t / 1.2, 0, 1);
+  g.globalAlpha = a;
+  coverImage('siege', 1.1, 0.5, 0.4, 0.35);
+  g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(0, 0, W, H);
+  ghost('bosses', 'vespera_4', W / 2, 700, 2.6, -1, 0.35);
+  ptitle('GAME OVER', W / 2, 300, 64, '#ffffff', '#ff4a3a');
+  ptxt('IL VELO HA INGHIOTTITO PORTO AURORA', W / 2, 360, 14, '#e0c0ff', 'center');
+  if (v.t > 2) ptxt('SI RICOMINCIA DAL PRINCIPIO', W / 2, 420, 12, '#c8d6e4', 'center');
+  g.globalAlpha = 1;
+}
+function drawSummary(v) {
+  const st = v.st || {};
+  const L = LEVELS[st.lvl || 0];
+  coverImage(L.bg, 1.05, 0.4, 0.5);
+  g.fillStyle = 'rgba(3,6,14,.8)'; g.fillRect(0, 0, W, H);
+  const t = v.t;
+  ptxt(`CAPITOLO ${L.n} COMPLETATO`, W / 2, 70, 14, '#ffcf7a', 'center');
+  ptitle(L.title, W / 2, 120, L.title.length > 22 ? 26 : 34, '#fff6d6', '#ffb03a');
+  const rows = [
+    ['TEMPO', `${Math.floor(st.time / 60)}:${String(Math.floor(st.time % 60)).padStart(2, '0')}`],
+    ['DANNI SUBITI', String(st.dmg || 0)],
+    ['CIVILI SALVATI', String(st.saved || 0)],
+    ['CONTINUI USATI', String(st.cont || 0)],
+    ['SIGILLI DEI TITANI', `${(st.sigils || []).length} / 3`],
+  ];
+  rows.forEach(([a, b], i) => {
+    if (t < 0.3 + i * 0.22) return;
+    panel(220, 170 + i * 56, 520, 44, i === 4 ? '#ffd35a' : '#6fd8d3', 0.85);
+    ptxt(a, 250, 199 + i * 56, 12, '#c8d6e4');
+    ptxt(b, 715, 199 + i * 56, 14, i === 4 ? '#ffd35a' : '#ffffff', 'right');
+  });
+  (st.players || []).forEach((p, i) => {
+    if (t < 1.4) return;
+    const x = 220 + i * 132, y = 500;
+    drawPortrait(p.h, x + 34, y + 34, 0.4);
+    ptxt(`${p.sc}`, x + 76, y + 18, 9, '#ffd27a');
+    ptxt(`KO ${p.ko}`, x + 76, y + 38, 8, '#c8d6e4');
+    ptxt(`COMBO ${p.cb}`, x + 76, y + 56, 8, '#c8d6e4');
+  });
+  if (t > 1.8) {
+    const k = clamp((t - 1.8) * 4, 0, 1);
+    g.save(); g.translate(990, 330); g.scale(2.2 - k * 1.2, 2.2 - k * 1.2); g.globalAlpha = k;
+    ptxt('VOTO', 0, -110, 14, '#ffcf7a', 'center');
+    const col = { S: '#ffd35a', A: '#7bf0b1', B: '#69c0ff', C: '#c8d6e4' }[st.rank] || '#fff';
+    ptitle(st.rank || 'C', 0, 60, 150, '#ffffff', col);
+    g.restore();
+  }
+  if (t > 2.2 && Math.floor(t * 2) % 2) ptxt('PREMI ATTACCO PER CONTINUARE', W / 2, H - 30, 12, '#ffffff', 'center');
+}

@@ -14,7 +14,12 @@ function newStage(levelIdx, players, checkpoint = 0) {
     players: [], enemies: [], props: [], items: [], shots: [], civs: [], events: [], team: 0,
     banner: { text: L.place, sub: `CAPITOLO ${L.n}`, t: 3 }, cleared: false, clearT: 0, bossId: 0, endT: 0,
     hitstop: 0, flashT: 0, checkpoint, ambientT: 1.5, giant: null, result: null,
+    plats: [], sigils: [], saved: 0, dmgTaken: 0, contUsed: 0, credits: Infinity,
   };
+  const X = LEVEL_EXTRAS[levelIdx] || { plats: [], sigils: [], drones: {} };
+  for (const [type, x, y] of X.plats) S.plats.push({ id: nid(), type, x, y, ...PLATS[type] });
+  // waves of every zone, with the extra drone waves of this chapter
+  S.zw = L.zones.map((z, i) => (z.w ? z.w.concat(X.drones[i] ? [['drone', X.drones[i]]] : []) : null));
   const startX = checkpoint ? L.zones[checkpoint - 1].x + 420 : 200;
   players.forEach((p, i) => {
     const hero = HEROES[p.hero];
@@ -23,7 +28,7 @@ function newStage(levelIdx, players, checkpoint = 0) {
       x: startX - i * 60, y: 560 + i * 36, z: 0, vz: 0, vx: 0, face: 1,
       hp: hero.hp, max: hero.hp, en: 60, lives: p.lives ?? 3, score: p.score || 0,
       st: 'idle', t: 0, atk: null, hit: new Set(), combo: 0, comboT: 0, inv: 1.5, weapon: null,
-      tapT: 0, tapDir: 0, run: false, hold: 0, holdN: 0, walk: 0, respawn: 0, out: false, kos: 0, maxCombo: 0, hits: 0, ammo: 8,
+      tapT: 0, tapDir: 0, run: false, hold: 0, holdN: 0, walk: 0, respawn: 0, out: false, kos: 0, maxCombo: 0, hits: 0, ammo: 12, ammoT: 0, gz: 0,
     });
   });
   S.cam = clamp(startX - 380, 0, L.length - W);
@@ -34,7 +39,14 @@ function newStage(levelIdx, players, checkpoint = 0) {
   }
   // props & weapons
   for (const z of L.zones) for (const [type, x, y] of z.p || []) S.props.push({ id: nid(), type, x, y, hp: PROPS[type].hp, shake: 0 });
-  // every Sentinel now fights with a personal weapon: no more pipes on the floor
+  // Sigilli dei Titani: 3 collectibles per chapter
+  X.sigils.forEach(([x, y, where], idx) => {
+    if (where === 'crate') {
+      let best = null; for (const o of S.props) if (!best || Math.abs(o.x - x) < Math.abs(best.x - x)) best = o;
+      if (best) { best.sigil = idx; return; }
+    }
+    const it = makeItem('sigil', x, y, where === 'top' ? groundAt(S, x, y) : 0); it.sigil = idx; it.base = it.z; S.items.push(it);
+  });
   // intro ambience: civilians fleeing across the street
   if (!checkpoint) for (let i = 0; i < 5; i++) S.civs.push(makeCiv(pick(CIVS), S.cam + W + 60 + i * 110, 505 + (i * 37) % 170, 'flee'));
   return S;
@@ -42,7 +54,7 @@ function newStage(levelIdx, players, checkpoint = 0) {
 
 /* ---------- chapter 2: gaps between the wagons of the moving train ---------- */
 const WAGON = 1100, GAP_W = 104, GAP_SLANT = 50;
-function trainOn(L, x) { return !!(L && L.train && x > L.train - 560); }
+function trainOn(L, x) { return !!(L && L.train && x > L.train + 300); }
 /* left edge of the gap near world x at floor depth y (slanted by perspective) */
 function gapLeft(wx, y) { return wx + 40 - (y - 465) / 255 * GAP_SLANT; }
 function inGap(L, x, y, margin = 0) {
@@ -52,8 +64,23 @@ function inGap(L, x, y, margin = 0) {
   return x > l + 14 + margin && x < l + GAP_W - 14 - margin;
 }
 
+/* ---------- platforms: cars, dumpsters, bus shelters you can climb on ---------- */
+function groundAt(S, x, y) {
+  let g = 0;
+  for (const p of S.plats) if (x > p.x - p.w / 2 && x < p.x + p.w / 2 && y > p.y - p.d && y <= p.y + 1) g = Math.max(g, p.h);
+  return g;
+}
+/* move an actor unless it would walk into the side of something taller than it */
+function tryMove(S, a, dx, dy) {
+  const z = a.z || 0;
+  if (groundAt(S, a.x + dx, a.y + dy) <= z + 10) { a.x += dx; a.y += dy; return true; }
+  if (dx && groundAt(S, a.x + dx, a.y) <= z + 10) { a.x += dx; return false; }
+  if (dy && groundAt(S, a.x, a.y + dy) <= z + 10) { a.y += dy; return false; }
+  return false;
+}
+
 function makeItem(type, x, y, z = 0) {
-  return { id: nid(), type, x, y, z, vz: z ? 0 : 0, life: ITEMS[type].weapon ? 999 : 18, bob: Math.random() * 6 };
+  return { id: nid(), type, x, y, z, vz: z ? 0 : 0, life: ITEMS[type].weapon || ITEMS[type].sigil ? 1e9 : 18, bob: Math.random() * 6, base: 0 };
 }
 function makeCiv(type, x, y, mode) {
   return { id: nid(), type, x, y, face: -1, mode, t: Math.random(), speed: rand(170, 230), said: false };
@@ -71,7 +98,8 @@ function ring(S, x, y, c, r = 220, life = 0.5) { ev(S, { t: 'ring', x: Math.roun
 const MOVES = {
   jab: { dur: 0.24, hitAt: 0.07, frames: [[0.06, 4], [1, 5]], dmg: 9, reach: 104, depth: 36, snd: 'punch' },
   jab2: { dur: 0.32, hitAt: 0.1, frames: [[0.06, 4], [1, 6]], dmg: 11, reach: 124, depth: 38, snd: 'kick' },
-  fin: { dur: 0.46, hitAt: 0.15, frames: [[0.12, 8], [1, 9]], dmg: 19, reach: 158, depth: 42, knock: true, snd: 'weapon', lunge: 120, sig: true },
+  fin: { dur: 0.42, hitAt: 0.13, frames: [[0.1, 8], [1, 9]], dmg: 15, reach: 160, depth: 42, snd: 'weapon', lunge: 90, sig: true },
+  fin2: { dur: 0.56, hitAt: 0.2, frames: [[0.16, 8], [1, 10]], dmg: 24, reach: 180, depth: 46, knock: true, heavy: true, snd: 'weapon', lunge: 150, sig: true, big: true },
   shoot: { dur: 0.3, hitAt: 0.06, frames: [[1, 11]], dmg: 0, reach: 0, depth: 0, snd: null, gun: true },
   air: { dur: 9, hitAt: 0, frames: [[99, 6]], dmg: 15, reach: 120, depth: 44, knock: true, snd: 'kick', air: true },
   dash: { dur: 0.38, hitAt: 0.05, frames: [[1, 9]], dmg: 17, reach: 138, depth: 42, knock: true, snd: 'weapon', lunge: 420, multi: true, sig: true },
@@ -81,9 +109,11 @@ const MOVES = {
 
 function heroOf(p) { return HEROES[p.hero]; }
 
+const COMBO_NEXT = { 1: 'jab2', 2: 'fin', 3: 'fin2' };
+const COMBO_STEP = { jab: 1, jab2: 2, fin: 3, fin2: 0 };
 function startMove(S, p, name) {
   const m = MOVES[name];
-  p.st = 'atk'; p.t = 0; p.atk = name; p.hit = new Set();
+  p.st = 'atk'; p.t = 0; p.atk = name; p.hit = new Set(); p._slashed = false;
   if (m.snd) sfx(S, m.snd);
 }
 
@@ -125,10 +155,12 @@ function stepPlayer(S, p, c, dt) {
   p.comboT = Math.max(0, p.comboT - dt);
   p.tapT = Math.max(0, p.tapT - dt);
   if (!S.L.noRegen) p.en = Math.min(100, p.en + dt * 1.8);
+  if (p.ammo < 4) { p.ammoT += dt; if (p.ammoT > 5) { p.ammoT = 0; p.ammo++; } } else p.ammoT = 0;
 
   if (p.out) {
     // continue: press start/punch to jump back in
-    if (c.pressed.start || c.pressed.punch) {
+    if ((c.pressed.start || c.pressed.punch) && S.credits > 0 && !p.gone) {
+      S.credits--; S.contUsed++;
       p.out = false; p.lives = 3; p.score = Math.floor(p.score / 2); p.hp = p.max; p.st = 'drop'; p.t = 0;
       p.x = S.cam + 200; p.y = 580; p.z = 500; p.vz = 0; p.inv = 2.5;
       floatText(S, p.x, p.y - 200, 'CONTINUA!', hero.color, 28);
@@ -189,47 +221,52 @@ function stepPlayer(S, p, c, dt) {
     case 'idle': case 'walk': {
       // grab: a stunned enemy right in front → attack (or walking into it) grabs it
       const gr = grabbable(S, p);
-      if (gr && (c.pressed.punch || (dx === p.face && !p.run && (p.pushT = (p.pushT || 0) + dt) > 0.12))) { p.pushT = 0; grab(S, p, gr); break; }
+      if (gr && ((c.pressed.punch && gr.st === 'hurt') || (dx === p.face && !p.run && (p.pushT = (p.pushT || 0) + dt) > 0.15))) { p.pushT = 0; grab(S, p, gr); break; }
       if (!gr) p.pushT = 0;
       if (c.pressed.team && S.team >= 100) { teamAttack(S, p); break; }
       if (c.pressed.special) { special(S, p); break; }
       if (c.pressed.jump) { p.st = 'jump'; p.t = 0; p.vz = 560; p.jdx = dx * (p.run ? 1.35 : 1); p.jdy = dy; sfx(S, 'jump'); break; }
       if (c.pressed.dodge) { p.st = 'dodge'; p.t = 0; p.inv = 0.38; p.ddir = dx || -p.face; sfx(S, 'dodge'); break; }
-      if (c.pressed.shoot) { shoot(S, p); break; }
+      if (c.pressed.shoot) { p.aim = c.u ? 1 : 0; shoot(S, p); break; }
       if (c.pressed.punch) {
         if (p.run) { startMove(S, p, 'dash'); p.run = false; break; }
-        const name = p.comboT > 0 ? (p.combo === 1 ? 'jab2' : p.combo >= 2 ? 'fin' : 'jab') : 'jab';
-        p.combo = name === 'jab' ? 1 : name === 'jab2' ? 2 : 0;
+        const name = p.comboT > 0 ? COMBO_NEXT[p.combo] || 'jab' : 'jab';
+        p.combo = COMBO_STEP[name];
         startMove(S, p, name);
         break;
       }
       // movement
       const sp = hero.speed * (p.run ? 1.55 : 1);
       const len = Math.hypot(dx, dy) || 1;
-      p.x += (dx / len) * sp * dt;
-      p.y += (dy / len) * sp * 0.62 * dt;
+      tryMove(S, p, (dx / len) * sp * dt, (dy / len) * sp * 0.62 * dt);
       if (dx) p.face = dx;
+      // walked off the edge of a car / dumpster → fall
+      if (groundAt(S, p.x, p.y) < p.z - 2) { p.st = 'jump'; p.t = 0; p.vz = 0; p.jdx = 0; p.jdy = 0; p.airDone = true; break; }
       p.st = dx || dy ? 'walk' : 'idle';
       if (dx || dy) p.walk += dt * (p.run ? 13 : 8.5);
       break;
     }
     case 'jump': {
       p.z += p.vz * dt; p.vz -= 1500 * dt;
-      p.x += p.jdx * hero.speed * 1.05 * dt;
-      p.y += p.jdy * hero.speed * 0.4 * dt;
+      // air control: the jump can be steered, needed to land on cars and dumpsters
+      p.jdx = lerp(p.jdx, dx * (p.run ? 1.35 : 1), Math.min(1, dt * 8)); p.jdy = lerp(p.jdy, dy, Math.min(1, dt * 8));
+      if (dx) p.face = dx;
+      tryMove(S, p, p.jdx * hero.speed * 1.05 * dt, p.jdy * hero.speed * 0.55 * dt);
       if (c.pressed.punch && !p.airDone) { p.airDone = true; p.atk = 'air'; p.hit = new Set(); sfx(S, 'kick'); }
+      if (c.pressed.shoot && p.ammo > 0 && !p.airShot) { p.airShot = true; p.aim = c.u ? 1 : c.d ? -1 : 0; fireBolt(S, p); }
       if (p.atk === 'air') hitScan(S, p, MOVES.air);
-      if (p.z <= 0) { p.z = 0; p.vz = 0; p.st = 'land'; p.t = 0; p.atk = null; p.airDone = false; }
+      { const gz = groundAt(S, p.x, p.y); if (p.z <= gz && p.vz <= 0) { p.z = gz; p.vz = 0; p.st = 'land'; p.t = 0; p.atk = null; p.airDone = false; p.airShot = false; } }
       break;
     }
     case 'land': if (p.t > 0.08) p.st = 'idle'; break;
     case 'drop': {
-      p.z = Math.max(0, p.z - 900 * dt);
-      if (p.z === 0) { p.st = 'land'; p.t = 0; ring(S, p.x, p.y, hero.color, 160, 0.4); shake(S, 4); }
+      p.z = Math.max(groundAt(S, p.x, p.y), p.z - 900 * dt);
+      if (p.z === groundAt(S, p.x, p.y)) { p.st = 'land'; p.t = 0; ring(S, p.x, p.y, hero.color, 160, 0.4); shake(S, 4); }
       break;
     }
     case 'dodge': {
-      p.x += p.ddir * 620 * dt * (1 - p.t / 0.3);
+      tryMove(S, p, p.ddir * 620 * dt * (1 - p.t / 0.3), 0);
+      if (groundAt(S, p.x, p.y) < p.z - 2) { p.st = 'jump'; p.t = 0; p.vz = 0; p.jdx = 0; p.jdy = 0; p.airDone = true; break; }
       if (p.t > 0.3) p.st = 'idle';
       break;
     }
@@ -241,16 +278,16 @@ function stepPlayer(S, p, c, dt) {
         if (p.t >= m.dur) { p._swung = false; p.st = 'idle'; p.t = 0; if (p.buffer === 'shoot') { p.buffer = null; shoot(S, p); } p.buffer = null; }
         break;
       }
-      if (m.lunge && p.t < m.dur * 0.6) p.x += p.face * m.lunge * dt * (p.atk === 'dash' ? 1 : 2.2 * (1 - p.t / m.dur));
+      if (m.lunge && p.t < m.dur * 0.6) tryMove(S, p, p.face * m.lunge * dt * (p.atk === 'dash' ? 1 : 2.2 * (1 - p.t / m.dur)), 0);
+      if (m.sig && !p._slashed && p.t >= m.hitAt - 0.03) { p._slashed = true; ev(S, { t: 'wslash', x: Math.round(p.x), y: Math.round(p.y - p.z), f: p.face, c: heroOf(p).color, g: heroOf(p).glow, big: m.big ? 1 : 0, w: heroOf(p).id }); }
       if (p.t >= m.hitAt && (m.multi ? p.t < m.dur * 0.8 : !p._swung)) { hitScan(S, p, m); if (!m.multi) p._swung = true; }
       // buffered combo input
       if (c.pressed.punch && p.t > m.hitAt) p.buffer = 'punch';
       if (p.t >= m.dur) {
         p._swung = false; p.st = 'idle'; p.t = 0;
-        if (['jab', 'jab2'].includes(p.atk)) p.comboT = 0.45; else p.combo = 0;
-        if (p.buffer === 'punch' && p.comboT > 0) {
-          const name = p.combo === 1 ? 'jab2' : 'fin';
-          p.combo = name === 'jab2' ? 2 : 0; startMove(S, p, name);
+        if (['jab', 'jab2', 'fin'].includes(p.atk)) p.comboT = 0.45; else p.combo = 0;
+        if (p.buffer === 'punch' && p.comboT > 0 && COMBO_NEXT[p.combo]) {
+          const name = COMBO_NEXT[p.combo]; p.combo = COMBO_STEP[name]; startMove(S, p, name);
         }
         p.buffer = null;
       }
@@ -295,7 +332,7 @@ function stepPlayer(S, p, c, dt) {
     case 'knock': {
       p.x += p.vx * dt; p.vx *= 0.96;
       p.z += p.vz * dt; p.vz -= 1600 * dt;
-      if (p.z <= 0 && p.t > 0.1) { p.z = 0; p.st = p.hp > 0 ? 'down' : 'dead'; p.t = 0; shake(S, 3); sfx(S, 'heavy'); if (p.hp <= 0) { p.lives--; sfx(S, 'ko'); } }
+      if (p.z <= groundAt(S, p.x, p.y) && p.t > 0.1) { p.z = groundAt(S, p.x, p.y); p.st = p.hp > 0 ? 'down' : 'dead'; p.t = 0; shake(S, 3); sfx(S, 'heavy'); if (p.hp <= 0) { p.lives--; sfx(S, 'ko'); } }
       break;
     }
     case 'down': if (p.t > 0.7) { p.st = 'getup'; p.t = 0; } break;
@@ -321,14 +358,15 @@ function stepPlayer(S, p, c, dt) {
   // pickups (consumables are automatic)
   for (const it of S.items) {
     const d = ITEMS[it.type];
-    if (d.weapon || it.life <= 0 || it.z > 20) continue;
+    if (d.weapon || it.life <= 0 || Math.abs(it.z - p.z) > 34) continue;
     if (Math.abs(it.x - p.x) < 46 && Math.abs(it.y - p.y) < 30) {
       it.life = 0;
       if (d.heal) { p.hp = Math.min(p.max, p.hp + d.heal); floatText(S, p.x, p.y - 170, `+${d.heal}`, '#7bf0b1'); }
       if (d.energy) { p.en = Math.min(100, p.en + d.energy); floatText(S, p.x, p.y - 170, 'ENERGIA', '#77ceff'); }
       if (d.score) { p.score += d.score; floatText(S, p.x, p.y - 170, `+${d.score}`, '#ffd76a'); }
       if (d.team) S.team = Math.min(100, S.team + d.team);
-      if (d.ammo) { p.ammo = Math.min(12, p.ammo + d.ammo); floatText(S, p.x, p.y - 170, `+${d.ammo} COLPI`, '#bfe6ff'); sfx(S, 'reload'); }
+      if (d.sigil) { if (!S.sigils.includes(it.sigil)) S.sigils.push(it.sigil); p.score += 2000; ev(S, { t: 'pop', x: Math.round(p.x), y: Math.round(p.y - 210 - p.z), s: `SIGILLO ${S.sigils.length}/3`, c: '#ffd35a', big: 1 }); sfx(S, 'team'); }
+      if (d.ammo) { p.ammo = Math.min(20, p.ammo + d.ammo); floatText(S, p.x, p.y - 170, `+${d.ammo} COLPI`, '#bfe6ff'); sfx(S, 'reload'); }
       sfx(S, 'pickup');
     }
   }
@@ -336,8 +374,8 @@ function stepPlayer(S, p, c, dt) {
 function FOOT_TOP() { return FLOOR_TOP; }
 
 function grabbable(S, p) {
-  return S.enemies.find((e) => !e.boss && !e.big && e.st === 'hurt' && e.z === 0 && e.hp > 0 &&
-    Math.abs(e.y - p.y) < 24 && (e.x - p.x) * p.face > 0 && Math.abs(e.x - p.x) < 78);
+  return S.enemies.find((e) => !e.boss && !e.big && !e.def.flying && ['hurt', 'idle', 'walk'].includes(e.st) && Math.abs((e.z || 0) - p.z) < 20 && e.hp > 0 &&
+    Math.abs(e.y - p.y) < 24 && (e.x - p.x) * p.face > 0 && Math.abs(e.x - p.x) < 80);
 }
 /* the blaster: few shots, magazines are rare */
 function shoot(S, p) {
@@ -347,12 +385,14 @@ function shoot(S, p) {
 function fireBolt(S, p) {
   p.ammo--;
   const hero = heroOf(p);
-  S.shots.push({ id: nid(), kind: 'bolt', x: p.x + p.face * 70, y: p.y, z: 104, vx: p.face * 1250, owner: p.id, life: 0.95, dmg: 9 * hero.power, hit: new Set(), friendly: true, stun: true, c: hero.glow, single: true });
+  const aim = p.aim || 0;
+  S.shots.push({ id: nid(), kind: 'bolt', x: p.x + p.face * 70, y: p.y, z: p.z + 104, vz: aim * 760, vx: p.face * (aim ? 900 : 1250), owner: p.id, life: 0.95, dmg: 9 * hero.power, hit: new Set(), friendly: true, stun: true, c: hero.glow, single: true, aim });
   sfx(S, 'shot');
   ev(S, { t: 'spark', x: Math.round(p.x + p.face * 86), y: Math.round(p.y - 104), c: hero.glow, n: 5 });
 }
 
 function grab(S, p, e) {
+  floatText(S, e.x, e.y - 170, 'PRESO!', '#ffe08a', 20);
   p.st = 'grab'; p.t = 0; p.hold = e.id; p.holdN = 0;
   e.st = 'held'; e.t = 0; e.holder = p.id;
   sfx(S, 'punch');
@@ -389,7 +429,7 @@ function hitScan(S, p, m) {
     if (p.weapon.uses <= 0) { floatText(S, p.x, p.y - 170, 'ARMA ROTTA', '#c0c8d0', 16); sparks(S, p.x + p.face * 60, p.y - 90, '#c8d2dc', 14); p.weapon = null; }
   }
 }
-function hittable(e) { return e.hp > 0 && !['dead', 'down', 'thrown', 'held', 'burrow', 'gone'].includes(e.st) && !(e.st === 'knock' && e.t > 0.05) && e.inv <= 0; }
+function hittable(e) { return e.hp > 0 && !['dead', 'down', 'thrown', 'held', 'burrow', 'gone', 'rise'].includes(e.st) && !(e.st === 'knock' && e.t > 0.05) && e.inv <= 0; }
 
 function hitProp(S, o, who) {
   o.hp--; o.shake = 0.2;
@@ -405,6 +445,7 @@ function hitProp(S, o, who) {
     for (const p of S.players) if (Math.hypot(p.x - o.x, (p.y - o.y) * 1.6) < 150 && p.inv <= 0 && p.st !== 'dead') hurtPlayer(S, p, 12, { knock: true, from: o.x });
     for (const q of S.props) if (q !== o && q.hp > 0 && Math.hypot(q.x - o.x, q.y - o.y) < 170) hitProp(S, q, who);
   }
+  if (o.sigil !== undefined) { const it = makeItem('sigil', o.x, o.y, 30); it.vz = 300; it.sigil = o.sigil; S.items.push(it); ev(S, { t: 'pop', x: o.x, y: o.y - 120, s: 'SEGRETO!', c: '#ffd35a' }); }
   const drops = def.drops;
   if (drops.length) {
     // a guaranteed useful drop, weighted by need
@@ -415,10 +456,17 @@ function hitProp(S, o, who) {
 }
 
 function damageEnemy(S, p, e, dmg, opt = {}) {
-  if (e.guarding && !opt.unblockable && p && (p.x - e.x) * e.face > 0 && Math.random() < 0.75) {
-    sparks(S, e.x + e.face * 40, e.y - 120, '#e8f4ff', 12); sfx(S, 'weapon'); floatText(S, e.x, e.y - 230, 'PARATA', '#e8f4ff', 16);
-    if (p && p.x !== undefined) p.x -= p.face * 30;
-    return;
+  if (e.guarding && !opt.unblockable && p) {
+    const from = opt.from !== undefined ? opt.from : p.x;
+    if ((from - e.x) * e.face > 0) {
+      // guard: hits from the front wear it down (weapon and heavy blows much more) and only scratch the boss
+      e.gm -= dmg * (opt.heavy ? 2.4 : 1.3);
+      sparks(S, e.x + e.face * 50, e.y - 130, '#e8f4ff', 12); sfx(S, 'weapon');
+      if (e.gm <= 0) {
+        e.guarding = false; e.st = 'hurt'; e.t = 0; e.broken = true;
+        ev(S, { t: 'pop', x: Math.round(e.x), y: Math.round(e.y - 260), s: 'GUARDIA ROTTA!', c: '#ffd35a', big: 1 }); ev(S, { t: 'flash', c: '#ffffff', v: 0.3 }); sfx(S, 'boom'); shake(S, 10);
+      } else { dmg = dmg * 0.2; if (p.x !== undefined && p.face) p.x -= p.face * 22; }
+    }
   }
   dmg = Math.round(dmg);
   e.hp -= dmg;
@@ -455,7 +503,7 @@ function damageEnemy(S, p, e, dmg, opt = {}) {
     if (p && p.score !== undefined) { p.score += e.def.score; p.kos++; }
     // drops: every few KOs something useful
     S.koCount = (S.koCount || 0) + 1;
-    if (S.koCount % 4 === 0) { const it = makeItem(pick(['energy', 'coin', 'can', 'pizza', 'ammo']), e.x, e.y, 40); it.vz = 220; S.items.push(it); }
+    if (S.koCount % 3 === 0) { const it = makeItem(Math.random() < 0.5 ? 'ammo' : pick(['energy', 'coin', 'can', 'pizza']), e.x, e.y, 40); it.vz = 220; S.items.push(it); }
     if (S.koCount % 9 === 0) { const it = makeItem('gem', e.x + 20, e.y, 40); it.vz = 260; S.items.push(it); }
   }
 }
@@ -465,7 +513,8 @@ function hurtPlayer(S, p, dmg, opt = {}) {
   if (p.st === 'grab' || p.st === 'grabatk') {
     const e = S.enemies.find((e) => e.id === p.hold); if (e) { e.st = 'hurt'; e.t = 0; e.holder = 0; } p.hold = 0;
   }
-  p.hp -= dmg; p.combo = 0; p.run = false; p.buffer = null;
+  dmg = Math.max(1, Math.round(dmg * DIFF.dmg));
+  p.hp -= dmg; S.dmgTaken += dmg; p.combo = 0; p.run = false; p.buffer = null;
   sparks(S, p.x, p.y - 95 - p.z, '#ff6a5e', 12);
   sfx(S, 'hurt'); shake(S, 7);
   const from = opt.from !== undefined ? opt.from : p.x - p.face;
@@ -547,7 +596,7 @@ function teamAttack(S, p) {
 /* ---------------- enemies ---------------- */
 function spawnEnemy(S, type, x, y, extra = {}) {
   const d = ENEMIES[type];
-  const lvlBoost = 1 + S.lvl * 0.09;
+  const lvlBoost = (1 + S.lvl * 0.09) * DIFF.hp;
   const e = {
     id: nid(), type, def: d, x, y, z: 0, vz: 0, vx: 0, face: x < S.cam + W / 2 ? 1 : -1,
     hp: Math.round(d.hp * lvlBoost), max: Math.round(d.hp * lvlBoost), st: 'enter', t: 0, cool: rand(0.4, 1.4), inv: 0, flash: 0,
@@ -578,20 +627,28 @@ function stepEnemy(S, e, dt) {
   if (e.boss) return stepBoss(S, e, dt);
   const d = e.def;
   const scale = 1 + S.lvl * 0.04;
+  if (d.flying && ['enter', 'idle', 'walk', 'wind', 'atk', 'hurt'].includes(e.st)) { stepDrone(S, e, dt); return; }
   switch (e.st) {
     case 'enter': {
-      // walk into the arena from off-screen
+      // walk into the arena from off-screen (sides or from below the screen)
       const tx = clamp(e.x, S.cam + 80, S.cam + W - 80);
       e.x += Math.sign(tx - e.x) * d.speed * 1.2 * dt;
+      if (e.y > FLOOR_BOTTOM) e.y -= d.speed * 0.9 * dt;
       e.walk += dt * 8;
-      if (Math.abs(tx - e.x) < 6 || e.t > 3) { e.st = 'walk'; e.t = 0; }
+      if ((Math.abs(tx - e.x) < 6 && e.y <= FLOOR_BOTTOM) || e.t > 4) { e.st = 'walk'; e.t = 0; }
+      break;
+    }
+    case 'rise': {
+      // climbing out of a Veil portal opened in the floor
+      e.z = -150 + Math.min(1, e.t / 0.9) * 150;
+      if (e.t > 0.9) { e.z = 0; e.st = 'walk'; e.t = 0; e.inv = 0; }
       break;
     }
     case 'idle': case 'walk': {
       const p = nearestPlayer(S, e);
       if (!p) { e.st = 'idle'; break; }
       e.target = p.id;
-      e.cool -= dt * d.aggro * scale;
+      e.cool -= dt * d.aggro * scale * DIFF.aggro;
       // how many are already attacking this player?
       const attackers = S.enemies.filter((o) => o !== e && !o.boss && o.target === p.id && ['wind', 'atk'].includes(o.st)).length;
       const close = S.enemies.filter((o) => o !== e && !o.boss && o.target === p.id && Math.abs(o.x - p.x) < d.reach + 30 && o.hp > 0).length;
@@ -608,7 +665,7 @@ function stepEnemy(S, e, dt) {
         e.st = 'walk'; e.walk += dt * 7.5;
       } else e.st = 'idle';
       const inRange = Math.abs(p.x - e.x) < d.reach + 8 && Math.abs(p.y - e.y) < 22;
-      if (inRange && e.cool <= 0 && attackers < 2 && p.z < 60) {
+      if (inRange && e.cool <= 0 && attackers < 2 && Math.abs(p.z - (e.z || 0)) < 60) {
         e.st = 'wind'; e.t = 0; e.kick = Math.random() < 0.35;
         sfx(S, 'wind');
       }
@@ -622,7 +679,7 @@ function stepEnemy(S, e, dt) {
         for (const p of S.players) {
           if (p.out || p.st === 'dead') continue;
           const rx = (p.x - e.x) * e.face;
-          if (rx > -10 && rx < d.reach + (d.lunge ? 50 : 0) && Math.abs(p.y - e.y) < 30 && p.z < 70)
+          if (rx > -10 && rx < d.reach + (d.lunge ? 50 : 0) && Math.abs(p.y - e.y) < 30 && Math.abs(p.z - (e.z || 0)) < 70)
             hurtPlayer(S, p, Math.round(d.dmg * (1 + S.lvl * 0.07)), { knock: d.heavy || e.kick && Math.random() < 0.3, from: e.x });
         }
       }
@@ -649,8 +706,8 @@ function stepEnemy(S, e, dt) {
         floatText(S, e.x, e.y - 150, 'GIÙ DAL TRENO!', '#ffe08a', 18); sfx(S, 'hurt');
         break;
       }
-      if (e.z <= 0 && e.t > 0.1) {
-        e.z = 0; e.st = e.hp > 0 ? 'down' : 'dead'; e.t = 0; shake(S, 3); sfx(S, 'heavy'); sparks(S, e.x, e.y, '#9aa0b0', 8, 'dust');
+      if (e.z <= groundAt(S, e.x, e.y) && e.vz < 0 && e.t > 0.1) {
+        e.z = groundAt(S, e.x, e.y); e.st = e.hp > 0 ? 'down' : 'dead'; e.t = 0; shake(S, 3); sfx(S, 'heavy'); sparks(S, e.x, e.y, '#9aa0b0', 8, 'dust');
         if (e.hp <= 0 && e.def && e.def.shade) sparks(S, e.x, e.y - 60, '#b77dff', 20, 'fire');
       }
       break;
@@ -659,18 +716,47 @@ function stepEnemy(S, e, dt) {
     case 'getup': if (e.t > 0.3) { e.st = 'walk'; e.t = 0; e.inv = 0.3; e.cool = 0.8; } break;
     case 'fall': e.z -= 900 * dt * Math.min(1, e.t * 3); if (e.t > 0.8) { e.st = 'dead'; e.t = 2; } break;
   }
-  // walking enemies leap over the gaps between wagons
-  if (['walk', 'idle', 'enter'].includes(e.st)) e.z = inGap(S.L, e.x, e.y, -30) ? 55 : 0;
-  if (!['knock', 'thrown', 'held', 'dead', 'enter'].includes(e.st)) {
+  // walking enemies leap over the gaps between wagons and climb on cars and dumpsters
+  if (['walk', 'idle', 'enter'].includes(e.st) && !d.flying) { const gz = Math.max(groundAt(S, e.x, e.y), inGap(S.L, e.x, e.y, -30) ? 55 : 0); e.z = e.z < gz ? Math.min(gz, e.z + 600 * dt) : Math.max(gz, e.z - 600 * dt); }
+  if (!['knock', 'thrown', 'held', 'dead', 'enter', 'rise'].includes(e.st)) {
     e.y = clamp(e.y, FLOOR_TOP, FLOOR_BOTTOM);
     if (S.camLock !== null) e.x = clamp(e.x, S.camLock + 30, S.camLock + W - 30);
   }
 }
 
+/* ---------------- drones: hover out of reach, fire down diagonally ---------------- */
+function stepDrone(S, e, dt) {
+  const p = nearestPlayer(S, e);
+  e.walk += dt * 20;
+  const hover = 165 + Math.sin(e.t * 3 + e.id) * 12;
+  e.z = e.z < hover ? Math.min(hover, e.z + 260 * dt) : Math.max(hover, e.z - 260 * dt);
+  if (e.st === 'hurt') { if (e.t > 0.3) { e.st = 'walk'; e.t = 0; } return; }
+  if (!p) return;
+  const side = e.x < p.x ? -1 : 1;
+  const tx = p.x + side * 230, ty = p.y + ((e.id % 3) - 1) * 30;
+  e.face = p.x > e.x ? 1 : -1;
+  if (e.st === 'enter' || e.st === 'walk' || e.st === 'idle') {
+    e.st = 'walk';
+    e.x += clamp(tx - e.x, -1, 1) * Math.min(Math.abs(tx - e.x), 170 * dt);
+    e.y += clamp(ty - e.y, -1, 1) * Math.min(Math.abs(ty - e.y), 110 * dt);
+    e.cool -= dt * DIFF.aggro;
+    if (e.cool <= 0 && Math.abs(p.x - e.x) < 420) { e.st = 'wind'; e.t = 0; sfx(S, 'wind'); }
+  } else if (e.st === 'wind') {
+    if (e.t > e.def.wind) {
+      // aim at the player's chest: the bolt reaches the ground behind them
+      const dx = p.x - e.x, time = Math.max(0.35, Math.abs(dx) / 520);
+      S.shots.push({ id: nid(), kind: 'dbolt', x: e.x, y: e.y, z: e.z + 10, vx: dx / time, vy: (p.y - e.y) / time, vz: -(e.z + 10 - (p.z + 70)) / time, owner: e.id, life: 3, dmg: Math.round(e.def.dmg * (1 + S.lvl * 0.07)), c: '#c07bff' });
+      sfx(S, 'laser'); e.st = 'atk'; e.t = 0;
+    }
+  } else if (e.st === 'atk' && e.t > 0.3) { e.st = 'walk'; e.t = 0; e.cool = rand(1.6, 2.6); }
+  e.y = clamp(e.y, FLOOR_TOP, FLOOR_BOTTOM);
+  if (S.camLock !== null) e.x = clamp(e.x, S.camLock + 40, S.camLock + W - 40);
+}
+
 /* ---------------- bosses ---------------- */
 function spawnBoss(S, key, x, y) {
   const B = BOSSES[key];
-  const hpMul = 1 + (alivePlayers(S).length - 1) * 0.45;
+  const hpMul = (1 + (alivePlayers(S).length - 1) * 0.45) * DIFF.hp;
   const e = {
     id: nid(), boss: true, key, B, sprite: B.sprite || key, x, y, z: 0, vz: 0, face: -1, hp: Math.round(B.hp * hpMul), max: Math.round(B.hp * hpMul),
     st: 'intro', t: 0, cool: 1.2, inv: 0, flash: 0, walk: 0, pat: 0, poise: 0, target: 0, alpha: 1,
@@ -709,13 +795,15 @@ function stepBoss(S, e, dt) {
         e.move = B.pattern[e.pat % B.pattern.length]; e.pat++;
         e.st = 'wind'; e.t = 0; e.tx = p.x; e.ty = p.y;
         sfx(S, 'bosswind');
-        if (e.move === 'guard') { e.st = 'guard'; e.guarding = true; }
+        if (e.move === 'guard') { e.st = 'guard'; e.guarding = true; e.gm = 100; e.turnT = 0; }
       }
       break;
     }
     case 'guard': {
-      e.face = p.x > e.x ? 1 : -1;
-      if (e.t > 1.4) { e.guarding = false; e.st = 'wind'; e.t = 0; e.move = 'slash'; }
+      // turns slowly: a quick player can still get behind
+      e.turnT = (e.turnT || 0) + dt;
+      if (e.turnT > 0.8) { e.turnT = 0; e.face = p.x > e.x ? 1 : -1; }
+      if (e.t > 2.2) { e.guarding = false; e.st = 'wind'; e.t = 0; e.move = 'slash'; }
       break;
     }
     case 'wind': {
@@ -736,7 +824,7 @@ function stepBoss(S, e, dt) {
       break;
     }
     case 'recover': if (e.t > (phase2 ? 0.35 : 0.6)) { e.st = 'walk'; e.t = 0; e.cool = rand(0.9, 1.6); } break;
-    case 'hurt': if (e.t > 0.45) { e.st = 'walk'; e.t = 0; e.cool = Math.min(e.cool, 0.5); } break;
+    case 'hurt': if (e.t > (e.broken ? 1.8 : 0.45)) { e.st = 'walk'; e.t = 0; e.broken = false; e.cool = Math.min(e.cool, 0.5); } break;
     case 'teleport': {
       e.alpha = Math.max(0, 1 - e.t * 3);
       if (e.t > 0.5) {
@@ -842,7 +930,17 @@ function stepShots(S, dt) {
       if (p) { s.vy = lerp(s.vy || 0, clamp(p.y - s.y, -120, 120), dt * s.homing); }
     }
     s.x += s.vx * dt; s.y += (s.vy || 0) * dt;
-    if (s.friendly) {
+    if (s.vz) { s.z += s.vz * dt; if (s.z <= groundAt(S, s.x, s.y) + 4) { s.life = 0; sparks(S, s.x, s.y, s.c || '#fff', 8); continue; } }
+    if (s.friendly && s.kind === 'bolt') {
+      // bolts travel at a height: they hit what is at that height (drones need an upward shot)
+      const owner = S.players.find((q) => q.id === s.owner);
+      for (const e of S.enemies) if (s.life > 0 && hittable(e) && Math.abs(e.x - s.x) < 46 && Math.abs(e.y - s.y) < 40) {
+        const mid = (e.z || 0) + (e.def && e.def.flying ? 30 : e.boss ? 150 : 100);
+        if (Math.abs(mid - s.z) > (e.boss ? 120 : 70)) continue;
+        damageEnemy(S, owner, e, s.dmg, e.def && e.def.flying ? { knock: true, from: s.x - s.vx } : { from: s.x - s.vx }); s.life = 0;
+      }
+      for (const o of S.props) if (s.life > 0 && o.hp > 0 && s.z < 140 && Math.abs(o.x - s.x) < 40 && Math.abs(o.y - s.y) < 40) { hitProp(S, o, owner); s.life = 0; }
+    } else if (s.friendly) {
       const owner = S.players.find((q) => q.id === s.owner);
       for (const e of S.enemies) if (s.life > 0 && hittable(e) && !s.hit.has(e.id) && Math.abs(e.x - s.x) < (s.kind === 'bolt' ? 46 : 70) && Math.abs(e.y - s.y) < (s.kind === 'bolt' ? 34 : 60)) {
         s.hit.add(e.id); damageEnemy(S, owner, e, s.dmg, s.stun ? { from: s.x - s.vx } : { knock: true, heavy: true, from: s.x - s.vx });
@@ -850,7 +948,7 @@ function stepShots(S, dt) {
       }
       for (const o of S.props) if (o.hp > 0 && !s.hit.has(o.id) && Math.abs(o.x - s.x) < 50 && Math.abs(o.y - s.y) < 50) { s.hit.add(o.id); hitProp(S, o, owner); }
     } else {
-      for (const p of S.players) if (!p.out && p.st !== 'dead' && Math.abs(p.x - s.x) < (s.kind === 'wave' ? 48 : 40) && Math.abs(p.y - s.y) < 30 && p.z < (s.kind === 'wave' ? 50 : 140)) {
+      for (const p of S.players) if (!p.out && p.st !== 'dead' && Math.abs(p.x - s.x) < (s.kind === 'wave' ? 48 : 40) && Math.abs(p.y - s.y) < 30 && (s.kind === 'dbolt' ? Math.abs(p.z + 70 - s.z) < 70 : p.z - p.gz < (s.kind === 'wave' ? 50 : 140))) {
         if (hurtPlayer(S, p, s.dmg, { knock: s.kind === 'wave', from: s.x - s.vx })) { s.life = 0; sparks(S, s.x, s.y - s.z, s.c || '#c07bff', 12); }
       }
     }
@@ -862,8 +960,10 @@ function stepShots(S, dt) {
 /* ---------------- items ---------------- */
 function stepItems(S, dt) {
   for (const it of S.items) {
-    if (it.z > 0 || it.vz) { it.z += it.vz * dt; it.vz -= 900 * dt; if (it.z <= 0) { it.z = 0; it.vz = Math.abs(it.vz) > 120 ? -it.vz * 0.35 : 0; } }
-    if (!ITEMS[it.type].weapon) it.life -= dt;
+    const fl = groundAt(S, it.x, it.y);
+    if (it.z > fl || it.vz) { it.z += it.vz * dt; it.vz -= 900 * dt; if (it.z <= fl) { it.z = fl; it.vz = Math.abs(it.vz) > 120 ? -it.vz * 0.35 : 0; } }
+    it.base = fl;
+    if (!ITEMS[it.type].weapon && !ITEMS[it.type].sigil) it.life -= dt;
   }
   S.items = S.items.filter((i) => i.life > 0);
 }
@@ -924,11 +1024,12 @@ function stepZones(S, dt) {
     return;
   }
   const alive = S.enemies.filter((e) => e.hp > 0 || !['dead'].includes(e.st)).filter((e) => e.hp > 0).length;
-  if (S.wave < z.w.length - 1 && alive <= 1) { S.wave++; spawnWave(S, z, S.wave); }
-  else if (S.wave >= z.w.length - 1 && alive === 0 && !S.enemies.some((e) => e.st === 'knock')) {
+  const zw = S.zw[S.zoneIdx];
+  if (S.wave < zw.length - 1 && alive <= 1) { S.wave++; spawnWave(S, z, S.wave); }
+  else if (S.wave >= zw.length - 1 && alive === 0 && !S.enemies.some((e) => e.st === 'knock')) {
     // zone clear
     S.zoneOn = false; S.camLock = null; S.zoneIdx++;
-    for (const c of S.civs) if (c.mode === 'cower') { c.mode = 'saved'; c.face = -1; c.t = 0; if (c.caged) { c.caged = false; ev(S, { t: 'uncage', x: Math.round(c.x), y: Math.round(c.y) }); } for (const p of alivePlayers(S)) p.score += 300; }
+    for (const c of S.civs) if (c.mode === 'cower') { S.saved++; c.mode = 'saved'; c.face = -1; c.t = 0; if (c.caged) { c.caged = false; ev(S, { t: 'uncage', x: Math.round(c.x), y: Math.round(c.y) }); } for (const p of alivePlayers(S)) p.score += 300; }
     const zz = L.zones[S.zoneIdx];
     ev(S, { t: 'go' }); ev(S, { t: 'pop', x: 640, y: 230, s: 'ZONA LIBERATA!', c: '#ffd35a', big: 1, fixed: 1 });
     for (const p of S.players) p.hp = Math.min(p.max, p.hp + 10);
@@ -936,13 +1037,22 @@ function stepZones(S, dt) {
 }
 
 function spawnWave(S, z, i) {
-  const [type, n0] = z.w[i];
+  const [type, n0] = S.zw[S.zoneIdx][i];
   const extra = Math.max(0, alivePlayers(S).length - 1);
   const n = n0 + Math.ceil(extra * n0 * 0.5);
+  const veil = [3, 5, 6, 7].includes(S.lvl);   // chapters where the Veil opens portals in the floor
   for (let k = 0; k < n; k++) {
     const side = k % 2 ? 1 : -1;
+    const y = FLOOR_TOP + 20 + ((k * 53) % (FLOOR_BOTTOM - FLOOR_TOP - 30));
+    if (type === 'drone') { const e = spawnEnemy(S, type, side > 0 ? S.camLock + W + 60 : S.camLock - 60, y); e.z = 170; continue; }
+    if (k % 3 === 2 && i > 0) {
+      const x = S.camLock + 260 + ((k * 211) % (W - 520));
+      if (veil) { const e = spawnEnemy(S, type, x, y, { st: 'rise', z: -150 }); ev(S, { t: 'portal', x: Math.round(x), y: Math.round(y) }); sfx(S, 'laser'); }
+      else spawnEnemy(S, type, x, FLOOR_BOTTOM + 140);   // from the bottom of the screen
+      continue;
+    }
     const x = side > 0 ? S.camLock + W + 60 + k * 40 : S.camLock - 60 - k * 40;
-    spawnEnemy(S, type, x, FLOOR_TOP + 20 + ((k * 53) % (FLOOR_BOTTOM - FLOOR_TOP - 30)));
+    spawnEnemy(S, type, x, y);
   }
 }
 
@@ -974,7 +1084,8 @@ function playerFrame(p) {
       const m = MOVES[p.atk]; f = m.frames.find(([t]) => p.t < t)?.[1] ?? m.frames[m.frames.length - 1][1];
       break;
     }
-    case 'grab': case 'grabatk': f = 15; break;
+    case 'grab': f = 4; break;
+    case 'grabatk': f = p.t > 0.08 ? 6 : 4; break;
     case 'throw': f = 5; break;
     case 'special': {
       const k = p.spk;
@@ -1011,6 +1122,7 @@ function enemyFrame(e) {
     return [`${s}_${f}`, 0];
   }
   const d = e.def;
+  if (d.flying) return ['drone', e.st === 'knock' || e.st === 'down' || e.st === 'dead' ? 1.2 : 0];
   let pre = d.pre;
   if (d.shade) pre = HEROES[e.shadeHero].id;
   let f = 0, rot = 0;
@@ -1052,17 +1164,20 @@ function civFrame(c) {
 function buildView(S) {
   const d = [];
   const r = (v) => Math.round(v);
+  for (const pl of S.plats) d.push({ i: pl.id, pf: pl.type, x: r(pl.x), y: r(pl.y), sy: pl.y - pl.d, w: pl.w, dp: pl.d, h: pl.h });
   for (const o of S.props) if (o.hp > 0) d.push({ i: o.id, s: 'items', f: o.type, x: r(o.x + (o.shake > 0 ? Math.sin(S.t * 80) * 3 : 0)), y: r(o.y), sc: o.type === 'crate' ? 1.05 : 1.0, sh: 30 });
-  for (const it of S.items) d.push({ i: it.id, s: 'items', f: it.type, x: r(it.x), y: r(it.y), z: r(it.z + (it.z === 0 && !ITEMS[it.type].weapon ? 4 + Math.sin(S.t * 4 + it.bob) * 3 : 0)), sc: ITEMS[it.type].weapon ? 1.1 : 1.15, sh: 18, a: it.life < 3 && !ITEMS[it.type].weapon ? (Math.floor(S.t * 10) % 2 ? 0.3 : 1) : 1, glow: ITEMS[it.type].weapon ? 0 : 1 });
+  for (const it of S.items) d.push({ i: it.id, s: 'items', f: it.type, x: r(it.x), y: r(it.y), z: r(it.z + (it.z === it.base && !ITEMS[it.type].weapon ? 4 + Math.sin(S.t * 4 + it.bob) * 3 : 0)), gz: r(it.base || 0), sc: ITEMS[it.type].weapon ? 1.1 : it.type === 'sigil' ? 1 : 1.15, sh: 18, sg: it.type === 'sigil' ? 1 : 0, a: it.life < 3 && !ITEMS[it.type].weapon ? (Math.floor(S.t * 10) % 2 ? 0.3 : 1) : 1, glow: ITEMS[it.type].weapon ? 0 : 1 });
   for (const c of S.civs) d.push({ i: c.id, s: 'people', f: civFrame(c), x: r(c.x), y: r(c.y), fc: c.face, sc: 1, sh: 26, cg: c.caged ? 1 : 0 });
   for (const e of S.enemies) {
     if (e.st === 'gone') continue;
     const [f, rot] = enemyFrame(e);
     const boss = e.boss;
     const sc = boss ? e.B.scale : e.def.scale * (e.def.villain ? 1 : 1);
-    const o = { i: e.id, s: boss || e.def.villain ? 'bosses' : 'fighters', f, x: r(e.x), y: r(e.y), z: r(e.z || 0), fc: e.face, sc, r: rot, sh: boss ? 90 : 36 };
+    const o = { i: e.id, s: boss || e.def.villain ? 'bosses' : 'fighters', f, x: r(e.x), y: r(e.y), z: r(e.z || 0), fc: e.face, sc, r: rot, sh: boss ? 90 : 36, gz: r(boss || e.def.flying ? 0 : groundAt(S, e.x, e.y)) };
+    if (e.def && e.def.flying) { o.s = 'proc'; o.dr = 1; o.sh = 24; o.gz = r(groundAt(S, e.x, e.y)); }
+    if (e.st === 'rise') { o.rz = 1; o.sh = 0; }
     if (e.flash > 0) o.fl = 1;
-    if (e.st === 'held') { o.a = 0; o.sh = 0; }
+    if (e.st === 'held') { o.z = 16; o.sh = 0; o.x += Math.round(Math.sin(S.t * 40) * 2); }
     if (e.def && e.def.shade) o.ti = '#3a1466';
     if (boss && e.alpha !== undefined && e.alpha < 1) o.a = +e.alpha.toFixed(2);
     if (e.st === 'dead') o.a = boss ? 1 : +(Math.max(0, 1 - e.t / 1.1) * (Math.floor(e.t * 16) % 2 ? 0.4 : 1)).toFixed(2);
@@ -1080,7 +1195,10 @@ function buildView(S) {
   for (const p of S.players) {
     if (p.out) continue;
     const [f, rot] = playerFrame(p);
-    const o = { i: p.id, s: 'fighters', f, x: r(p.x), y: r(p.y), z: r(p.z), fc: p.face, sc: HERO_SCALE, r: rot, sh: p.st === 'fall' ? 0 : 36, pl: p.slot + 1, pc: HEROES[p.hero].color };
+    p.gz = groundAt(S, p.x, p.y);
+    const o = { i: p.id, s: 'fighters', f, x: r(p.x), y: r(p.y), z: r(p.z), gz: r(p.gz), fc: p.face, sc: HERO_SCALE, r: rot, sh: p.st === 'fall' ? 0 : 36, pl: p.slot + 1, pc: HEROES[p.hero].color };
+    if (p.st === 'grab' || p.st === 'grabatk') o.hint = 'hold';
+    if (p.ammo === 0 && p.st === 'atk' && p.atk === 'shoot') o.hint = 'noammo';
     // on-screen button prompts
     if (!p.civil && (p.st === 'idle' || p.st === 'walk')) {
       const near = S.enemies.filter((e) => e.hp > 0 && !e.boss && Math.abs(e.x - p.x) < 280 && Math.abs(e.y - p.y) < 90).length + (S.enemies.some((e) => e.boss && e.hp > 0 && Math.abs(e.x - p.x) < 320) ? 3 : 0);
@@ -1108,7 +1226,7 @@ function buildView(S) {
     if (p.st === 'dodge' || p.run && p.st === 'walk' || p.st === 'special' && p.spk === 'azur') o.gh = 1;
     d.push(o);
   }
-  for (const s of S.shots) d.push({ i: s.id, sh2: s.kind, x: r(s.x), y: r(s.y), z: r(s.z), fc: Math.sign(s.vx) || 1, c: s.c });
+  for (const s of S.shots) d.push({ i: s.id, sh2: s.kind, x: r(s.x), y: r(s.y), z: r(s.z), fc: Math.sign(s.vx) || 1, c: s.c, am: s.aim || 0 });
 
   const boss = S.enemies.find((e) => e.boss && e.st !== 'gone');
   return {
@@ -1116,7 +1234,8 @@ function buildView(S) {
     hud: {
       p: S.players.map((p) => ({ h: p.hero, n: p.name, hp: Math.max(0, Math.round(p.hp)), mx: p.max, en: Math.round(p.en), sc: p.score, lv: p.lives, out: p.out ? 1 : 0, wp: 0, am: p.ammo, cb: p.comboHitT > 0 && p.combo2 > 1 ? p.combo2 : 0 })),
       team: Math.round(S.team),
-      boss: boss ? { n: boss.B.name, t: boss.B.title, hp: Math.max(0, boss.hp), mx: boss.max, g: boss.guarding ? 1 : 0 } : null,
+      boss: boss ? { n: boss.B.name, t: boss.B.title, hp: Math.max(0, boss.hp), mx: boss.max, g: boss.guarding ? 1 : 0, gm: Math.round(boss.gm || 0), br: boss.broken ? 1 : 0 } : null,
+      cr: S.credits === Infinity ? -1 : S.credits, sg: S.sigils.length,
       ban: S.banner ? { t: S.banner.text, s: S.banner.sub || '', k: +S.banner.t.toFixed(2), e: +((S.banner.tot || (S.banner.tot = S.banner.t)) - S.banner.t).toFixed(2), b: S.banner.boss ? 1 : 0 } : null,
       go: !S.zoneOn && S.zoneIdx < S.L.zones.length && S.zoneIdx > 0 && !S.cleared ? 1 : 0,
       lvl: S.lvl, place: S.L.place,

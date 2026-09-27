@@ -25,6 +25,7 @@ const ENEMIES = {
   lancer: { sheet: 'fighters', pre: 'lancer', name: 'Lama del Velo', hp: 48, speed: 165, dmg: 11, reach: 96, scale: 0.86, score: 260, wind: 0.36, aggro: 1.35, lunge: true },
   brute: { sheet: 'fighters', pre: 'brute', name: 'Bruto di ruggine', hp: 120, speed: 80, dmg: 17, reach: 104, scale: 1.02, score: 450, wind: 0.75, aggro: 0.8, heavy: true },
   segment: { sheet: 'bosses', pre: 'centipede', name: 'Segmento', hp: 60, speed: 150, dmg: 10, reach: 105, scale: 0.62, score: 350, wind: 0.45, aggro: 1.2, villain: true, lunge: true },
+  drone: { sheet: 'proc', pre: 'drone', name: 'Drone del Velo', hp: 30, speed: 170, dmg: 8, reach: 420, scale: 1, score: 350, wind: 0.55, aggro: 1, flying: true },
   shade: { sheet: 'fighters', pre: 'HERO', name: 'Copia oscura', hp: 70, speed: 150, dmg: 12, reach: 96, scale: 0.86, score: 500, wind: 0.42, aggro: 1.3, shade: true },
 };
 
@@ -55,7 +56,8 @@ const ITEMS = {
   energy: { energy: 35, label: 'CELLA D\'ENERGIA' },
   coin: { score: 500, label: 'MONETA' },
   gem: { score: 1500, team: 25, label: 'FRAMMENTO DI CUORE' },
-  ammo: { ammo: 4, label: 'CARICATORE' },
+  ammo: { ammo: 6, label: 'CARICATORE' },
+  sigil: { sigil: true, label: 'SIGILLO DEI TITANI' },
   pipe: { weapon: true, dmg: 1.7, reach: 42, uses: 14, label: 'TUBO D\'ACCIAIO' },
   oar: { weapon: true, dmg: 1.5, reach: 74, uses: 11, label: 'REMO' },
 };
@@ -258,3 +260,36 @@ const SPEAKERS = {
   'KHARON': ['bosses', 'kharon_0', '#d24a5a'], 'VESPERA': ['bosses', 'vespera_0', '#b77dff'], 'TRIVOR': ['bosses', 'trivor_0', '#4fc3a8'],
   'DOTT.SSA VALLI': ['people', 'scientist_idle0', '#9fd6ff'], 'NARRATORE': null,
 };
+
+/* ------------------------------------------------------------
+   DIFFICOLTÀ · crediti = quante volte la squadra può continuare
+   in tutta la partita. Finiti i crediti: GAME OVER definitivo.
+   ------------------------------------------------------------ */
+const DIFFS = {
+  easy: { name: 'FACILE', dmg: 0.65, hp: 0.85, aggro: 0.8, credits: Infinity, desc: 'Crediti infiniti, nemici più deboli' },
+  normal: { name: 'NORMALE', dmg: 1, hp: 1, aggro: 1, credits: 4, desc: '4 crediti per tutta la partita' },
+  arcade: { name: 'ARCADE', dmg: 1.3, hp: 1.15, aggro: 1.2, credits: 2, desc: '2 crediti, si parte sempre dal capitolo 1' },
+};
+let DIFF = DIFFS.normal;
+
+/* ------------------------------------------------------------
+   EXTRA DEI CAPITOLI
+   plats: piattaforme su cui salire [tipo, x, y del bordo anteriore]
+   sigils: 3 Sigilli dei Titani nascosti [x, y, dove] (top = sopra una piattaforma, crate = dentro l'oggetto più vicino, floor = a terra)
+   drones: ondate extra di droni per zona {zona: numero}
+   ------------------------------------------------------------ */
+const PLATS = {
+  car: { w: 200, d: 46, h: 58 },
+  dumpster: { w: 116, d: 42, h: 74 },
+  shelter: { w: 230, d: 40, h: 128 },
+};
+const LEVEL_EXTRAS = [
+  { plats: [['car', 1080, 548], ['dumpster', 2330, 582], ['shelter', 2390, 540], ['car', 3330, 660]], sigils: [[1080, 525, 'top'], [2420, 520, 'top'], [3150, 560, 'crate']], drones: { 2: 1 } },
+  { plats: [], sigils: [[500, 600, 'crate'], [2100, 540, 'crate'], [3300, 505, 'floor']], drones: {} },
+  { plats: [['dumpster', 1300, 560], ['dumpster', 2320, 650]], sigils: [[1300, 540, 'top'], [2600, 540, 'crate'], [3380, 690, 'floor']], drones: { 1: 2, 2: 2 } },
+  { plats: [], sigils: [[520, 600, 'crate'], [1900, 540, 'crate'], [3050, 660, 'crate']], drones: {} },
+  { plats: [['car', 1100, 650], ['dumpster', 2100, 582], ['shelter', 2160, 540]], sigils: [[1100, 628, 'top'], [2180, 520, 'top'], [3050, 640, 'crate']], drones: { 0: 1, 1: 2, 2: 2 } },
+  { plats: [['dumpster', 1250, 600]], sigils: [[1250, 580, 'top'], [930, 660, 'crate'], [3000, 540, 'crate']], drones: { 2: 2 } },
+  { plats: [], sigils: [[520, 600, 'crate'], [1950, 540, 'crate'], [2650, 560, 'crate']], drones: { 0: 2, 2: 2 } },
+  { plats: [['car', 1300, 600]], sigils: [[1300, 578, 'top'], [1500, 540, 'crate'], [1950, 660, 'crate']], drones: { 1: 2, 2: 2 } },
+];
