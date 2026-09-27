@@ -392,7 +392,7 @@ function stepPlayer(S, p, c, dt) {
     case 'throw': if (p.t > 0.3) p.st = 'idle'; break;
     case 'special': stepSpecial(S, p, dt); break;
     case 'pose': {
-      if (p.t > 2.6) p.st = 'idle';
+      if (p.t > 2.6) { p.st = 'idle'; p.teamTo = null; }
       break;
     }
     case 'hurt': if (p.t > 0.32) p.st = 'idle'; break;
@@ -697,11 +697,30 @@ function stepSpecial(S, p, dt) {
   function end() { p.st = 'idle'; p.t = 0; p._s1 = 0; p._n = -1; }
 }
 
+/* COLPO DI SQUADRA, right in the arena: the heroes line up where they are, the Sentinels who are not
+   playing appear in columns of light, the weapons join into the Cannone Primordiale above the leader
+   and it fires across the battlefield (2.6 s) */
 function teamAttack(S, p) {
   S.team = 0;
   sfx(S, 'team');
-  ev(S, { t: 'team', heroes: alivePlayers(S).map((q) => q.hero) });
-  for (const q of alivePlayers(S)) { q.st = 'pose'; q.t = 0; q.inv = 3.2; q.atk = null; }
+  const al = alivePlayers(S);
+  const lo = S.cam + 60, hi = (S.camLock !== null ? S.camLock : S.cam) + W - 60;
+  let l = 0, r = 0;
+  for (const e of S.enemies) if (e.hp > 0 && e.x > S.cam - 20 && e.x < S.cam + W + 20) { if (e.x < p.x) l += e.boss ? 3 : 1; else r += e.boss ? 3 : 1; }
+  const f = l || r ? (r >= l ? 1 : -1) : (p.x < (lo + hi) / 2 ? 1 : -1);
+  const x0 = f > 0 ? clamp(p.x, lo + 300, lo + 480) : clamp(p.x, hi - 480, hi - 300);
+  const y0 = clamp(p.y, FLOOR_TOP + 70, FLOOR_BOTTOM - 70);
+  const order = [p, ...al.filter((q) => q !== p)];
+  const extra = [0, 1, 2, 3, 4].filter((h) => !al.some((q) => q.hero === h));
+  const slots = [...order.map((q) => [q.hero, 1]), ...extra.map((h) => [h, 0])].slice(0, 6).map(([h, pl], i) => {
+    const dy = i === 0 ? 0 : (i % 2 ? 1 : -1) * Math.ceil(i / 2) * 42;
+    const sx = x0 - f * (40 + 55 * i) + (i === 0 ? f * 40 : 0);
+    let sy = clamp(y0 + dy, FLOOR_TOP + 6, FLOOR_BOTTOM);
+    const blk = blockedFor(S, sx, sy); if (blk) sy = clamp(blk.y + 14, FLOOR_TOP + 6, FLOOR_BOTTOM);   // not inside a car or a dumpster
+    return [Math.round(sx), Math.round(sy), h, pl];
+  });
+  order.forEach((q, i) => { q.st = 'pose'; q.t = 0; q.inv = 3.2; q.atk = null; q.teamTo = [slots[i][0], slots[i][1]]; q.face = f; q.hold = 0; q.teamLead = i === 0; });
+  ev(S, { t: 'team', heroes: al.map((q) => q.hero), arena: 1, f, slots });
   S.teamT = 2.6;
   S.hitstop = 0.1;
 }
@@ -781,8 +800,12 @@ function stepEnemy(S, e, dt) {
       e.face = p.x > e.x ? 1 : -1;
       if (Math.abs(ddx) > 10 || Math.abs(ddy) > 8) {
         const sp = d.speed * scale;
-        e.x += clamp(ddx, -1, 1) * Math.min(Math.abs(ddx), sp * dt);
-        e.y += clamp(ddy, -1, 1) * Math.min(Math.abs(ddy), sp * 0.6 * dt);
+        // cars, dumpsters and shelters are obstacles for the soldiers (they don't climb on them)
+        const mx = clamp(ddx, -1, 1) * Math.min(Math.abs(ddx), sp * dt), my = clamp(ddy, -1, 1) * Math.min(Math.abs(ddy), sp * 0.6 * dt);
+        if (groundAt(S, e.x + mx, e.y + my) <= 40 || (e.z || 0) > 40) { e.x += mx; e.y += my; }
+        else if (groundAt(S, e.x + mx, e.y) <= 40) e.x += mx;
+        else if (groundAt(S, e.x, e.y + my) <= 40) e.y += my;
+        else e.y += (e.y < 600 ? -1 : 1) * sp * 0.6 * dt;
         e.st = 'walk'; e.walk += dt * 7.5;
       } else e.st = 'idle';
       const inRange = d.ranged ? Math.abs(p.x - e.x) < 520 && Math.abs(p.y - e.y) < 90 : Math.abs(p.x - e.x) < d.reach + 8 && Math.abs(p.y - e.y) < 22;
@@ -839,8 +862,9 @@ function stepEnemy(S, e, dt) {
         floatText(S, e.x, e.y - 150, 'GIÙ DAL TRENO!', '#ffe08a', 18); sfx(S, 'hurt');
         break;
       }
-      if (e.z <= groundAt(S, e.x, e.y) && e.vz < 0 && e.t > 0.1) {
-        e.z = groundAt(S, e.x, e.y); e.st = e.hp > 0 ? 'down' : 'dead'; e.t = 0; shake(S, 3); sfx(S, 'heavy'); sparks(S, e.x, e.y, '#9aa0b0', 8, 'dust');
+      const eg = groundAt(S, e.x, e.y) > 40 ? 0 : groundAt(S, e.x, e.y);   // enemies never land on top of a car
+      if (e.z <= eg && e.vz < 0 && e.t > 0.1) {
+        e.z = eg; e.st = e.hp > 0 ? 'down' : 'dead'; e.t = 0; shake(S, 3); sfx(S, 'heavy'); sparks(S, e.x, e.y, '#9aa0b0', 8, 'dust');
         if (e.hp <= 0 && e.def && e.def.shade) sparks(S, e.x, e.y - 60, '#b77dff', 20, 'fire');
       }
       break;
@@ -872,7 +896,11 @@ function stepEnemy(S, e, dt) {
   if (['walk', 'idle', 'enter'].includes(e.st) && !d.flying) {
     const dir = Math.sign(Math.round(e.x - (e._px ?? e.x)));
     if (S.L.train && dir && trainOn(S.L, e.x) && (inGap(S.L, e.x + dir * 60, e.y, -30) || inGap(S.L, e.x, e.y, -30))) { e.st = 'hop'; e.t = 0; e.vz = 560; e.hopDir = dir; e.face = dir; }
-    else { const gz = groundAt(S, e.x, e.y); e.z = e.z < gz ? Math.min(gz, e.z + 600 * dt) : Math.max(gz, e.z - 600 * dt); }
+    else {
+      let gz = groundAt(S, e.x, e.y);
+      if (gz > 40 && (e.z || 0) < 40) { const b = blockedFor(S, e.x, e.y); if (b) e.y = Math.min(FLOOR_BOTTOM, e.y + 240 * dt); gz = 0; }   // pushed out of a car, never onto it
+      e.z = e.z < gz ? Math.min(gz, e.z + 600 * dt) : Math.max(gz, e.z - 600 * dt);
+    }
   }
   e._px = e.x;
   if (!['knock', 'thrown', 'held', 'dead', 'enter', 'rise', 'slam'].includes(e.st)) {
@@ -1284,7 +1312,7 @@ function playerFrame(p) {
       f = k === 'azur' ? 10 : k === 'lyra' ? (Math.floor(p.t / 0.08) % 2 ? 9 : 10) : k === 'onyx' ? (p.t < 0.3 ? 10 : 9) : k === 'aura' ? (p.t < 0.3 ? 10 : 9) : p.t < 0.16 ? 8 : 10;
       break;
     }
-    case 'pose': f = p.t < 0.3 ? 0 : 4; break;
+    case 'pose': f = p.teamTo ? (p.t < 0.45 ? [1, 2, 3, 2][Math.floor(p.walk) % 4] : p.t < 1.5 ? 8 : p.teamLead ? 11 : 0) : p.t < 0.3 ? 0 : 4; break;
     case 'hurt': f = 7; break;
     case 'knock': f = p.t < 0.12 ? 7 : 13; break;
     case 'down': case 'dead': f = 14; break;
@@ -1507,6 +1535,8 @@ function tickCounters(S, dt) { for (const p of S.players) { p.comboHitT = Math.m
 /* team attack resolution (after the pose) */
 function stepTeam(S, dt) {
   if (!S.teamT) return;
+  // the heroes walk into the line-up
+  for (const q of S.players) if (q.teamTo && q.st === 'pose') { q.x = lerp(q.x, q.teamTo[0], Math.min(1, dt * 7)); q.y = lerp(q.y, q.teamTo[1], Math.min(1, dt * 7)); q.walk += dt * 10; }
   if (S.teamT > 0.6 && S.teamT - dt <= 0.6) { sfx(S, 'laser'); sfx(S, 'special'); shake(S, 16); }
   S.teamT -= dt;
   if (S.teamT <= 0) {

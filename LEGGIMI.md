@@ -66,6 +66,13 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.6.9
+- **Il Colpo di squadra avviene nell'arena**: i giocatori si mettono in fila dove sono (rivolti verso i nemici),
+  i Sentinels che non giocano arrivano in colonne di luce, le armi si alzano e volano nel Cannone Primordiale
+  che il capo squadra impugna, e il raggio arcobaleno attraversa il campo di battaglia.
+- I nemici non salgono più sopra auto, cassonetti e pensiline (e non ci atterrano quando vengono lanciati):
+  prima potevano restare lassù, fuori portata.
+
 ## Novità della 1.6.8
 - Sul treno i nemici **saltano davvero** tra un vagone e l'altro (rincorsa, salto ad arco e atterraggio),
   invece di galleggiare sopra il buco.

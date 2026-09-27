@@ -35,7 +35,7 @@ function applyEvents(evs, world = true) {
       case 'debris':
         for (let i = 0; i < 4; i++) FX.parts.push({ k: 'plank', x: e.x, y: e.y - 30, vx: rand(-260, 260), vy: rand(-420, -200), life: 0.9, max: 0.9, f: e.k === 'bin' ? 'can' : 'plank' + i, rot: rand(0, 6), vr: rand(-12, 12), world });
         break;
-      case 'team': FX.team = { t: 0, heroes: e.heroes }; break;
+      case 'team': FX.team = { t: 0, heroes: e.heroes, arena: e.arena, f: e.f, slots: e.slots }; break;
       case 'go': FX.go = 5; Audio.sfx('confirm'); break;
       case 'wslash': FX.parts.push({ k: 'wslash', x: e.x, y: e.y, f: e.f, c: e.c, g: e.g, big: e.big, w: e.w, life: e.big ? 0.3 : 0.22, max: e.big ? 0.3 : 0.22, world }); break;
       case 'portal': FX.parts.push({ k: 'ring', x: e.x, y: e.y, r: 130, life: 0.9, max: 0.9, c: '#9a3aff', world }); break;
@@ -464,16 +464,20 @@ function renderStage(v) {
   if (tr > 0) { drawTrain(cam, t, tr, v.hud.portal || 0); g.translate(Math.sin(t * 23) * tr * 1.2, Math.abs(Math.sin(t * 11)) * tr * 1.5); }
   if (v.hud.tun) drawTunnelBack(t, v.hud.tun);
   if (v.hud.esc !== undefined) drawCollapseBack(cam, t, v.hud.esc);
+  if (FX.team && FX.team.arena) { const k = FX.team.t, fade = clamp(Math.min(k * 4, (TEAM_LEN - k) * 4), 0, 1); g.fillStyle = `rgba(4,6,14,${0.5 * fade})`; g.fillRect(-20, -20, W + 40, H + 40); }
   const list = v.d.slice().sort((a, b) => ((a.sy ?? a.y) - (b.sy ?? b.y)) || ((a.z || 0) - (b.z || 0)));
   for (const o of list) drawDrawable(o, cam, t);
   drawParts(cam);
   if (tr > 0 && !v.hud.tun) drawTrainForeground(cam, t, tr);
   if (v.hud.tun) drawTunnelFront(t, v.hud.tun);
   if (v.hud.esc !== undefined) drawCollapseFront(t);
+  if (FX.team && FX.team.arena) drawTeamArena(cam);
   g.restore();
   drawHUD(v.hud, t);
   if (v.hud.tw) drawBeamWarning(v.hud.tw, t);
-  drawTeamPose();
+  if (!(FX.team && FX.team.arena)) drawTeamPose();
+  else if (FX.team.t < 1.6) ptitle(FX.team.t < 1.5 ? 'COLPO DI SQUADRA!' : 'CANNONE PRIMORDIALE!', W / 2, 170, 30, '#fff6d6', '#ffb03a');
+  else ptitle('CANNONE PRIMORDIALE!', W / 2, 170, 34, '#fff6d6', '#ff6a3a');
   if (FX.flash) { g.globalAlpha = Math.min(0.9, FX.flash); g.fillStyle = FX.flashC; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
 }
 
@@ -1069,5 +1073,81 @@ function drawExtraHud(h, t) {
   if (h.esc !== undefined) {
     ptxt('FUGA', W / 2 - 180, 128, 9, '#d0b0ff');
     segBar(W / 2 - 120, 118, 300, 8, h.esc, 0, '#c07bff', 10);
+  }
+}
+
+/* COLPO DI SQUADRA in the arena (1.6.9): drawn in world space over the real heroes lined up by the simulation */
+function drawTeamArena(cam) {
+  const T = FX.team, k = T.t, f = T.f || 1;
+  const fade = clamp(Math.min(k * 5, (TEAM_LEN - k) * 5), 0, 1);
+  const slots = T.slots || [];
+  if (!slots.length) return;
+  const [lx, ly] = slots[0];
+  const X = (x) => x - cam;
+  g.save();
+  // coloured light columns behind every Sentinel
+  g.globalCompositeOperation = 'lighter';
+  slots.forEach(([x, y, h], i) => {
+    const on = clamp((k - 0.1 - i * 0.07) / 0.3, 0, 1) * fade;
+    const w = 46 + Math.sin(k * 20 + i) * 6;
+    const grd = g.createLinearGradient(X(x) - w, 0, X(x) + w, 0);
+    grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(0.5, HEROES[h].color); grd.addColorStop(1, 'rgba(0,0,0,0)');
+    g.globalAlpha = 0.45 * on; g.fillStyle = grd; g.fillRect(X(x) - w, 0, w * 2, y);
+  });
+  g.restore();
+  // the Sentinels who are not playing arrive in a flash and join the line
+  slots.forEach(([x, y, h, pl], i) => {
+    if (pl) return;
+    const arrive = 0.15 + i * 0.07;
+    if (k < arrive) return;
+    const kk = k - arrive;
+    const fr = kk < 0.3 ? 4 : k < 1.5 ? 8 : 0;
+    drawShadow(X(x), y, 36);
+    heroSpr(h, fr, X(x), y, { scale: HERO_SCALE, face: f, alpha: fade });
+    if (kk < 0.35) { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 1 - kk / 0.35; g.fillStyle = '#fff'; g.fillRect(X(x) - 8, 0, 16, y); g.restore(); }
+  });
+  // weapons raised over the heads, then flying into the cannon held by the leader
+  const cx = X(lx) + f * 34, cy = ly - 112;
+  if (k > 0.45 && k < 1.55) {
+    const fly = clamp((k - 1.1) / 0.45, 0, 1);
+    slots.forEach(([x, y, h]) => {
+      const fw = frameOf('items', 'w_' + HEROES[h].id);
+      const wx = lerp(X(x), cx, fly * fly), wy = lerp(y - 235, cy, fly * fly);
+      g.save(); g.translate(wx, wy); g.rotate(fly * 0.3 * f);
+      g.globalCompositeOperation = 'lighter'; g.globalAlpha = fade * 0.55; g.fillStyle = HEROES[h].color;
+      g.beginPath(); g.arc(0, 0, 44, 0, 7); g.fill();
+      g.globalCompositeOperation = 'source-over'; g.globalAlpha = fade;
+      if (fw) g.drawImage(IMG.items, fw[0], fw[1], fw[2], fw[3], -fw[4] * 0.8, -fw[5] * 0.8, fw[2] * 0.8, fw[3] * 0.8);
+      g.restore();
+    });
+  }
+  if (k > 1.5) {
+    const fc = frameOf('items', 'w_cannon');
+    const form = clamp((k - 1.5) / 0.15, 0, 1);
+    if (k < 1.65) { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = (1 - form) * fade; g.fillStyle = '#fff'; g.beginPath(); g.arc(cx, cy, 130 * (1 - form) + 30, 0, 7); g.fill(); g.restore(); }
+    const sc = 0.9, recoil = k > 2.0 ? Math.sin(Math.min(1, (k - 2.0) * 6) * Math.PI) * 12 : 0;
+    g.save(); g.globalAlpha = fade; g.translate(cx - f * recoil, cy); g.scale(f * sc, sc);
+    g.drawImage(IMG.items, fc[0], fc[1], fc[2], fc[3], -fc[4], -fc[5], fc[2], fc[3]);
+    g.restore();
+    const mx = cx + f * (fc[2] - fc[4]) * sc, my = cy + (fc[3] * 0.55 - fc[5]) * sc;
+    g.save(); g.globalCompositeOperation = 'lighter';
+    if (k < 2.0) {
+      // five colours spiral into the muzzle
+      for (let i = 0; i < 5; i++) {
+        const a = k * 14 + i * 1.256, rr = 80 * (2.0 - k) + 8;
+        g.fillStyle = HEROES[i].color; g.globalAlpha = fade;
+        g.beginPath(); g.arc(mx + Math.cos(a) * rr, my + Math.sin(a) * rr, 8, 0, 7); g.fill();
+      }
+      g.globalAlpha = fade * clamp((k - 1.6) * 2.5, 0, 1); g.fillStyle = '#fff'; g.beginPath(); g.arc(mx, my, 8 + (k - 1.6) * 50, 0, 7); g.fill();
+    } else {
+      // FIRE: a rainbow beam across the whole arena
+      const q = clamp(1 - (k - 2.0) / 0.6, 0, 1), bw = 60 * q + 18;
+      const x1 = f > 0 ? W + 40 : -40;
+      const L = Math.min(mx, x1), Wd = Math.abs(x1 - mx);
+      HEROES.slice(0, CORE_HEROES).forEach((h, i) => { g.globalAlpha = fade * 0.55; g.fillStyle = h.color; g.fillRect(L, my - bw + i * bw * 0.4, Wd, bw * 0.4); });
+      g.globalAlpha = fade; g.fillStyle = '#ffffff'; g.fillRect(L, my - bw * 0.35, Wd, bw * 0.7);
+      g.beginPath(); g.arc(mx, my, bw * 1.2, 0, 7); g.fill();
+    }
+    g.restore();
   }
 }
