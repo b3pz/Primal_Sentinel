@@ -278,7 +278,7 @@ Object.assign(Game, {
       { name: 'ALLEATI', items: [{ kind: 'ally', a: 'argo', name: 'ARGO', ok: true }, { kind: 'ally', a: 'sette', name: 'SETTE', ok: true }, { kind: 'ally', a: 'valli', name: 'DOTT.SSA VALLI', ok: prog >= 2 }] },
       { name: 'NEMICI', items: Object.keys(ENEMIES).map((k) => ({ kind: 'enemy', k, name: ENEMIES[k].name.toUpperCase(), ok: true })) },
       { name: 'BOSS', items: Object.keys(BOSSES).filter((k) => k !== 'kharon2').map((k, i) => ({ kind: 'boss', k, name: BOSSES[k].name, ok: prog >= i || !!u.story })) },
-      { name: 'TITANI', items: [...BEASTS.map((b) => ({ kind: 'beast', b, name: BEAST_NAME[b], ok: prog >= 2 })), { kind: 'conc', name: 'CONCORDIA', ok: prog >= 4 }, ...Object.keys(GIANTS).map((k, i) => ({ kind: 'giant', k, name: GIANTS[k].name, ok: prog >= [2, 4, 7][i] }))] },
+      { name: 'TITANI', items: [...BEASTS.map((b) => ({ kind: 'beast', b, name: BEAST_NAME[b], ok: prog >= 2 })), { kind: 'beast', b: 'dragon', name: BEAST_NAME.dragon, ok: this.heroCount() > CORE_HEROES }, { kind: 'conc', name: 'CONCORDIA', ok: prog >= 4 }, ...Object.keys(GIANTS).map((k, i) => ({ kind: 'giant', k, name: GIANTS[k].name, ok: prog >= [2, 4, 7][i] }))] },
       { name: 'CINEMATICHE', items: cines.map((c) => ({ kind: 'cine', ...c })) },
       { name: 'LUOGHI', items: ['port', 'rail', 'park', 'theater', 'siege', 'graveyard', 'veil', 'dawn', 'story_cores', 'cine_cavern', 'cine_rex', 'cine_run', 'cine_cockpit', 'cine_duel', 'cine_dawn'].map((b, i) => ({ kind: 'bg', b, name: i < 8 ? LEVELS[i].place : ['LA CAMERA DEI CUORI', 'LA CAVERNA DEI TITANI', 'IL TIRANNO ROSSO', 'LA CORSA DEI TITANI', 'LA CABINA DI CONCORDIA', 'IL DUELLO', 'L\'ALBA'][i - 8], ok: i >= 8 ? prog >= 2 || i === 8 : prog >= i })) },
     ];
@@ -511,7 +511,7 @@ function drawGallery(v) {
     info([B.title, GAL_TEXT[it.k] || '', `CAPITOLO ${LEVELS.findIndex((L) => L.zones.some((z) => z.boss === it.k)) + 1}`]);
   } else if (it.kind === 'beast') {
     const pose = ['sleep', 'wake', 'run', 'roar'][Math.floor(t / 1.5) % 4];
-    drawShadow(cx, cy, 120); spr('giants', `beast_${it.b}_${pose}`, cx, cy, { scale: 1.3, face: 1 });
+    drawShadow(cx, cy, 120); spr(beastSheet(`beast_${it.b}_${pose}`), `beast_${it.b}_${pose}`, cx, cy, { scale: 1.3, face: 1 });
     const hi = BEAST_OF.indexOf(it.b);
     info([`IL TITANO DI ${HEROES[hi].name}`, 'Si risveglia con il Cuore del suo Sentinel. Con 3 Sigilli dei Titani puoi evocarlo una volta per capitolo: tieni premuto COLPO DI SQUADRA.']);
   } else if (it.kind === 'conc') {

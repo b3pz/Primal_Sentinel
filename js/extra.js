@@ -343,7 +343,7 @@ function extraView(S, d, r) {
   const R = S.ride;
   if (R) d.push({ i: R.id, s: 'giants', f: rideFrame(R), x: r(R.x), y: r(R.y), fc: R.face, sc: RIDE_SC, sh: 120, fl: R.flash > 0 ? 1 : 0, a: R.alpha < 1 ? +R.alpha.toFixed(2) : undefined, au: R.st === 'roar' && R.t > 0.25 && R.t < 0.7 ? '#ff5b4f' : undefined });
   const m = S.summon;
-  if (m) d.push({ i: m.id, s: 'giants', f: `beast_${m.b}_${m.t < 0.45 ? 'roar' : 'run'}`, x: r(m.x), y: m.y, z: m.b === 'ptero' ? 150 : 0, fc: 1, sc: 1.3, sh: 110, gh: 1, au: BEAST_COL[BEASTS.indexOf(m.b)] || '#ff5b4f' });
+  if (m) d.push({ i: m.id, s: beastSheet(`beast_${m.b}_run`), f: `beast_${m.b}_${m.t < 0.45 ? 'roar' : 'run'}`, x: r(m.x), y: m.y, z: m.b === 'ptero' ? 150 : 0, fc: 1, sc: 1.3, sh: 110, gh: 1, au: BEAST_COL[BEASTS.indexOf(m.b)] || (m.b === 'dragon' ? '#3fd06a' : '#ff5b4f') });
   for (const h of S.haz) {
     if (h.type === 'beam' && h.t >= 0) d.push({ i: h.id, bm: h.kind, x: r(h.x), y: h.kind === 'high' ? 721 : 466 });
     else if (h.type === 'debris') {

@@ -38,3 +38,5 @@ print('quantized')
 exec(open('build_boss_poses.py').read())
 exec(open('build_kharon.py').read())
 exec(open('build_mentors.py').read())
+# 1.8: drago verde, scooter, emblemi, prese, fondale della base
+exec(open('build_v18.py').read())

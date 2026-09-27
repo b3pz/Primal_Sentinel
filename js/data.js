@@ -29,8 +29,8 @@ const HEROES = [
 /* i cinque Sentinels "di base" (Kharon è un personaggio extra) */
 const CORE_HEROES = 5;
 /* titano evocabile da ogni eroe (fotogrammi beast_<nome>_run/roar dell'atlante giants) */
-const BEAST_OF = ['rex', 'tri', 'cat', 'ptero', 'mammoth', 'rex'];
-const BEAST_NAME = { rex: 'TIRANNO ROSSO', tri: 'TRICERATOPO BLU', cat: 'FELINO GIALLO', ptero: 'PTEROSAURO ROSA', mammoth: 'MASTODONTE NERO' };
+const BEAST_OF = ['rex', 'tri', 'cat', 'ptero', 'mammoth', 'dragon'];
+const BEAST_NAME = { rex: 'TIRANNO ROSSO', tri: 'TRICERATOPO BLU', cat: 'FELINO GIALLO', ptero: 'PTEROSAURO ROSA', mammoth: 'MASTODONTE NERO', dragon: 'DRAGO VERDE' };
 /* costumi alternativi (ricolorazioni) */
 const SKINS = [
   { name: 'ORIGINALE' },

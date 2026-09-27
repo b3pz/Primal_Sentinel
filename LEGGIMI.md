@@ -86,6 +86,15 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.8 (le tavole che hai generato)
+- **Il Drago Verde**, titano di Kharon: evocazione, tutorial e galleria (pagina Titani, dopo aver sbloccato Kharon).
+- **Scooter col pilota del Velo** nel capitolo 1: entra impennando e, se lo colpisci di fronte mentre arriva,
+  il pilota vola giù (+500 punti) e lo scooter resta a terra fumante.
+- **Prese vere** per tutti e sei i Sentinels: presa, ginocchiata, sollevamento (presa doppia) e lancio,
+  con il nemico disegnato a parte (non più dentro la posa dell'eroe).
+- **La base dei Sentinels** come fondale della scelta del personaggio, con Argo dentro la colonna centrale,
+  e **i sei emblemi dei titani** sui dischi a terra sotto il Sentinel scelto.
+
 ## Novità della 1.7.1 / 1.7.2
 - **Simboli PlayStation**: il gioco mostra ✕ ○ □ △, L1/R1, OPTIONS ovunque (tutorial, suggerimenti in partita,
   scelta dei Sentinels, opzioni). Con un controller Xbox collegato passa da solo ad A B X Y, LB/RB.
@@ -279,4 +288,4 @@ Server di incontro personale (facoltativo): `index.html?peer=indirizzo:porta`.
 `js/extra.js`: galleria, cavalcata, crollo, mosse in coppia, evocazione, modalità · `js/modes.js`: menu extra,
 classifiche, demo, galleria, opzioni · `js/cpu.js`: giocatore controllato dal computer (demo e test).
 `js/touch.js`: comandi touch · `manifest.json`, `sw.js`: app installabile e gioco offline (`tools/build_sw.py` rigenera l'elenco)
-`PROMPT_IMMAGINI.md`: i prompt per le tavole ancora da generare (titano verde, scooter, prese, base, emblemi).
+`PROMPT_IMMAGINI.md`: i prompt usati per le tavole della 1.8 (`tools/build_v18.py` le ritaglia).

@@ -79,7 +79,7 @@ const Game = {
         <button id="howto">COME SI GIOCA</button>
         <button id="options">OPZIONI</button>
       </nav>
-      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.7.2</div>`, 'menu');
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.8</div>`, 'menu');
     UI.on('#play', () => { this.modeKind = 'campaign'; this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
     UI.on('#extras', () => this.extras());
@@ -305,15 +305,28 @@ const Game = {
   drawLobby(online = false) {
     const t = this.lobbyT || 0;
     const dt = Math.min(0.05, Math.max(0, t - (this._lobPrevT ?? t))); this._lobPrevT = t;
-    coverImage('story_cores', 1.08, 0.5, 0.42);
-    g.fillStyle = 'rgba(3,6,16,.55)'; g.fillRect(0, 0, W, H);
-    // reflective floor
-    const fl = g.createLinearGradient(0, 430, 0, H); fl.addColorStop(0, 'rgba(10,14,30,.2)'); fl.addColorStop(0.25, 'rgba(8,10,22,.9)'); fl.addColorStop(1, 'rgba(2,3,8,.98)');
-    g.fillStyle = fl; g.fillRect(0, 430, W, H - 430);
-    g.strokeStyle = 'rgba(111,200,255,.12)'; g.lineWidth = 2;
-    for (let i = 0; i < 6; i++) { g.beginPath(); g.ellipse(W / 2, 640, 200 + i * 130, 40 + i * 22, 0, 0, 7); g.stroke(); }
-    // Argo watches from his column
-    if (frameOf('mentors', 'argo_0')) { glowAt(W / 2, 250, 220, '#6fc8ff', 0.35 + Math.sin(t * 2) * 0.06); spr('mentors', Math.floor(t * 0.7) % 5 === 4 ? 'argo_4' : 'argo_0', W / 2, 440, { scale: 0.78, alpha: 0.9 }); }
+    if (IMG.base) {
+      // 1.8: the Sentinels' base (the Chamber of the Hearts) with Argo inside the central column
+      coverImage('base', 1.0, 0.5, 0.5);
+      g.fillStyle = 'rgba(3,6,16,.28)'; g.fillRect(0, 0, W, H);
+      if (frameOf('mentors', 'argo_0')) {
+        g.save(); g.beginPath(); g.rect(W / 2 - 52, 74, 104, 230); g.clip();
+        glowAt(W / 2, 190, 150, '#6fc8ff', 0.3 + Math.sin(t * 2) * 0.06);
+        spr('mentors', Math.floor(t * 0.7) % 5 === 4 ? 'argo_4' : 'argo_0', W / 2, 330, { scale: 0.62, alpha: 0.85 });
+        g.globalCompositeOperation = 'lighter'; g.fillStyle = 'rgba(80,160,255,.12)'; g.fillRect(W / 2 - 52, 74, 104, 230);
+        g.restore();
+      }
+    } else {
+      coverImage('story_cores', 1.08, 0.5, 0.42);
+      g.fillStyle = 'rgba(3,6,16,.55)'; g.fillRect(0, 0, W, H);
+      // reflective floor
+      const fl = g.createLinearGradient(0, 430, 0, H); fl.addColorStop(0, 'rgba(10,14,30,.2)'); fl.addColorStop(0.25, 'rgba(8,10,22,.9)'); fl.addColorStop(1, 'rgba(2,3,8,.98)');
+      g.fillStyle = fl; g.fillRect(0, 430, W, H - 430);
+      g.strokeStyle = 'rgba(111,200,255,.12)'; g.lineWidth = 2;
+      for (let i = 0; i < 6; i++) { g.beginPath(); g.ellipse(W / 2, 640, 200 + i * 130, 40 + i * 22, 0, 0, 7); g.stroke(); }
+      // Argo watches from his column
+      if (frameOf('mentors', 'argo_0')) { glowAt(W / 2, 250, 220, '#6fc8ff', 0.35 + Math.sin(t * 2) * 0.06); spr('mentors', Math.floor(t * 0.7) % 5 === 4 ? 'argo_4' : 'argo_0', W / 2, 440, { scale: 0.78, alpha: 0.9 }); }
+    }
     const slots = online ? Net.lobby.map((p) => ({ hero: p.hero, ready: p.ready, name: p.name, me: p.id === Net.myId, host: p.host, skin: 0 })) : this.lobbySlots;
     const n = this.heroCount();
     const PC = ['#ffd35a', '#5fe0ff', '#7bf0b1', '#ff8ad8'];
@@ -333,8 +346,13 @@ const Game = {
       g.fillStyle = hero.color + '55'; g.beginPath(); g.ellipse(x, y + 4, 80 * sc, 20 * sc, 0, 0, 7); g.fill();
       g.strokeStyle = hero.color; g.lineWidth = 3; g.stroke();
       g.fillStyle = hero.color + '33'; g.beginPath(); g.ellipse(x, y + 4, 56 * sc, 13 * sc, 0, 0, 7); g.fill();
-      const bk = `beast_${BEAST_OF[h]}_roar`, bf = frameOf('giants', bk);
-      if (bf) { g.save(); g.translate(x, y + 4); g.scale(1, 0.24); spr('giants', bk, 0, 50, { scale: 0.42 * sc, img: tinted('giants', bk, hero.color, 'source-atop', 0.85), alpha: 0.55 }); g.restore(); }
+      if (frameOf('extra2', 'emblem_' + h)) {
+        // the titan's medallion lying on the floor (squashed into the disc)
+        g.save(); g.translate(x, y + 4); g.scale(1, 0.26); spr('extra2', 'emblem_' + h, 0, 100 * 0.62 * sc, { scale: 0.62 * sc, alpha: 0.5 + a * 0.5 }); g.restore();
+      } else {
+        const bk = `beast_${BEAST_OF[h]}_roar`, bf = frameOf('giants', bk);
+        if (bf) { g.save(); g.translate(x, y + 4); g.scale(1, 0.24); spr('giants', bk, 0, 50, { scale: 0.42 * sc, img: tinted('giants', bk, hero.color, 'source-atop', 0.85), alpha: 0.55 }); g.restore(); }
+      }
       g.restore();
       // reflection
       g.save(); g.translate(x, y); g.scale(1, -0.35); g.globalAlpha = 0.18; heroSpr(h, 0, 0, 0, { scale: sc, face: h < n / 2 ? 1 : -1 }); g.restore();
@@ -891,7 +909,7 @@ function frame(ts) {
 Input.init();
 Touch.init();
 const IMAGES = [
-  ['fighters', 'assets/sprites/fighters.png'], ['bosses', 'assets/sprites/bosses.png'], ['titans', 'assets/sprites/titans.png'], ['giants', 'assets/sprites/giants.png'], ['extra', 'assets/sprites/extra.png'], ['bosses2', 'assets/sprites/bosses2.png'], ['heroes2', 'assets/sprites/heroes2.png'], ['mentors', 'assets/sprites/mentors.png'], ['pad_ps', 'assets/ui/pad_ps.png'],
+  ['fighters', 'assets/sprites/fighters.png'], ['bosses', 'assets/sprites/bosses.png'], ['titans', 'assets/sprites/titans.png'], ['giants', 'assets/sprites/giants.png'], ['extra', 'assets/sprites/extra.png'], ['bosses2', 'assets/sprites/bosses2.png'], ['heroes2', 'assets/sprites/heroes2.png'], ['mentors', 'assets/sprites/mentors.png'], ['pad_ps', 'assets/ui/pad_ps.png'], ['extra2', 'assets/sprites/extra2.png'], ['grabs', 'assets/sprites/grabs.png'], ['base', 'assets/bg/base.jpg'],
   ['cine_run', 'assets/bg/cine_run.jpg'], ['cine_duel', 'assets/bg/cine_duel.jpg'], ['cine_rex', 'assets/bg/cine_rex.jpg'], ['cine_cavern', 'assets/bg/cine_cavern.jpg'], ['cine_cockpit', 'assets/bg/cine_cockpit.jpg'], ['cine_dawn', 'assets/bg/cine_dawn.jpg'],
   ['items', 'assets/sprites/items.png'], ['people', 'assets/sprites/people.png'],
   ['port', 'assets/bg/port.jpg'], ['harbor', 'assets/bg/harbor.jpg'], ['rail', 'assets/bg/rail.jpg'], ['park', 'assets/bg/park.jpg'],

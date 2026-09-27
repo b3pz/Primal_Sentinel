@@ -331,7 +331,7 @@ function drawChapterCine(id, t) {
    ============================================================ */
 const BEASTS = ['rex', 'tri', 'cat', 'ptero', 'mammoth'];
 const BEAST_COL = ['#ff4a3d', '#3f86ff', '#ffd13a', '#ff5fae', '#d9e2ec'];
-function beast(n, pose, x, y, sc = 1, face = 1, alpha = 1) { drawShadow(x, y, 120 * sc); spr('giants', `beast_${n}_${pose}`, x, y, { scale: sc, face, alpha }); }
+function beast(n, pose, x, y, sc = 1, face = 1, alpha = 1) { drawShadow(x, y, 120 * sc); spr(beastSheet(`beast_${n}_${pose}`), `beast_${n}_${pose}`, x, y, { scale: sc, face, alpha }); }
 function stillArt(name, t, shakeV = 0) {
   g.save(); if (shakeV) g.translate(rand(-1, 1) * shakeV, rand(-1, 1) * shakeV);
   coverImage(name, 1.0, 0.5, 0.5); g.restore();

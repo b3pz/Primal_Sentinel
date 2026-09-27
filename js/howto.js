@@ -420,7 +420,7 @@ function drawHowto(pg, t, scheme, hero, opt = {}) {
     if (s.enemy2) actors.push([580, () => enemyPuppet(s.enemy2)]);
     actors.push([s.y + 0.1, () => puppet(s.hero ?? hero, s)]);
     if (s.partner) actors.push([s.partner.y, () => puppet(s.partner.hero, s.partner)]);
-    if (s.beast) actors.push([700, () => { drawShadow(s.beast.x, 640, 110); spr('giants', `beast_${BEAST_OF[s.hero ?? hero]}_${s.beast.f}`, s.beast.x, 640, { scale: 0.9, face: 1 }); }]);
+    if (s.beast) actors.push([700, () => { drawShadow(s.beast.x, 640, 110); spr(beastSheet(`beast_${BEAST_OF[s.hero ?? hero]}_${s.beast.f}`), `beast_${BEAST_OF[s.hero ?? hero]}_${s.beast.f}`, s.beast.x, 640, { scale: 0.9, face: 1 }); }]);
     actors.sort((a, b) => a[0] - b[0]).forEach((a) => a[1]());
     if (s.fx) drawSpecialFx(s.fx, s, color);
     if (s.beam !== null && s.beam !== undefined) { g.fillStyle = '#05070c'; g.fillRect(s.beam - 22, vy + 236, 44, 94); g.fillStyle = '#c07a2a'; g.fillRect(s.beam - 18, vy + 240, 36, 86); g.fillStyle = '#ffd35a'; for (let k = 0; k < 3; k++) g.fillRect(s.beam - 18, vy + 248 + k * 28, 36, 8); g.strokeStyle = '#222'; g.lineWidth = 4; g.beginPath(); g.moveTo(s.beam, vy); g.lineTo(s.beam, vy + 236); g.stroke(); }

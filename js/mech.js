@@ -108,7 +108,21 @@ function stepMech(S, dt) {
   // ---- hazards
   for (const h of S.haz) {
     h.t += dt;
+    if (h.type === 'scooter' && h.crash) {
+      h.ct += dt; if (h.ct > 3) h.dead = true;
+      continue;
+    }
     if (h.type === 'scooter' && h.t > 0) {
+      // a Sentinel attacking it head-on knocks the rider off (1.8)
+      const hitter = S.players.find((p) => !p.out && p.st === 'atk' && p.face === 1 && h.x - p.x > 20 && h.x - p.x < 120 && Math.abs(p.y - h.y) < 30 && p.z < 60);
+      if (hitter && frameOf('extra2', 'scooter_3')) {
+        h.crash = true; h.ct = 0; sfx(S, 'heavy'); shake(S, 8);
+        ev(S, { t: 'boom', x: Math.round(h.x), y: Math.round(h.y - 40) });
+        floatText(S, h.x, h.y - 190, 'GIÙ DALLO SCOOTER!', '#ffe08a', 18);
+        hitter.score += 500;
+        const e = spawnEnemy(S, 'soldier', h.x - 30, h.y); e.st = 'knock'; e.t = 0; e.vx = -320; e.vz = 320; e.z = 60; e.face = 1;
+        continue;
+      }
       h.x -= 560 * dt;
       for (const p of S.players) if (!p.out && p.st !== 'dead' && !h.hit.has(p.id) && Math.abs(p.x - h.x) < 50 && Math.abs(p.y - h.y) < 24 && p.z < 40) { h.hit.add(p.id); hurtPlayer(S, p, 12, { knock: true, from: h.x + 50 }); }
       for (const e of S.enemies) if (hittable(e) && !e.boss && !h.hit.has(e.id) && Math.abs(e.x - h.x) < 50 && Math.abs(e.y - h.y) < 24) { h.hit.add(e.id); damageEnemy(S, null, e, 30, { knock: true, heavy: true, from: h.x + 50 }); }
@@ -140,7 +154,11 @@ function mechView(S, d, r) {
   for (const h of S.haz) {
     if (h.type === 'scooter') {
       if (h.t < 0) d.push({ i: h.id, tg: [r(S.cam + W - 60), r(h.y), 60], x: r(h.x), y: r(h.y) });
-      else {
+      else if (frameOf('extra2', 'scooter_0')) {
+        // 1.8: scooter + Veil rider drawn together (faces left): wheelie as it bursts in, crashed with smoke
+        const f = h.crash ? 3 : h.t < 0.3 ? 2 : Math.floor(h.t * 10) % 2;
+        d.push({ i: h.id, s: 'extra2', f: 'scooter_' + f, x: r(h.x), y: r(h.y), fc: 1, sc: 1, sh: 60, a: h.crash ? +clamp(3 - h.ct, 0, 1).toFixed(2) : 1 });
+      } else {
         // a Veil soldier riding it (drawn first: the scooter covers his legs)
         d.push({ i: h.id + 0.5, s: 'fighters', f: 'soldier_4', x: r(h.x + 4), y: r(h.y) - 1, z: 6, fc: -1, sc: 0.78, sh: 0 });
         d.push({ i: h.id, s: 'extra', f: 'scooter', x: r(h.x), y: r(h.y), fc: -1, sc: 1.1, sh: 40 });
