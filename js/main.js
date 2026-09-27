@@ -79,7 +79,7 @@ const Game = {
         <button id="howto">COME SI GIOCA</button>
         <button id="options">OPZIONI</button>
       </nav>
-      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.7</div>`, 'menu');
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.7.1</div>`, 'menu');
     UI.on('#play', () => { this.modeKind = 'campaign'; this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
     UI.on('#extras', () => this.extras());
@@ -183,7 +183,7 @@ const Game = {
         <p><b>1P</b>: <kbd>WASD</kbd> · <kbd>F</kbd> pugno · <kbd>G</kbd> calcio · <kbd>Spazio</kbd> salto · <kbd>R</kbd> speciale · <kbd>Shift sx</kbd> schivata · <kbd>T</kbd> squadra<br>
         <b>2P</b>: <kbd>frecce</kbd> · <kbd>K</kbd>/<kbd>Num1</kbd> pugno · <kbd>L</kbd>/<kbd>Num2</kbd> calcio · <kbd>I</kbd>/<kbd>Num0</kbd> salto · <kbd>O</kbd>/<kbd>Num3</kbd> speciale · <kbd>Shift dx</kbd> schivata · <kbd>P</kbd> squadra</p></div>
         <div><h3>Controller (fino a 4)</h3>
-        <p>Stick/croce muovi · <b>X</b> pugno · <b>Y</b> calcio · <b>A</b> salto · <b>B</b> speciale · <b>RB/RT</b> schivata · <b>LB</b> squadra · <b>Start</b> pausa</p></div>
+        <p>Levetta/croce muovi · <b>${padHTML(PADMAP.punch[0])}</b> attacco · <b>${padHTML(PADMAP.shoot[0])}</b> pistola · <b>${padHTML(PADMAP.jump[0])}</b> salto · <b>${padHTML(PADMAP.special[0])}</b> speciale · <b>${padName(PADMAP.dodge[0])}</b> schivata · <b>${padName(PADMAP.team[0])}</b> squadra · <b>${padName(PADMAP.start[0])}</b> pausa (i pulsanti si cambiano in OPZIONI)</p></div>
         <div><h3>Trucchi da sala giochi</h3>
         <p>Cammina contro un nemico stordito per <b>afferrarlo</b>: pugno = ginocchiate, calcio = lancio contro gli altri.<br>Premi pugno sopra un'arma per raccoglierla. I fusti rossi esplodono.<br>Nei duelli giganti tieni <b>schivata</b> per parare e sbilancia il mostro, poi <b>speciale</b> per l'arma finale.</p></div>
       </div>
@@ -361,7 +361,7 @@ const Game = {
       panel(x, y, w, h, s ? PC[i] : '#2a3a4c', s ? 0.9 : 0.55);
       if (!s) {
         ptxt(`${i + 1}P`, x + 20, y + 30, 14, '#3a5068');
-        if (!online) ptxt(!this.local.twoKeyboards && slots.some((q) => q.dev && q.dev.startsWith('kb')) ? 'CONTROLLER: A · TASTIERA 2: K' : slots.some((q) => q.dev && q.dev.startsWith('kb')) ? 'CONTROLLER: A O X · TOCCO' : 'PREMI ATTACCO PER UNIRTI', x + 20, y + 62, 8, '#6f8aa2');
+        if (!online) ptxt(!this.local.twoKeyboards && slots.some((q) => q.dev && q.dev.startsWith('kb')) ? `CONTROLLER: ${padName(0)} · TASTIERA 2: K` : slots.some((q) => q.dev && q.dev.startsWith('kb')) ? `CONTROLLER: ${padName(0)} O ${padName(2)}` : 'PREMI ATTACCO PER UNIRTI', x + 20, y + 62, 8, '#6f8aa2');
         else ptxt('IN ATTESA…', x + 20, y + 62, 9, '#6f8aa2');
         continue;
       }

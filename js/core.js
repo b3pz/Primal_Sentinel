@@ -129,7 +129,26 @@ function txt(t, x, y, size = 18, color = '#eef6ff', align = 'left', weight = 800
   g.fillText(t, x, y);
 }
 /* Press Start 2P: numbers, labels, titles */
+const PS_GLYPHS = '✕○□△';
 function ptxt(t, x, y, size = 12, color = '#eef6ff', align = 'left', shadow = true) {
+  t = String(t);
+  if (/[✕○□△]/.test(t) && typeof padGlyph === 'function') {
+    // PlayStation symbols: drawn as coloured shapes between the text pieces
+    g.font = `400 ${size}px ${PXFONT}`;
+    const parts = t.split(/([✕○□△])/).filter((q) => q !== '');
+    const gw = size * 1.25, wOf = (q) => (PS_GLYPHS.includes(q) ? gw : g.measureText(q).width);
+    const total = parts.reduce((a, q) => a + wOf(q), 0);
+    let cx = align === 'center' ? x - total / 2 : align === 'right' ? x - total : x;
+    for (const q of parts) {
+      const i = PS_GLYPHS.indexOf(q);
+      if (i >= 0) {
+        if (shadow) padGlyph(i, cx + gw / 2 + 2, y - size * 0.4 + 2, size * 0.42, '#05070c');
+        padGlyph(i, cx + gw / 2, y - size * 0.4, size * 0.42, PS_COL[i]);
+      } else ptxt(q, cx, y, size, color, 'left', shadow);
+      cx += wOf(q);
+    }
+    return;
+  }
   g.font = `400 ${size}px ${PXFONT}`;
   g.textAlign = align;
   g.lineJoin = 'miter';
@@ -447,7 +466,26 @@ function resetKeymaps() {
   for (const a in PADMAP) delete PADMAP[a]; Object.assign(PADMAP, d.pad);
   try { localStorage.removeItem('primal-keymap'); } catch (e) {}
 }
-const PAD_NAMES = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'SELECT', 'START', 'L3', 'R3', '↑', '↓', '←', '→', 'HOME'];
+/* controller symbols: PlayStation (✕ ○ □ △, L1 R1…) or Xbox (A B X Y, LB RB…).
+   OPZIONI → SIMBOLI CONTROLLER: automatico (riconosce il controller collegato), PlayStation o Xbox */
+const PAD_NAMES_PS = ['✕', '○', '□', '△', 'L1', 'R1', 'L2', 'R2', 'CREATE', 'OPTIONS', 'L3', 'R3', '↑', '↓', '←', '→', 'PS'];
+const PAD_NAMES_XB = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'VIEW', 'MENU', 'L3', 'R3', '↑', '↓', '←', '→', 'XBOX'];
+const PAD_STYLE_NAMES = { auto: 'AUTOMATICO', ps: 'PLAYSTATION', xbox: 'XBOX' };
+function padStyleSetting() { try { return localStorage.getItem('primal-padstyle') || 'auto'; } catch (e) { return 'auto'; } }
+function setPadStyle(v) { try { localStorage.setItem('primal-padstyle', v); } catch (e) {} }
+function detectPadStyle() {
+  const ps = navigator.getGamepads ? [...navigator.getGamepads()].filter(Boolean) : [];
+  for (const p of ps) {
+    const id = (p.id || '').toLowerCase();
+    if (/xbox|045e|xinput|microsoft/.test(id)) return 'xbox';
+    if (/playstation|dualsense|dualshock|054c|wireless controller|sony/.test(id)) return 'ps';
+  }
+  return 'ps';   // nothing recognised: PlayStation symbols
+}
+function padStyle() { const v = padStyleSetting(); return v === 'auto' ? detectPadStyle() : v; }
+function padHTML(i) { const n = padName(i); return i < 4 && padStyle() === 'ps' ? `<i class="psg ps${i}">${n}</i>` : n; }
+function padName(i) { return ((padStyle() === 'xbox' ? PAD_NAMES_XB : PAD_NAMES_PS)[i]) || String(i); }
+const PAD_NAMES = new Proxy([], { get: (t, k) => (/^\d+$/.test(k) ? padName(+k) : t[k]) });
 function codeLabel(code) {
   if (!code) return '?';
   const fixed = { Space: 'SPAZIO', ShiftLeft: 'SHIFT', ShiftRight: 'SHIFT DX', ControlLeft: 'CTRL', ControlRight: 'CTRL DX', AltLeft: 'ALT', AltRight: 'ALT GR', Enter: 'INVIO', Escape: 'ESC', Backspace: '⌫', Tab: 'TAB',

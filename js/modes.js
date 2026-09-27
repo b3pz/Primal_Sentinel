@@ -317,7 +317,9 @@ Object.assign(Game, {
         <button id="fx">EFFETTI ${bar(Audio.sfxVol)} ${Math.round(Audio.sfxVol * 100)}%</button>
         <button id="mute">AUDIO: ${Audio.muted ? 'SPENTO' : 'ACCESO'} (TASTO M)</button>
         <button id="full">SCHERMO INTERO: ${fs ? 'SÌ' : 'NO'}</button>
-        <button id="keys">COMANDI: CAMBIA I TASTI</button>
+        <button id="keys">TASTI DELLA TASTIERA</button>
+        <button id="padkeys">PULSANTI DEL CONTROLLER</button>
+        <button id="padstyle">SIMBOLI CONTROLLER: ${PAD_STYLE_NAMES[padStyleSetting()]}${padStyleSetting() === 'auto' ? ' (' + PAD_STYLE_NAMES[padStyle()] + ')' : ''}</button>
         <button id="back">INDIETRO</button>
       </nav>
       <p>Ogni pressione alza il volume del 10%; dopo il 100% si torna a zero.${Object.values(Audio.fileOK).some(Boolean) ? ' Brani MP3 trovati in assets/music.' : ' Metti i brani MP3 in assets/music per sostituire la musica sintetizzata (vedi LEGGIMI).'}</p>`, from === 'pause' ? 'center' : '');
@@ -331,6 +333,8 @@ Object.assign(Game, {
       Promise.resolve(p).catch(() => {}).finally(() => setTimeout(() => { this.options(from); refocus('#full'); }, 150));
     });
     UI.on('#keys', () => this.remap('kb', from));
+    UI.on('#padkeys', () => this.remap('pad', from));
+    UI.on('#padstyle', () => { const o = ['auto', 'ps', 'xbox']; setPadStyle(o[(o.indexOf(padStyleSetting()) + 1) % 3]); this.options(from); refocus('#padstyle'); });
     UI.on('#back', back);
   },
   remap(scheme = 'kb', from) {
@@ -338,14 +342,14 @@ Object.assign(Game, {
     this.back = () => this.options(from);
     const pad = scheme === 'pad';
     const map = pad ? PADMAP : KEYMAPS[scheme];
-    const label = (a) => pad ? (PADMAP[a] || []).map((i) => PAD_NAMES[i] || i).join(' / ') : (map[a] || []).map(codeLabel).join(' / ');
+    const label = (a) => pad ? (PADMAP[a] || []).map((i) => padHTML(i)).join(' / ') : (map[a] || []).map(codeLabel).join(' / ');
     const acts = pad ? ACTIONS.filter(([a]) => !['l', 'r', 'u', 'd'].includes(a)) : ACTIONS;
     const tabs = [['kb', 'TASTIERA'], ['kbA', 'TASTIERA 1P (IN DUE)'], ['kbB', 'TASTIERA 2P (IN DUE)'], ['pad', 'CONTROLLER']];
     UI.show(`<span class="eyebrow">OPZIONI · COMANDI</span><h2>Scegli un'azione e premi il nuovo tasto</h2>
       <nav>${tabs.map(([k, n]) => `<button class="${k === scheme ? 'primary' : ''}" data-tab="${k}">${n}</button>`).join('')}</nav>
       <div class="keygrid">${acts.map(([a, n]) => `<button data-act="${a}"><span>${n}</span><b>${label(a)}</b></button>`).join('')}</div>
-      <nav><button id="reset">RIPRISTINA PREDEFINITI</button><button id="back">INDIETRO</button></nav>
-      <p>${pad ? 'Premi il pulsante del controller da assegnare.' : 'Premi il nuovo tasto. Se era già usato da un\'altra azione, le due si scambiano.'} Canc annulla.</p>`, from === 'pause' ? 'center' : '');
+      <nav>${pad ? `<button id="pstyle">SIMBOLI: ${PAD_STYLE_NAMES[padStyleSetting()]}${padStyleSetting() === 'auto' ? ' (' + PAD_STYLE_NAMES[padStyle()] + ')' : ''}</button>` : ''}<button id="reset">RIPRISTINA PREDEFINITI</button><button id="back">INDIETRO</button></nav>
+      <p>${pad ? 'Scegli un\'azione (con il mouse, il tocco o la croce + ✕/A), poi premi sul controller il pulsante da assegnare. Se era già usato da un\'altra azione, le due si scambiano. Il movimento resta su levetta sinistra e croce.' : 'Premi il nuovo tasto. Se era già usato da un\'altra azione, le due si scambiano. Canc annulla.'}</p>`, from === 'pause' ? 'center' : '');
     screenEl.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => { Audio.sfx('select'); this.remap(b.dataset.tab, from); });
     screenEl.querySelectorAll('[data-act]').forEach((b) => b.onclick = () => {
       Audio.sfx('confirm');
@@ -368,6 +372,7 @@ Object.assign(Game, {
       addEventListener('keydown', onKey, true);
     });
     UI.on('#reset', () => { resetKeymaps(); this.remap(scheme, from); });
+    UI.on('#pstyle', () => { const o = ['auto', 'ps', 'xbox']; setPadStyle(o[(o.indexOf(padStyleSetting()) + 1) % 3]); this.remap('pad', from); const nb = screenEl.querySelector('#pstyle'); if (nb) nb.focus(); });
     UI.on('#back', () => this.options(from));
   },
   /* the next gamepad button pressed is assigned (see frame loop) */

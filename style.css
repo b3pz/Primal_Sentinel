@@ -105,3 +105,6 @@ body.touch main{box-shadow:none}
 #touch.lobby .t-shoot span{font-size:0}
 #touch.lobby .t-shoot span::after{content:"◀ INDIETRO";white-space:nowrap;font-size:clamp(7px,2vmin,12px)}
 #touch.lobby .t-shoot.down{transform:translate(-50%,50%) scale(.9)}
+/* PlayStation symbols in the menus */
+.psg{font-style:normal;font-family:"Segoe UI Symbol","Apple Symbols",system-ui,sans-serif;font-size:1.45em;line-height:0;vertical-align:-.1em;font-weight:700}
+.ps0{color:#7fa8ff}.ps1{color:#ff5a5a}.ps2{color:#ff8ad8}.ps3{color:#4fe0b0}

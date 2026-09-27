@@ -242,40 +242,60 @@ function drawKeyboard(x, y, lit, color, scheme) {
   lab('SCHIVATA', x + 62, y + 236); lab('SALTO', x + 290, y + 236);
   if (scheme === 'kb2') { const b = actKeys('kbB'); ptxt(`2P: ${b.up}${b.left}${b.down}${b.right} · ${b.punch} ATTACCO · ${b.shoot} PISTOLA · ${b.jump} SALTO · ${b.special} SPECIALE · ${b.team} SQUADRA`, x + 215, y + 272, 8, '#ffcf7a', 'center'); }
 }
+/* PlayStation symbols drawn as shapes (the pixel font has no ✕ ○ □ △) */
+function padGlyph(i, x, y, r, col) {
+  g.save(); g.strokeStyle = col; g.lineWidth = Math.max(2, r / 3.2); g.lineCap = 'round';
+  g.beginPath();
+  if (i === 0) { g.moveTo(x - r, y - r); g.lineTo(x + r, y + r); g.moveTo(x + r, y - r); g.lineTo(x - r, y + r); }
+  else if (i === 1) g.arc(x, y, r, 0, 7);
+  else if (i === 2) g.rect(x - r * 0.9, y - r * 0.9, r * 1.8, r * 1.8);
+  else if (i === 3) { g.moveTo(x, y - r * 1.05); g.lineTo(x + r, y + r * 0.75); g.lineTo(x - r, y + r * 0.75); g.closePath(); }
+  g.stroke(); g.restore();
+}
+const PS_COL = ['#7fa8ff', '#ff5a5a', '#ff8ad8', '#4fe0b0'], XB_COL = ['#58e0a0', '#ff4a3d', '#3f86ff', '#f2c230'];
+const ACT_SHORT = { punch: 'ATTACCO', shoot: 'PISTOLA', jump: 'SALTO', special: 'SPECIALE', dodge: 'SCHIVATA', team: 'SQUADRA', start: 'PAUSA' };
+function padAct(i) { return Object.keys(PADMAP).find((a) => (PADMAP[a] || []).includes(i)); }
 function drawPad(x, y, lit, color) {
   const L = (a) => lit.includes(a);
+  const ps = padStyle() === 'ps';
   g.save();
   // body
   g.fillStyle = '#05070c';
   roundRect(x - 4, y + 36, 468, 196, 90); g.fill();
-  const grd = g.createLinearGradient(0, y + 40, 0, y + 230); grd.addColorStop(0, '#39465a'); grd.addColorStop(1, '#161d28');
+  const grd = g.createLinearGradient(0, y + 40, 0, y + 230); grd.addColorStop(0, ps ? '#e9edf3' : '#39465a'); grd.addColorStop(1, ps ? '#aeb6c2' : '#161d28');
   g.fillStyle = grd; roundRect(x, y + 40, 460, 188, 86); g.fill();
-  // shoulders
-  const sh = (sx, label, on) => { g.fillStyle = '#05070c'; roundRect(sx - 3, y - 3 + (on ? 4 : 0), 116, 42, 12); g.fill(); g.fillStyle = on ? color : '#8a96a6'; roundRect(sx, y + (on ? 4 : 0), 110, 36, 10); g.fill(); ptxt(label, sx + 55, y + 24 + (on ? 4 : 0), 12, '#10161e', 'center', false); };
-  sh(x + 40, 'LB', L('team')); sh(x + 310, 'RB', L('dodge'));
+  if (ps) { g.fillStyle = '#1a1f28'; roundRect(x + 150, y + 48, 160, 74, 14); g.fill(); }   // touchpad
+  // shoulders (L1 / R1)
+  const sh = (sx, i) => { const on = L(padAct(i)); g.fillStyle = '#05070c'; roundRect(sx - 3, y - 3 + (on ? 4 : 0), 116, 42, 12); g.fill(); g.fillStyle = on ? color : '#8a96a6'; roundRect(sx, y + (on ? 4 : 0), 110, 36, 10); g.fill(); ptxt(padName(i), sx + 55, y + 24 + (on ? 4 : 0), 12, '#10161e', 'center', false); };
+  sh(x + 40, 4); sh(x + 310, 5);
   // d-pad
   const dx = x + 110, dy = y + 130;
   const dir = (a, ox, oy) => { g.fillStyle = L(a) ? color : '#1a212b'; g.fillRect(dx + ox - 18, dy + oy - 18, 36, 36); };
   g.fillStyle = '#05070c'; g.fillRect(dx - 58, dy - 22, 116, 44); g.fillRect(dx - 22, dy - 58, 44, 116);
   dir('up', 0, -36); dir('down', 0, 36); dir('left', -36, 0); dir('right', 36, 0); g.fillStyle = '#1a212b'; g.fillRect(dx - 18, dy - 18, 36, 36);
-  // face buttons
-  const fb = (bx, by, label, col, on) => {
-    g.fillStyle = '#05070c'; g.beginPath(); g.arc(bx, by + (on ? 3 : 0), 27, 0, 7); g.fill();
-    g.fillStyle = on ? '#ffffff' : col; g.beginPath(); g.arc(bx, by + (on ? 3 : 0), 23, 0, 7); g.fill();
-    if (on) { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.5; g.fillStyle = col; g.beginPath(); g.arc(bx, by, 40, 0, 7); g.fill(); g.restore(); }
-    ptxt(label, bx, by + 8 + (on ? 3 : 0), 14, '#10161e', 'center', false);
-  };
+  // face buttons: 0 bottom, 1 right, 2 left, 3 top (standard layout)
   const cx = x + 350, cy = y + 130;
-  fb(cx, cy - 44, 'Y', '#f2c230', L('shoot'));
-  fb(cx - 44, cy, 'X', '#3f86ff', L('punch'));
-  fb(cx + 44, cy, 'B', '#ff4a3d', L('special'));
-  fb(cx, cy + 44, 'A', '#58e0a0', L('jump'));
+  const at = [[0, 44], [44, 0], [-44, 0], [0, -44]];
+  for (let i = 0; i < 4; i++) {
+    const bx = cx + at[i][0], on = L(padAct(i)), by = cy + at[i][1] + (on ? 3 : 0), col = (ps ? PS_COL : XB_COL)[i];
+    g.fillStyle = '#05070c'; g.beginPath(); g.arc(bx, by, 27, 0, 7); g.fill();
+    g.fillStyle = on ? '#ffffff' : ps ? '#1b2029' : col; g.beginPath(); g.arc(bx, by, 23, 0, 7); g.fill();
+    if (on) { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.5; g.fillStyle = col; g.beginPath(); g.arc(bx, by, 40, 0, 7); g.fill(); g.restore(); }
+    if (ps) padGlyph(i, bx, by, 10, on ? '#10161e' : col);
+    else ptxt(padName(i), bx, by + 8, 14, '#10161e', 'center', false);
+  }
   g.restore();
   const lab = (t, xx, yy) => ptxt(t, xx, yy, 8, '#dfe8f0', 'center');
-  lab('MUOVI', dx, y + 250); lab('SQUADRA', x + 95, y - 12); lab('SCHIVATA', x + 365, y - 12);
-  lab('X ATTACCO · Y PISTOLA', cx, y + 250); lab('A SALTO · B SPECIALE', cx, y + 266);
+  const nm = (i) => ACT_SHORT[padAct(i)] || '—';
+  lab('MUOVI', dx, y + 250); lab(nm(4), x + 95, y - 12); lab(nm(5), x + 365, y - 12);
+  // what each face button does, with its symbol
+  const rowY = [y + 250, y + 250, y + 268, y + 268], colX = [cx - 150, cx - 50, cx - 150, cx - 50];
+  for (const i of [2, 3, 0, 1]) {
+    const k = [2, 3, 0, 1].indexOf(i), gx = colX[k], gy = rowY[k];
+    if (ps) padGlyph(i, gx - 8, gy - 4, 4, PS_COL[i]); else ptxt(padName(i), gx - 8, gy, 8, XB_COL[i], 'center');
+    ptxt(nm(i), gx, gy, 8, '#dfe8f0', 'left');
+  }
 }
-/* a phone lying sideways with the touch controls of the game */
 function drawTouchPad(x, y, lit, color) {
   const L = (a) => lit.includes(a);
   g.save();
@@ -386,7 +406,7 @@ function drawHowto(pg, t, scheme, hero, opt = {}) {
   // right: controls
   const cx = 740, cy = 180;
   panel(cx - 20, vy, 520, vh, color, 0.9);
-  ptxt(SCHEME_NAMES[scheme], cx + 240, vy + 34, 10, '#9fe8ff', 'center');
+  ptxt(scheme === 'pad' ? 'CONTROLLER ' + PAD_STYLE_NAMES[padStyle()] : SCHEME_NAMES[scheme], cx + 240, vy + 34, 10, '#9fe8ff', 'center');
   if (scheme === 'pad') drawPad(cx + 10, cy + 20, s.lit, color);
   else if (scheme === 'touch') drawTouchPad(cx + 10, cy, s.lit, color);
   else drawKeyboard(cx + 20, cy + 30, s.lit, color, scheme);
