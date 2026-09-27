@@ -79,7 +79,7 @@ const Game = {
         <button id="howto">COME SI GIOCA</button>
         <button id="options">OPZIONI</button>
       </nav>
-      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.9.2</div>`, 'menu');
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.10</div>`, 'menu');
     UI.on('#play', () => { this.modeKind = 'campaign'; this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
     UI.on('#extras', () => this.extras());
@@ -538,6 +538,15 @@ const Game = {
   stageResult(r) {
     const L = LEVELS[this.levelIdx];
     if (this.modeKind !== 'campaign' && this.modeStageResult(r)) return;
+    if (r === 'board') {
+      // chapter 2: the convoy leaves the station, the Sentinels jump on the last wagon
+      this.playCine('board', () => {
+        this.mode = 'stage';
+        boardTrain(this.S);
+        Audio.playSong(L.music);
+      });
+      return;
+    }
     if (r === 'ride') {
       // chapter 3: the Tiranno rosso wakes up and the heroes ride it
       this.playCine('awake', () => { this.mode = 'stage'; startRide(this.S); Audio.playSong(L.music); });

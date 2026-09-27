@@ -154,5 +154,5 @@ function drawMainMenu(M) {
   const desc = it.id === 'diff' ? (DIFF.desc || '').toUpperCase() : it.desc;
   ptxt(desc, W / 2, 646, 9, '#9fe8ff', 'center');
   ptxt(Touch.on ? 'TOCCA UNA VOCE' : '▲ ▼ SCEGLI · INVIO / ' + padName(0) + ' CONFERMA', W / 2, 690, 8, '#6f8aa2', 'center');
-  ptxt('IDEATO E SVILUPPATO DA b3pZ · V1.9.2', W - 20, H - 12, 7, '#56687a', 'right');
+  ptxt('IDEATO E SVILUPPATO DA b3pZ · V1.10', W - 20, H - 12, 7, '#56687a', 'right');
 }

@@ -121,3 +121,5 @@ body.touch main{box-shadow:none}
 #screen.menu nav.grid2 button.primary::before{display:none}
 @keyframes menuPulse{0%,100%{box-shadow:inset 0 -5px 0 #0008,inset 0 3px 0 #ffffff22,0 0 0 #ffb03a00}50%{box-shadow:inset 0 -5px 0 #0008,inset 0 3px 0 #ffffff22,0 0 22px #ffb03a88}}
 #screen.menu .footer{left:0;right:0;bottom:1.8%;text-align:center;color:#8aa0b4}
+/* 1.10: readable text in the menus' descriptions */
+p,.field,.helpgrid p,.chap small{font-family:Exo2,"Trebuchet MS",system-ui,sans-serif;font-weight:600}

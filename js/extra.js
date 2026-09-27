@@ -62,7 +62,7 @@ function stepSummon(S, dt) {
 }
 
 /* ---------------- capitolo 3: in sella al Tiranno rosso ---------------- */
-const RIDE_Z = 116, RIDE_SC = 0.62;
+const RIDE_Z = 150, RIDE_SC = 1.0;   // 1.10: the titan towers over the soldiers; the Sentinels are inside its Heart (not drawn)
 const RIDE_SEATS = [-18, -70, 28, -118];
 function startRide(S) {
   const n = S.players.filter((p) => !p.out).length || 1;
@@ -75,7 +75,7 @@ function startRide(S) {
     p.riding = true; p.st = 'idle'; p.t = 0; p.z = 0; p.atk = null; p.hold = 0; p.inv = 0; p.run = false;
   }
   placeRiders(S);
-  S.banner = { text: 'IN SELLA AL TIRANNO ROSSO!', sub: 'ATTACCO: MORSO · SALTO: CODATA · SPECIALE: RUGGITO · PISTOLA: SPARATE DALLA GROPPA', t: 4 };
+  S.banner = { text: 'IL TIRANNO ROSSO COMBATTE CON VOI!', sub: 'LO GUIDATE CON I CUORI · ATTACCO: MORSO · SALTO: CODATA · SPECIALE: RUGGITO · PISTOLA: SFERE DI FUOCO', t: 4 };
   ev(S, { t: 'flash', c: '#ff8a5a', v: 0.6 }); shake(S, 14); sfx(S, 'bosswind'); sfx(S, 'stomp');
 }
 function placeRiders(S) {
@@ -90,7 +90,7 @@ function hurtRide(S, dmg, opt) {
   dmg = Math.max(1, Math.round(dmg * DIFF.dmg * 0.8));
   R.hp -= dmg; R.inv = 0.35; R.flash = 0.12; S.dmgTaken += dmg;
   if (R.st === 'idle' || R.st === 'walk') { R.st = 'hurt'; R.t = 0; }
-  sparks(S, R.x, R.y - 110, '#ff6a5e', 12); sfx(S, 'hurt'); shake(S, 6);
+  sparks(S, R.x, R.y - 170, '#ff6a5e', 12); sfx(S, 'hurt'); shake(S, 6);
   if (R.hp <= 0) endRide(S, false);
   return true;
 }
@@ -124,7 +124,7 @@ function stepRide(S, ctrls, dt) {
     dx += (c.r ? 1 : 0) - (c.l ? 1 : 0); dy += (c.d ? 1 : 0) - (c.u ? 1 : 0);
     for (const k of ['punch', 'jump', 'special', 'team']) if (c.pressed[k] && !press[k]) press[k] = p;
     // every rider shoots with their own blaster from the back of the titan
-    if (c.pressed.shoot) { if (p.ammo > 0) { p.face = R.face; p.aim = c.u ? 1 : 0; fireBolt(S, p); } else sfx(S, 'empty'); }
+    if (c.pressed.shoot) { if (p.ammo > 0) { p.face = R.face; p.aim = c.u ? 1 : 0; const ox = p.x, oy = p.y; p.x = R.x + R.face * 190; p.y = R.y; fireBolt(S, p); p.x = ox; p.y = oy; } else sfx(S, 'empty'); }
   }
   dx = clamp(dx, -1, 1); dy = clamp(dy, -1, 1);
   const hitFront = (x0, x1, depth, dmg, who) => {
@@ -146,7 +146,7 @@ function stepRide(S, ctrls, dt) {
       if (press.jump) { R.st = 'tail'; R.t = 0; R.did = false; R.by = press.jump; sfx(S, 'wind'); break; }
       if (press.special) {
         if (R.roarCd <= 0) { R.st = 'roar'; R.t = 0; R.did = false; R.roarCd = 7; R.by = press.special; sfx(S, 'bosswind'); break; }
-        floatText(S, R.x, R.y - 230, 'RUGGITO IN CARICA…', '#ffb0a0', 16);
+        floatText(S, R.x, R.y - 330, 'RUGGITO IN CARICA…', '#ffb0a0', 16);
       }
       if (dx) R.face = dx;
       R.x += dx * 250 * dt; R.y += dy * 150 * dt;
@@ -155,22 +155,25 @@ function stepRide(S, ctrls, dt) {
     }
     case 'bite':
       if (R.t < 0.2) R.x += R.face * 260 * dt;
-      if (R.t > 0.16 && !R.did) { R.did = true; sfx(S, 'heavy'); shake(S, 8); sparks(S, R.x + R.face * 170, R.y - 120, '#ffe0a0', 14, 'slash'); hitFront(-40, 340, 80, 44, R.by); }
+      if (R.t > 0.16 && !R.did) { R.did = true; sfx(S, 'heavy'); shake(S, 8); sparks(S, R.x + R.face * 270, R.y - 190, '#ffe0a0', 14, 'slash'); hitFront(-60, 520, 110, 44, R.by); }
       if (R.t > 0.42) { R.st = 'idle'; R.t = 0; }
       break;
     case 'tail':
-      if (R.t > 0.22 && !R.did) { R.did = true; sfx(S, 'heavy'); shake(S, 8); ev(S, { t: 'ring', x: Math.round(R.x - R.face * 120), y: Math.round(R.y), c: '#ff8a5a', r: 220, life: 0.4 }); hitFront(-340, 60, 85, 30, R.by); }
+      if (R.t > 0.22 && !R.did) { R.did = true; sfx(S, 'heavy'); shake(S, 8); ev(S, { t: 'ring', x: Math.round(R.x - R.face * 200), y: Math.round(R.y), c: '#ff8a5a', r: 320, life: 0.4 }); hitFront(-520, 90, 115, 30, R.by); }
       if (R.t > 0.5) { R.st = 'idle'; R.t = 0; }
       break;
     case 'hurt': if (R.t > 0.28) { R.st = 'idle'; R.t = 0; } break;
   }
-  const lo = S.cam + 200, hi = S.camLock !== null ? S.camLock + W - 200 : Math.min(S.L.length - 200, S.cam + W - 200);
-  R.x = clamp(R.x, lo, hi); R.y = clamp(R.y, FLOOR_TOP + 24, FLOOR_BOTTOM);
+  const lo = S.cam + 250, hi = S.camLock !== null ? S.camLock + W - 250 : Math.min(S.L.length - 250, S.cam + W - 250);
+  R.x = clamp(R.x, lo, hi); R.y = clamp(R.y, FLOOR_TOP + 40, FLOOR_BOTTOM);
   placeRiders(S);
+  // the titan picks up what it walks over (its whole body, not just the feet): it goes to the nearest Sentinel
+  const nearest = riders[0];
+  if (nearest) collectItems(S, nearest, R.x, R.y, 190, 60, 0);
 }
 function stunAll(S, R, who, intro) {
   ev(S, { t: 'ring', x: Math.round(R.x + R.face * 120), y: Math.round(R.y - 20), c: '#ff5b4f', r: 520, life: 0.7 }); ev(S, { t: 'flash', c: '#ff8a5a', v: 0.35 }); shake(S, 16); sfx(S, 'stomp');
-  if (!intro) ev(S, { t: 'pop', x: Math.round(R.x), y: Math.round(R.y - 260), s: 'RUGGITO!', c: '#ff5b4f', big: 1 });
+  if (!intro) ev(S, { t: 'pop', x: Math.round(R.x), y: Math.round(R.y - 360), s: 'RUGGITO!', c: '#ff5b4f', big: 1 });
   for (const e of S.enemies) {
     if (!hittable(e) || e.x < S.cam - 40 || e.x > S.cam + W + 40) continue;
     if (!e.boss) { damageEnemy(S, who, e, intro ? 6 : 14, { noKnock: true, from: R.x }); if (e.hp > 0 && !e.def.flying) { e.st = 'hurt'; e.t = -1.3; } }

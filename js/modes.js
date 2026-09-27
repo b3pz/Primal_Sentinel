@@ -101,6 +101,7 @@ Object.assign(Game, {
     }
     if (this.modeKind === 'timeattack') {
       if (r === 'ride') { startRide(S); return true; }
+      if (r === 'board') { boardTrain(S); return true; }
       S.taStop = true;
       this.carryScores(S.players);
       this.runResult = { kind: 'timeattack', win: true, lvl: this.levelIdx, time: S.taT };
@@ -242,6 +243,7 @@ Object.assign(Game, {
     for (const p of S.players) { ctrls[p.id] = cpuControl(S, p, D.k); if (p.hp < p.max * 0.25) p.hp = p.max * 0.6; }
     stepStage(S, ctrls, dt);
     if (S.result === 'ride') { S.result = null; startRide(S); }
+    if (S.result === 'board') { S.result = null; boardTrain(S); }
     this.pendingEv.push(...S.events.filter((e) => e.t !== 'snd' || ['boom', 'special', 'team', 'morph'].includes(e.n)));
     const quit = Object.keys(Input.keyEdge).length || this.anyPad();
     if (quit && D.t > 0.3) { this.attract = false; this.demo = null; Audio.unlock(); this.menu(); return; }
@@ -268,6 +270,7 @@ Object.assign(Game, {
     const cines = [
       { id: 'intro', name: 'INTRO · LA NOTTE DELLE SIRENE', ok: true },
       ...LEVELS.map((L, i) => ({ id: i, name: `DOPO IL CAPITOLO ${i + 1}`, ok: prog > i || (i === 7 && u.story) })),
+      { id: 'board', name: 'IL CONVOGLIO PARTE', ok: prog > 1 },
       { id: 'awake', name: 'IL RISVEGLIO DEL TIRANNO', ok: prog > 2 },
       { id: 'union', name: 'L\'UNIONE DEI TITANI', ok: prog > 4 },
       { id: 'final', name: 'CONCORDIA ALBA', ok: prog >= 7 },
@@ -275,7 +278,7 @@ Object.assign(Game, {
     ];
     return [
       { name: 'SENTINELS', items: HEROES.map((h, i) => ({ kind: 'hero', i, name: h.name, ok: i < CORE_HEROES || !!u.story })) },
-      { name: 'ALLEATI', items: [{ kind: 'ally', a: 'argo', name: 'ARGO', ok: true }, { kind: 'ally', a: 'sette', name: 'SETTE', ok: true }, { kind: 'ally', a: 'valli', name: 'DOTT.SSA VALLI', ok: prog >= 2 }] },
+      { name: 'ALLEATI', items: [{ kind: 'ally', a: 'argo', name: 'ARMV3Z', ok: true }, { kind: 'ally', a: 'sette', name: 'ASTRO', ok: true }, { kind: 'ally', a: 'boris', name: 'BORIS', ok: true }, { kind: 'ally', a: 'valli', name: 'DOTT.SSA VALLI', ok: prog >= 2 }] },
       { name: 'NEMICI', items: Object.keys(ENEMIES).map((k) => ({ kind: 'enemy', k, name: ENEMIES[k].name.toUpperCase(), ok: true })) },
       { name: 'BOSS', items: Object.keys(BOSSES).filter((k) => k !== 'kharon2').map((k, i) => ({ kind: 'boss', k, name: BOSSES[k].name, ok: prog >= i || !!u.story })) },
       { name: 'TITANI', items: [...BEASTS.map((b) => ({ kind: 'beast', b, name: BEAST_NAME[b], ok: prog >= 2 })), { kind: 'beast', b: 'dragon', name: BEAST_NAME.dragon, ok: this.heroCount() > CORE_HEROES }, { kind: 'conc', name: 'CONCORDIA', ok: prog >= 4 }, ...Object.keys(GIANTS).map((k, i) => ({ kind: 'giant', k, name: GIANTS[k].name, ok: prog >= [2, 4, 7][i] }))] },
@@ -442,7 +445,7 @@ function drawDemoOverlay(t) {
   drawLogo(W - 150, H - 70, 0.2, t);
 }
 const GAL_TEXT = {
-  soldier: 'Il soldato senza volto del Velo. Da solo è debole, in gruppo accerchia.',
+  soldier: 'Il soldato senza volto della Dimensione Oscura. Da solo è debole, in gruppo accerchia.',
   lancer: 'Veloce, affonda con la lama da lontano: schiva e contrattacca.',
   brute: 'Lento ma pesantissimo: i suoi colpi ti mandano a terra.',
   segment: 'Un pezzo di Centipede che si è staccato e combatte da solo.',
@@ -456,9 +459,9 @@ const GAL_TEXT = {
   centipede: 'Si divide in segmenti che attaccano da soli.',
   trivor: 'Trivella e si interra: il cerchio a terra mostra dove riemerge.',
   mimesi: 'Ruba le vostre mosse e crea copie oscure.',
-  kharon: 'Il comandante del Velo: para e lancia onde di spada. Colpiscilo alle spalle.',
+  kharon: 'Sirio, imprigionato nella corazza di Vespera: para e lancia onde di spada. Colpiscilo alle spalle.',
   custode: 'Difensore dell\'antica flotta: sfere che inseguono e rinforzi.',
-  vespera: 'La regina del Velo: raggio, teletrasporto, evocazioni.',
+  vespera: 'La Regina Oscura: raggio, teletrasporto, evocazioni.',
 };
 function drawGallery(v) {
   const pages = Game.galleryPages();
@@ -492,8 +495,9 @@ function drawGallery(v) {
     const bars = [['POTENZA', h.power / 1.3], ['VELOCITÀ', h.speed / 310], ['VITA', h.hp / 150]];
     bars.forEach(([n, val], i) => { ptxt(n, 660, 520 + i * 30, 9, '#9fb4c8'); segBar(780, 510 + i * 30, 300, 10, val, 0, h.color, 10); });
   } else if (it.kind === 'ally') {
-    if (it.a === 'argo') { glowAt(cx, cy - 190, 220, '#6fc8ff', 0.35); spr('mentors', `argo_${[0, 1, 0, 2, 4, 3][Math.floor(t * 1.2) % 6]}`, cx, cy, { scale: 1.1 }); info(['IL GUARDIANO DEI CUORI', 'Antico pilota dei titani: di lui resta la coscienza, dentro una colonna di luce nella Camera dei Cuori. Ha scelto i cinque Sentinels e ha conosciuto Kharon mille anni fa.']); }
-    else if (it.a === 'sette') { drawShadow(cx, cy, 50); spr('mentors', `sette_${Math.floor(t * 1.5) % 8}`, cx, cy, { scale: 1.7 }); info(['IL ROBOT ASSISTENTE', 'Tiene in piedi la base, controlla i radar e va nel panico con grande stile. Ti spiega i comandi in COME SI GIOCA e commenta ogni capitolo.']); }
+    if (it.a === 'argo') { glowAt(cx, cy - 190, 220, '#6fc8ff', 0.35); spr('mentors', `argo_${[0, 1, 0, 2, 4, 3][Math.floor(t * 1.2) % 6]}`, cx, cy, { scale: 1.1 }); info(['IL GUARDIANO DEI CUORI', 'Forgiò i Cuori nella Dimensione Oscura e mille anni fa portò i titani a Porto Aurora. La sua anima vive nella Camera dei Cuori.']); }
+    else if (it.a === 'boris') { drawShadow(cx, cy, 60); const k = `sette_${[0, 2, 4, 6][Math.floor(t * 1.2) % 4]}`; spr('mentors', k, cx, cy, { scale: 2.1, img: skinned('mentors', k, 'boris') }); info(['BORIS, IL ROBOT DELLE RIPARAZIONI', 'Grosso e brontolone: ripara le armature e tiene la bottega. Parla poco, ma tiene sempre Astro.']); }
+    else if (it.a === 'sette') { drawShadow(cx, cy, 50); spr('mentors', `sette_${Math.floor(t * 1.5) % 8}`, cx, cy, { scale: 1.7 }); info(['ASTRO, IL ROBOT DEI RADAR', 'Controlla sensori e allarmi, conta i secondi quando è nervoso e festeggia ballando.']); }
     else { drawShadow(cx, cy, 40); spr('people', Math.floor(t) % 3 ? 'scientist_idle0' : 'scientist_point', cx, cy, { scale: 2 }); info(['SCIENZIATA', 'Irene Valli ha studiato le armature per vent\'anni. Liberata dal convoglio, scopre dove dormono i titani.']); }
   } else if (it.kind === 'enemy') {
     const d = ENEMIES[it.k];
@@ -542,7 +546,7 @@ function drawGallery(v) {
 }
 
 /* ============================================================
-   LA BOTTEGA DI SETTE (1.7): tra un capitolo e l'altro la squadra
+   LA BOTTEGA DI BORIS (1.7): tra un capitolo e l'altro la squadra
    spende le monete raccolte (monete, frammenti, sigilli, boss,
    zone liberate e civili salvati) in potenziamenti che valgono
    per tutta la partita.
@@ -557,7 +561,7 @@ const SHOP_ITEMS = [
 Object.assign(Game, {
   openShop(then) {
     this.mode = 'shop'; UI.hide();
-    this.shopUI = { i: 0, t: 0, then, msg: 'BENVENUTI NELLA MIA BOTTEGA!', mood: 'hello', moodT: 0, prev: {} };
+    this.shopUI = { i: 0, t: 0, then, msg: 'BOTTEGA APERTA. SCEGLIETE.', mood: 'hello', moodT: 0, prev: {} };
     Audio.playSong(8, 'sigla');
   },
   shopItems() { return SHOP_ITEMS.filter((it) => it.k !== 'cr' || this.credits !== Infinity); },
@@ -581,11 +585,11 @@ Object.assign(Game, {
     else if (buy) {
       const it = items[U.i], lv = this.shop.lv[it.k], cost = it.cost[lv];
       if (cost === undefined) { U.msg = 'QUESTO È AL MASSIMO!'; U.mood = 'point'; U.moodT = 1.2; Audio.sfx('empty'); }
-      else if (this.shop.coins < cost) { U.msg = 'SERVONO PIÙ MONETE! AHI AHI...'; U.mood = 'panic'; U.moodT = 1.4; Audio.sfx('hurt'); }
+      else if (this.shop.coins < cost) { U.msg = 'SERVONO PIÙ MONETE.'; U.mood = 'panic'; U.moodT = 1.4; Audio.sfx('hurt'); }
       else {
         this.shop.coins -= cost; this.shop.lv[it.k]++;
         if (it.k === 'cr') this.credits++;
-        U.msg = pick(['AFFARE FATTO!', 'OTTIMA SCELTA!', 'VI STARÀ BENISSIMO!']); U.mood = 'joy'; U.moodT = 1.2; Audio.sfx('team');
+        U.msg = pick(['FATTO.', 'BUONA SCELTA.', 'NON ROMPETELO.']); U.mood = 'joy'; U.moodT = 1.2; Audio.sfx('team');
       }
     }
     if (leave) { Audio.sfx('confirm'); const then = U.then; U.then = null; this.shopUI = null; then && then(); }
@@ -594,11 +598,11 @@ Object.assign(Game, {
 function drawShop(v) {
   coverImage('story_cores', 1.05, 0.5, 0.5);
   g.fillStyle = 'rgba(3,6,14,.78)'; g.fillRect(0, 0, W, H);
-  ptitle('LA BOTTEGA DI SETTE', W / 2, 70, 34, '#fff6d6', '#ffb03a');
+  ptitle('LA BOTTEGA DI BORIS', W / 2, 70, 34, '#fff6d6', '#ffb03a');
   ptxt('POTENZIAMENTI PER TUTTA LA SQUADRA · VALGONO FINO ALLA FINE DELLA PARTITA', W / 2, 100, 9, '#9fb4c8', 'center');
-  // Sette at the counter
+  // Boris at the counter
   const pose = v.mood === 'joy' && v.mt > 0 ? (Math.floor(v.t * 6) % 2 ? 'sette_7' : 'sette_5') : v.mood === 'panic' && v.mt > 0 ? (Math.floor(v.t * 5) % 2 ? 'sette_3' : 'sette_0') : v.mood === 'point' && v.mt > 0 ? 'sette_4' : Math.floor(v.t) % 4 === 3 ? 'sette_2' : 'sette_6';
-  drawShadow(230, 600, 70); spr('mentors', pose, 230, 600, { scale: 2.1 });
+  drawShadow(230, 600, 70); spr('mentors', pose, 230, 600, { scale: 2.3, img: skinned('mentors', pose, 'boris') });
   panel(60, 150, 340, 70, '#ffd35a', 0.9);
   const lines = wrapText(v.msg, 300, 15);
   lines.slice(0, 2).forEach((l, i) => txt(l, 76, 180 + i * 24, 15, '#fff1c6', 'left', 700));

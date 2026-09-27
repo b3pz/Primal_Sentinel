@@ -1,5 +1,5 @@
 /* Primal Sentinels — service worker (generato da tools/build_sw.py) */
-const CACHE = 'ps-1.9.2';
+const CACHE = 'ps-1.10';
 const FILES = [
 "./",
 "index.html",
@@ -63,6 +63,8 @@ const FILES = [
 "assets/ui/logo.png",
 "assets/ui/pad_ps.png",
 "assets/fonts/Bungee.woff2",
+"assets/fonts/Exo2-600.woff2",
+"assets/fonts/Exo2-800.woff2",
 "assets/fonts/PixelifySans-500-ext.woff2",
 "assets/fonts/PixelifySans-500.woff2",
 "assets/fonts/PixelifySans-700-ext.woff2",

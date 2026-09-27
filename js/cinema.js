@@ -6,13 +6,13 @@
    ============================================================ */
 const INTRO_LEN = 56;
 const INTRO_SUBS = [
-  [0.5, 8.5, 'PORTO AURORA · ORE 23:47', 'Una notte qualunque sul lungomare. L\'ultima, prima della guerra.'],
-  [9, 13.5, '', 'Poi la terra tremò. E il cielo si spaccò in due.'],
-  [13.8, 22, '', 'Gli uomini senza volto uscirono dagli specchi delle vetrine.'],
-  [22.5, 31, 'OLTRE IL VELO', '«Riportatemi i Cuori.» — Vespera, la Regina del Velo.'],
-  [31.5, 34.9, 'LA CAMERA DEI CUORI', '«Cuori, svegliatevi. Scegliete i vostri custodi.» — Argo, il Guardiano.'],
-  [35.1, 38, 'SOTTO LA CITTÀ', 'Cinque macchine addormentate da millenni aprirono gli occhi.'],
-  [38.5, 45, '', 'Ma i Cuori scelsero qualcun altro. Cinque persone qualunque.'],
+  [0.5, 8.5, 'PORTO AURORA · ORE 23:47', 'Una notte qualunque sul lungomare. Cinque persone che non si conoscono.'],
+  [9, 13.5, '', 'Poi la terra tremò, e il cielo si aprì come un vetro rotto.'],
+  [13.8, 22, '', 'Dagli specchi delle vetrine uscirono i Senzavolto, i soldati della Dimensione Oscura.'],
+  [22.5, 31, 'LA DIMENSIONE OSCURA', '«Trovate i Cuori. Riportatemi i miei titani.» — Vespera, la Regina Oscura'],
+  [31.5, 34.9, 'LA CAMERA DEI CUORI', '«Cuori, svegliatevi. Scegliete chi è pronto a proteggere gli altri.» — ArMV3z'],
+  [35.1, 38, 'SOTTO LA CITTÀ', 'Cinque titani addormentati da mille anni aprirono gli occhi.'],
+  [38.5, 45, '', 'E i Cuori scelsero: Ciusky, il pizzaiolo. Beps, lo studente. Kathy, la corriera. Kiki, l\'infermiera. Dilik, lo scaricatore del porto.'],
   [45.2, 52, '', ''],
 ];
 const INTRO_CUES = [[0.1, 'crowd'], [9, 'stomp'], [9.4, 'siren'], [10.8, 'boom'], [11.5, 'siren'], [14, 'laser'], [15, 'laser'], [16.2, 'laser'], [17, 'crowd'], [18.5, 'crowd'], [23, 'laser'], [26.5, 'special'], [32, 'morph'], [44.5, 'confirm'], [45.3, 'morph'], [47.2, 'boom'], [49, 'team']];
@@ -69,10 +69,12 @@ function subtitle(t) {
     if (t < a || t > b || (!head && !body)) continue;
     const k = clamp(Math.min(t - a, b - t) * 2.5, 0, 1);
     g.globalAlpha = k;
-    g.fillStyle = 'rgba(2,6,12,.72)'; g.fillRect(0, H - 118, W, 90);
-    if (head) ptxt(head, W / 2, H - 88, 11, '#ffcf7a', 'center');
     const n = Math.floor((t - a) * 42);
-    txt(body.slice(0, n), W / 2, H - 52, 24, '#f2f6fa', 'center', 700);
+    const lines = wrapText(body.slice(0, n), W - 180, 24);
+    const bh = 70 + Math.max(1, lines.length) * 32;
+    g.fillStyle = 'rgba(2,6,12,.78)'; g.fillRect(0, H - 28 - bh, W, bh);
+    if (head) ptxt(head, W / 2, H - bh + 2, 12, '#ffcf7a', 'center');
+    lines.forEach((ln, i) => txt(ln, W / 2, H - bh + 44 + i * 32, 24, '#f2f6fa', 'center', 700));
     g.globalAlpha = 1;
   }
 }
@@ -184,7 +186,7 @@ function drawIntro(t) {
       for (let y = foot - f[3] * hs; y < foot; y += 3) g.fillRect(cx - f[2] * hs / 2, y, f[2] * hs, 1);
       g.restore();
     });
-    // Argo, the Guardian of the Hearts, lights up in his column and wakes the Hearts
+    // ArMV3z, the Guardian of the Hearts, lights up in his column and wakes the Hearts
     if (frameOf('mentors', 'argo_6') && k > 0.1) {
       const a = clamp((k - 0.1) / 0.5, 0, 1);
       const key = k < 0.9 ? 'argo_6' : k < 1.4 ? 'argo_2' : Math.floor(k * 7) % 2 ? 'argo_1' : 'argo_0';
@@ -308,13 +310,15 @@ function drawDialog(v) {
   const sp = SPEAKERS[who];
   const typing = text && k * 48 < text.length;
   if (sp && sp[0] === 'mentors') {
-    // Argo in his column of light, Sette the robot: they move their mouth / hands while talking
-    const argo = who === 'ARGO';
+    // ArMV3z in his column of light, the robots Astro and Boris: they move their mouth / hands while talking
+    const argo = who === 'ARMV3Z', boris = who === 'BORIS';
     const key = argo ? (typing && Math.floor(k * 7) % 2 ? 'argo_1' : /!/.test(text) ? 'argo_2' : 'argo_0')
       : /ahi|sparendo|non mi piace/i.test(text) ? (Math.floor(k * 5) % 2 ? 'sette_3' : 'sette_0') : /ballare|fatta/i.test(text) ? (Math.floor(k * 4) % 2 ? 'sette_7' : 'sette_5') : typing && Math.floor(k * 6) % 2 ? 'sette_2' : 'sette_0';
     if (argo) glowAt(1020, 430, 260, '#6fc8ff', 0.35 + Math.sin(k * 3) * 0.08);
     drawShadow(1020, 620, argo ? 110 : 50);
-    spr('mentors', key, 1020, 620, { scale: argo ? 1 : 1.3, face: -1 });
+    if (boris) { spr('mentors', key, 1020, 620, { scale: 1.6, face: -1, img: skinned('mentors', key, 'boris') }); if (frameOf('mentors', 'sette_0')) spr('mentors', 'sette_0', 1150, 620, { scale: 1.1, face: -1, alpha: 0.9 }); }
+    else if (who === 'ASTRO') { spr('mentors', key, 1020, 620, { scale: 1.3, face: -1 }); spr('mentors', 'sette_0', 1150, 620, { scale: 1.5, face: -1, alpha: 0.9, img: skinned('mentors', 'sette_0', 'boris') }); }
+    else spr('mentors', key, 1020, 620, { scale: argo ? 1 : 1.3, face: -1 });
   } else if (sp && !HEROES.some((h) => h.name === who)) {
     const [sheet, key] = sp;
     const sc = sheet === 'people' ? 1.5 : sheet === 'bosses' ? (who === 'TRIVOR' ? 1.9 : 1.6) : 1.1;
@@ -340,7 +344,7 @@ function drawDialog(v) {
     g.save(); g.beginPath(); g.rect(60, H - 262, 220, 222); g.clip();
     const grd = g.createRadialGradient(170, H - 150, 10, 170, H - 150, 150); grd.addColorStop(0, col + '66'); grd.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = grd; g.fillRect(60, H - 262, 220, 222);
-    spr(psheet, pkey, 170, H - 40, { scale: f ? Math.min(1.1, 212 / f[3]) : 1.1 });
+    spr(psheet, pkey, 170, H - 40, { scale: f ? Math.min(1.1, 212 / f[3]) : 1.1, img: who === 'BORIS' ? skinned(psheet, pkey, 'boris') : undefined });
     g.restore();
     g.strokeStyle = col; g.lineWidth = 3; g.strokeRect(60, H - 262, 220, 222);
   }
@@ -349,7 +353,7 @@ function drawDialog(v) {
   const lines = wrapText(shown, W - tx - 110, 24);
   lines.forEach((ln, i) => txt(ln, tx, H - (who !== 'NARRATORE' ? 112 : 140) + i * 34, 24, who === 'NARRATORE' ? '#dfe7ef' : '#f4f6fa', 'left', who === 'NARRATORE' ? 600 : 700));
   if (shown.length >= text.length && Math.floor(k * 2.5) % 2) txt('▼', W - 90, H - 60, 18, '#ffcf7a', 'center', 900);
-  ptxt(`${v.i + 1}/${v.lines.length} · PUGNO: AVANTI · START: SALTA`, W - 80, H - 14, 8, '#7e8fa2', 'right');
+  txt(`${v.i + 1}/${v.lines.length}  ·  ATTACCO: AVANTI  ·  START: SALTA`, W - 80, H - 12, 13, '#9fb0c2', 'right', 600);
 }
 
 /* ---------------- ending ---------------- */
@@ -362,9 +366,10 @@ function drawEnding(t, heroes) {
   const credits = [
     ['PRIMAL SENTINELS', 'IL CUORE DEI TITANI'],
     ['IDEATO E SVILUPPATO DA', 'b3pZ'],
-    ['EROI', 'IGNIS · AZUR · LYRA · AURA · ONYX'],
-    ['I TITANI', 'TIRANNO · TRICORNO · FELINO · PTEROSAURO · MASTODONTE'],
-    ['E CONCORDIA', 'PERCHÉ HANNO SCELTO NOI'],
+    ['I SENTINELS', 'CIUSKY · BEPS · KATHY · KIKI · DILIK · SIRIO'],
+    ['I TITANI', 'TIRANNO · TRICERATOPO · FELINO · PTEROSAURO · MASTODONTE · DRAGO'],
+    ['LA CAMERA DEI CUORI', 'ARMV3Z · ASTRO · BORIS · IRENE VALLI'],
+    ['I TITANI DORMONO', 'MA SE IL VARCO SI RIAPRIRÀ, I CUORI SAPRANNO CHI CHIAMARE'],
     ['GRAZIE PER AVER GIOCATO', 'PORTO AURORA È SALVA'],
   ];
   const idx = Math.floor(t / 4.2);
@@ -376,10 +381,10 @@ function drawEnding(t, heroes) {
     g.globalAlpha = ca;
     g.fillStyle = 'rgba(4,8,16,.55)'; g.fillRect(0, 150, W, 130);
     ptxt(c[0], tx, 205, 14, '#ffcf7a', 'center');
-    ptitle(c[1], tx, 255, c[1].length > 30 ? 18 : 28, '#fff6e6', '#ffc070');
+    if (c[1].length > 40) txt(c[1], tx, 250, 24, '#fff6e6', 'center', 800); else ptitle(c[1], tx, 255, c[1].length > 30 ? 18 : 28, '#fff6e6', '#ffc070');
     g.globalAlpha = 1;
   }
-  if (t > 26 && Math.floor(t * 2) % 2) ptxt('PREMI PUGNO PER TORNARE AL MENU', W / 2, H - 30, 12, '#fff', 'center');
+  if (t > 30 && Math.floor(t * 2) % 2) ptxt('PREMI ATTACCO PER TORNARE AL MENU', W / 2, H - 30, 12, '#fff', 'center');
 }
 
 /* ---------------- CONTINUA? · GAME OVER · riepilogo ---------------- */
@@ -405,7 +410,7 @@ function drawFinal(v) {
   g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(0, 0, W, H);
   ghost('bosses', 'vespera_4', W / 2, 700, 2.6, -1, 0.35);
   ptitle('GAME OVER', W / 2, 300, 64, '#ffffff', '#ff4a3a');
-  ptxt('IL VELO HA INGHIOTTITO PORTO AURORA', W / 2, 360, 14, '#e0c0ff', 'center');
+  ptxt('LA DIMENSIONE OSCURA HA INGHIOTTITO PORTO AURORA', W / 2, 360, 14, '#e0c0ff', 'center');
   if (v.t > 2) ptxt('SI RICOMINCIA DAL PRINCIPIO', W / 2, 420, 12, '#c8d6e4', 'center');
   g.globalAlpha = 1;
 }
@@ -448,8 +453,8 @@ function drawSummary(v) {
   }
   if (t > 2 && frameOf('mentors', 'sette_0')) {
     const pose = { S: Math.floor(t * 4) % 2 ? 'sette_7' : 'sette_5', A: 'sette_5', B: 'sette_2', C: Math.floor(t * 4) % 2 ? 'sette_3' : 'sette_0' }[st.rank] || 'sette_2';
-    const say = { S: 'INCREDIBILE! RECORD!', A: 'OTTIMO LAVORO!', B: 'BENE, SENTINELS!', C: 'AHI AHI... ALLENIAMOCI!' }[st.rank] || '';
-    drawShadow(1180, 700, 30); spr('mentors', pose, 1180, 700, { scale: 0.85, face: -1 });
+    const say = { S: 'ASTRO: INCREDIBILE! RECORD!', A: 'ASTRO: OTTIMO LAVORO!', B: 'BORIS: SI PUÒ FARE MEGLIO.', C: 'BORIS: ALLENAMENTO. SUBITO.' }[st.rank] || '';
+    drawShadow(1180, 700, 30); spr('mentors', pose, 1180, 700, { scale: /B|C/.test(st.rank) ? 1 : 0.85, face: -1, img: /B|C/.test(st.rank) ? skinned('mentors', pose, 'boris') : undefined });
     ptxt(say, 1120, 580, 9, '#ffd35a', 'right');
   }
   (st.unlock || []).forEach((u, i) => { if (t > 2.4 + i * 0.4) { panel(760, 520 + i * 44, 460, 36, '#ffd35a', 0.9); ptxt('SBLOCCATO! ' + u, 990, 544 + i * 44, 10, Math.floor(t * 6) % 2 ? '#ffffff' : '#ffd35a', 'center'); } });

@@ -122,13 +122,13 @@ function heroSpr(h, f, x, y, opt = {}) {
 }
 
 /* ---------- text helpers ---------- */
-const FONT = 'Pixelify, "Trebuchet MS", system-ui, sans-serif';
+const FONT = 'Exo2, "Trebuchet MS", system-ui, sans-serif';   // 1.10: readable text (dialogues, captions); pixel fonts stay for titles
 const PXFONT = 'PressStart, Pixelify, monospace';
 /* arcade text: dark outline + drop shadow, pixel font */
 const noLig = (t) => String(t).replace(/f(?=[filt])/g, 'f\u200c');   // the pixel font has broken fi/fl ligatures
 function txt(t, x, y, size = 18, color = '#eef6ff', align = 'left', weight = 800) {
   t = noLig(t);
-  g.font = `${weight >= 700 ? 700 : 500} ${Math.round(size * 1.12)}px ${FONT}`;
+  g.font = `${weight >= 700 ? 800 : 600} ${Math.round(size * 1.08)}px ${FONT}`;
   g.textAlign = align;
   g.lineJoin = 'round';
   g.lineWidth = Math.max(3, size / 5);
@@ -186,7 +186,7 @@ function ptitle(t, x, y, size, c1 = '#fff6d6', c2 = '#ffb03a', align = 'center')
   g.fillStyle = grd; g.fillText(t, x, y);
 }
 function wrapText(t, maxW, size) {
-  g.font = `700 ${Math.round(size * 1.12)}px ${FONT}`;
+  g.font = `800 ${Math.round(size * 1.08)}px ${FONT}`;
   const words = noLig(t).split(' '), lines = [];
   let cur = '';
   for (const w of words) {

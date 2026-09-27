@@ -320,6 +320,8 @@ function drawDrawable(o, cam, t) {
     for (let bx = -48; bx <= 48; bx += 16) g.fillRect(x + bx, y - 150, 3, 152);
     g.fillRect(x - 52, y - 154, 104, 5); g.fillRect(x - 52, y - 2, 104, 5);
     g.restore();
+    if (Math.floor(t * 2.5 + o.i) % 2) ptitle('AIUTO!', x, y - 172, 13, '#ffffff', '#c07bff');
+    ptxt('COLPISCI LA GABBIA', x, y - 158, 7, '#e0c8ff', 'center');
   }
   if (o.wp) drawWeaponOn(o, x, y - z);
   if (o.sw) drawSigWeapon(o.sw, o.f, x + ox, y - z, o.fc, o.sc, o.sr, o.au || o.pc, t);
@@ -412,7 +414,7 @@ function drawTrain(cam, t, a, portal) {
   }
   // open gaps between the wagons (same geometry as the simulation: gapLeft/GAP_W)
   for (let wx = Math.floor(cam / WAGON) * WAGON - WAGON; wx < cam + W + WAGON; wx += WAGON) {
-    if (!trainOn(LEVELS[1], wx + 60)) continue;
+    if (!trainOn(LEVELS[1], wx + 60) || (LEVELS[1].loco && wx + 60 > LEVELS[1].loco - 80)) continue;
     const x = wx - cam + 40;
     const poly = () => { g.beginPath(); g.moveTo(x, top); g.lineTo(x + GAP_W, top); g.lineTo(x + GAP_W - GAP_SLANT, H); g.lineTo(x - GAP_SLANT, H); g.closePath(); };
     g.save(); poly(); g.clip();
@@ -436,6 +438,74 @@ function drawTrain(cam, t, a, portal) {
   g.restore();
   // clack-clack of the rails
   if (a > 0.5 && t - TRAIN.lastT > 0.46) { TRAIN.lastT = t; Audio.noise(0.04, 0.05, 900); Audio.noise(0.04, 0.045, 900, 0.09); }
+}
+/* chapter 2: the armoured convoy standing at the platform (and leaving, in the boarding scene).
+   wx0 = world x of the last wagon; the locomotive is at the front (right). */
+const CONVOY = { wagon: 390, gap: 18, n: 4 };
+function drawConvoy(cam, t, a = 1, speed = 0) {
+  const L = LEVELS[1]; if (!L || !L.train) return;
+  const base = HORIZON + 14, x0 = L.train - 1300 - cam;
+  g.save(); g.globalAlpha = a;
+  const wheel = (x, y) => { g.fillStyle = '#07090e'; g.beginPath(); g.arc(x, y, 17, 0, 7); g.fill(); g.strokeStyle = '#4a5260'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, 11, t * speed * 0.05, t * speed * 0.05 + 4.5); g.stroke(); };
+  for (let i = 0; i < CONVOY.n; i++) {
+    const x = x0 + i * (CONVOY.wagon + CONVOY.gap), w = CONVOY.wagon, h = 168, y = base - 26 - h;
+    if (x > W + 40 || x + w < -40) continue;
+    g.fillStyle = '#10141c'; g.fillRect(x - 3, y - 3, w + 6, h + 6);
+    const body = g.createLinearGradient(0, y, 0, y + h); body.addColorStop(0, '#46505f'); body.addColorStop(0.5, '#2c3440'); body.addColorStop(1, '#1b212a');
+    g.fillStyle = body; g.fillRect(x, y, w, h);
+    g.fillStyle = '#58637a'; g.fillRect(x, y, w, 8);                        // roof edge
+    for (let k = 1; k < 6; k++) { g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(x + k * w / 6, y + 8, 2, h - 8); }
+    g.fillStyle = '#7a2bd0'; g.fillRect(x, y + h - 42, w, 6);                 // purple stripe of the dark convoy
+    g.globalCompositeOperation = 'lighter'; g.fillStyle = `rgba(160,80,255,${0.25 + Math.sin(t * 4 + i) * 0.1})`; g.fillRect(x, y + h - 44, w, 10); g.globalCompositeOperation = 'source-over';
+    // barred windows with the prisoners' hands on the bars
+    for (let k = 0; k < 3; k++) {
+      const wx = x + 40 + k * 118, wy = y + 34;
+      g.fillStyle = '#0a0c12'; g.fillRect(wx, wy, 78, 54);
+      g.fillStyle = `rgba(255,190,110,${0.22 + 0.08 * Math.sin(t * 2 + k + i)})`; g.fillRect(wx + 4, wy + 4, 70, 46);
+      g.fillStyle = '#1a1410'; g.beginPath(); g.ellipse(wx + 39 + Math.sin(t * 1.5 + i * 2 + k) * 8, wy + 50, 16, 22, 0, 0, 7); g.fill();   // a head
+      g.fillStyle = '#e8c09a'; if ((i + k) % 2 === 0) { g.fillRect(wx + 18, wy + 18 + Math.sin(t * 6 + k) * 3, 7, 9); g.fillRect(wx + 52, wy + 20 + Math.cos(t * 6 + k) * 3, 7, 9); }
+      g.fillStyle = '#8b95a6'; for (let b = 0; b < 5; b++) g.fillRect(wx + 8 + b * 15, wy, 3, 54);
+    }
+    g.fillStyle = '#20262f'; g.fillRect(x - CONVOY.gap, base - 58, CONVOY.gap, 10);   // coupling
+    wheel(x + 50, base - 12); wheel(x + 96, base - 12); wheel(x + w - 96, base - 12); wheel(x + w - 50, base - 12);
+  }
+  // the locomotive at the head of the convoy
+  const lx = x0 + CONVOY.n * (CONVOY.wagon + CONVOY.gap), lw = 560, lh = 210, ly = base - 26 - lh;
+  if (lx < W + 60 && lx + lw > -60) {
+    g.fillStyle = '#10141c'; g.beginPath(); g.moveTo(lx - 3, ly + 40); g.lineTo(lx + lw - 150, ly - 3); g.lineTo(lx + lw + 4, ly + 90); g.lineTo(lx + lw + 4, ly + lh + 3); g.lineTo(lx - 3, ly + lh + 3); g.fill();
+    const lg = g.createLinearGradient(0, ly, 0, ly + lh); lg.addColorStop(0, '#5a2230'); lg.addColorStop(0.5, '#3a1622'); lg.addColorStop(1, '#1e0c12');
+    g.fillStyle = lg; g.beginPath(); g.moveTo(lx, ly + 40); g.lineTo(lx + lw - 150, ly); g.lineTo(lx + lw, ly + 90); g.lineTo(lx + lw, ly + lh); g.lineTo(lx, ly + lh); g.fill();
+    g.fillStyle = '#0a0c12'; g.fillRect(lx + lw - 250, ly + 30, 120, 60);                   // cab window
+    g.globalCompositeOperation = 'lighter'; g.fillStyle = `rgba(170,90,255,${0.55 + Math.sin(t * 5) * 0.15})`; g.fillRect(lx + lw - 246, ly + 34, 112, 52);
+    glowAt(lx + lw - 10, ly + 140, 120, '#ffe6a0', 0.5); g.globalCompositeOperation = 'source-over';   // headlight
+    g.fillStyle = '#e0b020'; for (let k = 0; k < 7; k++) g.fillRect(lx + 20 + k * 60, ly + lh - 30, 30, 10);
+    g.fillStyle = '#20262f'; g.fillRect(lx + 60, ly + 4, 34, 40); g.fillRect(lx + 150, ly - 8, 30, 50);   // stacks
+    for (let k = 0; k < 6; k++) { const age = (t * 0.9 + k / 6) % 1; g.fillStyle = `rgba(120,110,130,${0.45 * (1 - age)})`; g.beginPath(); g.arc(lx + 165 - age * (80 + speed * 0.3), ly - 20 - age * 120, 16 + age * 40, 0, 7); g.fill(); }
+    for (let k = 0; k < 5; k++) wheel(lx + 60 + k * 100, base - 12);
+  }
+  g.restore();
+}
+/* chapter 2, on the roof: from L.loco on you are standing on the locomotive */
+function drawLocoRoof(cam, t) {
+  const L = LEVELS[1]; if (!L || !L.loco) return;
+  const x = L.loco - cam;
+  if (x > W) return;
+  const top = HORIZON, x0 = Math.max(0, x);
+  g.save();
+  g.fillStyle = 'rgba(110,20,36,.35)'; g.fillRect(x0, top, W - x0, H - top);          // red armour plates
+  for (let k = Math.floor((x0 - x) / 140); x + k * 140 < W; k++) {                        // cooling grilles
+    const gx = x + 40 + k * 140; if (gx < -140) continue;
+    g.fillStyle = 'rgba(10,6,10,.55)'; g.fillRect(gx, top + 40, 90, 34);
+    g.fillStyle = 'rgba(255,120,60,.35)'; for (let b = 0; b < 6; b++) g.fillRect(gx + 6 + b * 14, top + 44, 6, 26);
+  }
+  // exhaust stacks rising from the roof (behind the fighters), smoke streaming back
+  for (let k = 0; x + 220 + k * 520 < W + 100; k++) {
+    const sx = x + 220 + k * 520; if (sx < -100) continue;
+    g.fillStyle = '#1a1016'; g.fillRect(sx, top - 90, 44, 96); g.fillStyle = '#3a2028'; g.fillRect(sx - 6, top - 96, 56, 12);
+    for (let j = 0; j < 7; j++) { const age = (t * 1.6 + j / 7) % 1; g.fillStyle = `rgba(110,100,120,${0.5 * (1 - age)})`; g.beginPath(); g.arc(sx + 22 - age * 420, top - 110 - age * 60, 14 + age * 46, 0, 7); g.fill(); }
+  }
+  if (x > 0) { g.fillStyle = '#e0b020'; for (let k = 0; k < 8; k++) g.fillRect(x - 6 - k * 6, top + 6 + k * 32, 12, 16); }   // where the locomotive begins
+  g.restore();
 }
 function drawTrainForeground(cam, t, a) {
   // catenary poles whizzing past in the foreground, overhead wires
@@ -461,7 +531,8 @@ function renderStage(v) {
   g.save();
   if (FX.shake) g.translate(rand(-1, 1) * FX.shake, rand(-1, 1) * FX.shake);
   if (tr < 1) drawStageBackdrop(v.bg, cam);
-  if (tr > 0) { drawTrain(cam, t, tr, v.hud.portal || 0); g.translate(Math.sin(t * 23) * tr * 1.2, Math.abs(Math.sin(t * 11)) * tr * 1.5); }
+  if (tr < 1 && LEVELS[v.lv] && LEVELS[v.lv].train) drawConvoy(cam, t, 1 - tr);
+  if (tr > 0) { drawTrain(cam, t, tr, v.hud.portal || 0); if (tr >= 1) drawLocoRoof(cam, t); g.translate(Math.sin(t * 23) * tr * 1.2, Math.abs(Math.sin(t * 11)) * tr * 1.5); }
   if (v.hud.tun) drawTunnelBack(t, v.hud.tun);
   if (v.hud.esc !== undefined) drawCollapseBack(cam, t, v.hud.esc);
   if (FX.team && FX.team.arena) { const k = FX.team.t, fade = clamp(Math.min(k * 4, (TEAM_LEN - k) * 4), 0, 1); g.fillStyle = `rgba(4,6,14,${0.5 * fade})`; g.fillRect(-20, -20, W + 40, H + 40); }

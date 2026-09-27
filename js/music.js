@@ -46,7 +46,7 @@ const MUSIC = [
            F5 - - - Eb5 - C5 - | Ab5 - G5 - F5 - C5 - | Db5 - F5 - Ab5 - Bb5 - | C6 - - - . . . . |
            Bb4 - Db5 - F5 - - - | Ab5 - - - F5 - C5 - | Db5 - - - Ab5 - F5 - | E5 - - - G5 - - - |
            F5 - Ab5 - Db6 - - - | C6 - Ab5 - F5 - Db5 - | Eb5 - G5 - Bb5 - - - | C6 - - - E5 - - -` },
-  { name: 'capitolo7', title: 'Oltre il Velo', bpm: 144, drums: 'rock', bass: 'octave', arp: 'bell',
+  { name: 'capitolo7', title: 'La Dimensione Oscura', bpm: 144, drums: 'rock', bass: 'octave', arp: 'bell',
     chords: 'F#m G F#m E F#m G A G#m F#m D E C# F#m G F#m F#m',
     lead: `F#5 - G5 - A5 - F#5 - | G5 - - - B5 - A5 G5 | F#5 - C#5 - A4 - C#5 - | E5 - - - G#5 - B5 - |
            A5 - G5 - F#5 - C#6 - | B5 - - - D6 - B5 - | C#6 - E6 - A5 - C#6 - | B5 - - - G#5 - - - |

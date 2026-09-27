@@ -3,12 +3,12 @@
    MECCANICHE DEI CAPITOLI — ogni capitolo ha qualcosa di suo:
    1 traffico di scooter · 4 specchi che generano copie e riflettori
    che cadono · 5 antenna da difendere · 6 generatori e presse ·
-   7-8 gravità ridotta · livello bonus: la capsula del Velo.
+   7-8 gravità ridotta · livello bonus: la capsula oscura.
    ============================================================ */
 const BONUS_AFTER = [1, 3, 5];   // after chapters 2, 4 and 6
 function bonusLevel(idx) {
   const bg = ['rail', 'theater', 'graveyard'][BONUS_AFTER.indexOf(idx)] || 'veil';
-  return { n: 'BONUS', bonus: true, bg, place: 'LIVELLO BONUS', title: 'LA CAPSULA DEL VELO', length: W + 100, music: 3, zones: [{ x: 380, name: 'DISTRUGGI LA CAPSULA!' }], intro: [], outro: [] };
+  return { n: 'BONUS', bonus: true, bg, place: 'LIVELLO BONUS', title: 'LA CAPSULA OSCURA', length: W + 100, music: 3, zones: [{ x: 380, name: 'DISTRUGGI LA CAPSULA!' }], intro: [], outro: [] };
 }
 
 /* extra props, placed per chapter/zone */
@@ -25,7 +25,7 @@ function mechInit(S) {
   if (S.L.bonus) {
     S.props.push({ id: nid(), type: 'capsule', x: 640, y: 600, hp: 30 + S.players.length * 18, max: 30 + S.players.length * 18, shake: 0 });
     S.bonusT = 30; S.phase = 'stage';
-    S.banner = { text: 'LIVELLO BONUS!', sub: 'DISTRUGGI LA CAPSULA DEL VELO IN 30 SECONDI', t: 3 };
+    S.banner = { text: 'LIVELLO BONUS!', sub: 'DISTRUGGI LA CAPSULA OSCURA IN 30 SECONDI', t: 3 };
     return;
   }
   for (const [type, x, y, zone] of MECH_PROPS[S.lvl] || []) S.props.push({ id: nid(), type, x, y, hp: PROPS[type].hp, max: PROPS[type].hp, shake: 0, zone, cd: 0, spawnT: 3 + Math.random() * 3 });

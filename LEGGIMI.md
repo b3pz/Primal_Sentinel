@@ -86,6 +86,20 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.10 — la storia
+- **Storia riscritta** (sceneggiatura completa nel documento condiviso): i Sentinels hanno un nome e un mestiere
+  (Ciusky, Beps, Kathy, Kiki, Dilik), Kharon è **Sirio**, il primo pilota dei titani; il mentore è **ArMV3z**,
+  i robot sono due: **Astro** (radar, allarmi) e **Boris** (riparazioni e bottega). I nemici vengono dalla
+  **Dimensione Oscura** e Vespera è la **Regina Oscura**. Nuovi testi per intro, dialoghi, scene animate e titoli di coda.
+- **Testi leggibili**: dialoghi, didascalie e descrizioni usano un carattere chiaro (Exo 2) più grande;
+  il carattere pixel resta per titoli e nomi.
+- **Capitolo 2**: il convoglio è fermo in stazione con i prigionieri alle sbarre; una scena mostra il treno che parte
+  e i Sentinels che saltano sul tetto. L'ultimo tratto è davvero la **locomotiva** (corazza rossa, griglie, ciminiere
+  che fumano, niente spazi tra i vagoni). **Prigionieri alla Metal Slug**: colpisci la gabbia (3 colpi) e il
+  prigioniero liberato ti lascia un regalo (pollo, munizioni, energia, gemma…), +1000 punti e 2 monete.
+- **Capitolo 3**: niente più Sentinel in groppa. Il **Tiranno Rosso** è grande quanto un titano (più del doppio
+  dei soldati), lo guidate con i Cuori, i nemici lo attaccano al muso o alla coda e raccoglie gli oggetti su cui passa.
+
 ## Novità della 1.9.2 (le tue tavole: volti e pose)
 - **Volti frontali** dei sei Sentinels: nelle schede della scelta del personaggio e nei ritratti in partita (in alto).
 - **Pose di presentazione**: nella scelta del personaggio chi è in fila aspetta con l'arma in mano, quello scelto
