@@ -499,6 +499,40 @@ function codeLabel(code) {
   return code.toUpperCase().slice(0, 6);
 }
 
+/* ---------- controller calibration (1.8.1) ----------
+   Many PlayStation-style USB pads (and some Bluetooth ones) are not reported with the "standard" layout,
+   so the browser numbers their buttons differently. OPZIONI → PROVA E CALIBRA IL CONTROLLER records, for
+   each controller model, which real button/axis is ✕, ○, □, △, L1… and everything reads through it. */
+let PADCAL = {};
+const HAT_SEEN = {};
+try { PADCAL = JSON.parse(localStorage.getItem('primal-padcal') || '{}'); } catch (e) { PADCAL = {}; }
+function savePadCal() { try { localStorage.setItem('primal-padcal', JSON.stringify(PADCAL)); } catch (e) {} }
+function hatDir(v) {   // 8-way hat switch on one axis (common on generic pads): -1 up … 0.71 left, ~1.28 = released
+  if (v === undefined || Math.abs(v) > 1.05) return null;
+  const dirs = [[-1, 'u'], [-0.714, 'ur'], [-0.428, 'r'], [-0.142, 'dr'], [0.142, 'd'], [0.428, 'dl'], [0.714, 'l'], [1, 'ul']];
+  let best = null, bd = 0.15; for (const [x, n] of dirs) if (Math.abs(v - x) < bd) { bd = Math.abs(v - x); best = n; }
+  return best;
+}
+function srcOn(p, s) {
+  if (!s) return false;
+  if (s.b !== undefined) return !!(p.buttons[s.b] && p.buttons[s.b].pressed);
+  if (s.a !== undefined) { const v = p.axes[s.a]; if (v === undefined) return false; return s.h ? (hatDir(v) || '').includes(s.h) : Math.abs(v - s.v) < 0.25; }
+  return false;
+}
+/* the 17 buttons of the standard layout (0 ✕/A · 1 ○/B · 2 □/X · 3 △/Y · 4 L1 · 5 R1 · 6 L2 · 7 R2 · 8 SELECT · 9 START · 12-15 croce) */
+function padButtons(p) {
+  const cal = PADCAL[p.id];
+  const out = [];
+  if (cal) { for (let i = 0; i < 17; i++) out[i] = srcOn(p, cal[i]); return out; }
+  for (let i = 0; i < 17; i++) out[i] = !!(p.buttons[i] && p.buttons[i].pressed);
+  if (p.mapping !== 'standard') {
+    // no layout from the browser: try a hat switch for the d-pad
+    const seen = HAT_SEEN[p.index] || (HAT_SEEN[p.index] = {});
+    p.axes.forEach((v, a) => { if (Math.abs(v) > 1.05) seen[a] = true; });   // a hat rests at ~1.28: only those axes count
+    for (let a = 9; a >= 2; a--) { const d = seen[a] && hatDir(p.axes[a]); if (d) { if (d.includes('u')) out[12] = true; if (d.includes('d')) out[13] = true; if (d.includes('l')) out[14] = true; if (d.includes('r')) out[15] = true; break; } }
+  }
+  return out;
+}
 const Input = {
   keys: {}, keyEdge: {}, padPrev: {}, padEdge: {},
   init() {
@@ -533,7 +567,7 @@ const Input = {
       const idx = +device.slice(3);
       const p = (navigator.getGamepads ? navigator.getGamepads() : [])[idx];
       if (!p) return c;
-      const b = p.buttons.map((x) => x.pressed);
+      const b = padButtons(p);
       const prev = this.padPrev[idx] || [];
       c.l = (p.axes[0] < -0.35 || b[14]) ? 1 : 0;
       c.r = (p.axes[0] > 0.35 || b[15]) ? 1 : 0;
@@ -555,7 +589,7 @@ const Input = {
   endFrame() {
     this.keyEdge = {};
     Touch.endFrame();
-    for (const p of this.pads()) this.padPrev[p.index] = p.buttons.map((x) => x.pressed);
+    for (const p of this.pads()) this.padPrev[p.index] = padButtons(p);
   },
 };
 

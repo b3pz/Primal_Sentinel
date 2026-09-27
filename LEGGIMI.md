@@ -86,6 +86,14 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.8.1
+- **OPZIONI → PROVA E CALIBRA IL CONTROLLER**: premi i tasti e vedi sul disegno quali riconosce il gioco.
+  Se non corrispondono (succede con molti controller USB "tipo PlayStation" e con alcuni browser su Mac),
+  premi CALIBRA: il gioco chiede ✕, ○, □, △, L1, R1, L2, R2, SELECT, START e le quattro frecce, e da quel momento
+  legge il controller giusto. La calibrazione resta salvata per quel modello di controller.
+- Le frecce dei controller che le mandano come "cappello" (un solo asse) ora funzionano anche senza calibrare.
+- Nel tutorial un cerchio bianco mostra anche i tasti che stai premendo davvero.
+
 ## Novità della 1.8 (le tavole che hai generato)
 - **Il Drago Verde**, titano di Kharon: evocazione, tutorial e galleria (pagina Titani, dopo aver sbloccato Kharon).
 - **Scooter col pilota del Velo** nel capitolo 1: entra impennando e, se lo colpisci di fronte mentre arriva,

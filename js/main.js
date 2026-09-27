@@ -31,7 +31,7 @@ const UI = {
     for (const p of Input.pads()) {
       const c = Input.read('pad' + p.index);
       const prev = Input.padPrev[p.index] || [];
-      const b = p.buttons.map((x) => x.pressed);
+      const b = padButtons(p);
       const ax = p.axes[1] || 0, axh = p.axes[0] || 0;
       const edge = (k) => b[k] && !prev[k];
       if (edge(13) || edge(15)) move = 1;
@@ -79,7 +79,7 @@ const Game = {
         <button id="howto">COME SI GIOCA</button>
         <button id="options">OPZIONI</button>
       </nav>
-      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.8</div>`, 'menu');
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.8.1</div>`, 'menu');
     UI.on('#play', () => { this.modeKind = 'campaign'; this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
     UI.on('#extras', () => this.extras());
@@ -122,7 +122,7 @@ const Game = {
     const K = Input.keyEdge;
     const e = { l: K.ArrowLeft || K.KeyA, r: K.ArrowRight || K.KeyD, u: K.ArrowUp || K.KeyW, d: K.ArrowDown || K.KeyS, ok: K.Enter || K.KeyJ || K.KeyF || K.Space || K.Escape, any: false };
     for (const p of Input.pads()) {
-      const b = p.buttons.map((x) => x.pressed), prev = Input.padPrev[p.index] || [];
+      const b = padButtons(p), prev = Input.padPrev[p.index] || [];
       const ed = (i) => b[i] && !prev[i];
       if (ed(14)) e.l = true; if (ed(15)) e.r = true; if (ed(12)) e.u = true; if (ed(13)) e.d = true;
       if (ed(0) || ed(2) || ed(9) || ed(1)) e.ok = true;
@@ -372,6 +372,7 @@ const Game = {
       });
     }
     ptitle(online ? 'COOPERATIVA ONLINE' : 'SCEGLI IL TUO SENTINEL', W / 2, 64, 34, '#fff6d6', '#ffd35a');
+    if (Input.pads().some((q) => q.mapping !== 'standard' && !PADCAL[q.id]) && Math.floor(t * 1.5) % 2) ptxt('CONTROLLER NON RICONOSCIUTO: SE I TASTI NON CORRISPONDONO VAI IN OPZIONI → PROVA E CALIBRA IL CONTROLLER', W / 2, 596, 8, '#ffb03a', 'center');
     if (this.modeKind !== 'campaign') ptxt(MODE_NAMES[this.modeKind] + (this.modeKind === 'timeattack' ? ` · CAPITOLO ${this.taLevel + 1}` : ''), W / 2, 96, 12, '#9fe8ff', 'center');
     // bottom: one card per player with the strengths and weaknesses of the chosen Sentinel
     for (let i = 0; i < 4; i++) {
@@ -745,6 +746,7 @@ const Game = {
       case 'entry': this.tickEntry(dt, this.controls()); break;
       case 'scores': this.tickScores(dt, this.controls()); break;
       case 'gallery': this.controls(); this.tickGallery(dt); break;
+      case 'padtest': this.tickPadTest(dt); break;
       default: this.controls();
     }
   },
@@ -771,6 +773,7 @@ const Game = {
       case 'shop': { const U = this.shopUI; if (!U) return null; return { m: 'shop', t: +U.t.toFixed(2), i: U.i, msg: U.msg, mood: U.mood, mt: +U.moodT.toFixed(2), coins: this.shop.coins,
         items: this.shopItems().map((it) => ({ name: it.name, desc: it.desc, lv: this.shop.lv[it.k], max: it.cost.length, cost: it.cost[this.shop.lv[it.k]] ?? null })) }; }
       case 'gallery': return { m: 'gallery', pg: this.gal.pg, i: this.gal.i, t: +this.gal.t.toFixed(2) };
+      case 'padtest': return { m: 'padtest' };
       case 'over': return { m: 'over' };
     }
     return null;
@@ -786,6 +789,7 @@ const Game = {
       case 'entry': drawEntry(v); break;
       case 'scores': drawScores(v); break;
       case 'gallery': drawGallery(v); break;
+      case 'padtest': drawPadTest(this.pt); break;
       case 'shop': drawShop(v); break;
       case 'giant': renderGiant(v); break;
       case 'dlg': drawDialog(v); break;

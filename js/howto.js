@@ -269,6 +269,10 @@ function drawPadPS(x, y, lit, color) {
     if (typeof k === 'number' && k < 4) padGlyph(k, X, Y, 7 * sc, '#ffffff');
   };
   for (const d of ['up', 'down', 'left', 'right']) if (L(d)) glow(d, color);
+  // the buttons really pressed on the controller right now: white ring
+  const lp = (Game.lastDevice || '').startsWith('pad') ? Input.pads().find((q) => q.index === +Game.lastDevice.slice(3)) : null;
+  if (lp) { const rb = padButtons(lp); const k2 = { 12: 'up', 13: 'down', 14: 'left', 15: 'right' };
+    for (const i of [0, 1, 2, 3, 4, 5, 8, 9, 12, 13, 14, 15]) if (rb[i]) { const [px, py, r] = PS_PAD_AT[k2[i] || i]; g.save(); g.strokeStyle = '#ffffff'; g.lineWidth = 4; g.beginPath(); g.arc(ox + px * sc, oy + py * sc, r * sc * 1.45, 0, 7); g.stroke(); g.restore(); } }
   for (const i of [0, 1, 2, 3, 4, 5, 8, 9]) { const a = padAct(i); if (a && L(a)) glow(i, i < 4 ? PS_COL[i] : color); }
   // what the shoulder buttons do
   const nm = (i) => ACT_SHORT[padAct(i)] || '';

@@ -301,8 +301,8 @@ Object.assign(Game, {
       else this.playCine(it.id, back);
     }
   },
-  padOk() { return Input.pads().some((p) => { const b = p.buttons.map((x) => x.pressed), pr = Input.padPrev[p.index] || []; return (b[0] && !pr[0]) || (b[2] && !pr[2]); }); },
-  padBack() { return Input.pads().some((p) => { const b = p.buttons.map((x) => x.pressed), pr = Input.padPrev[p.index] || []; return (b[1] && !pr[1]) || (b[3] && !pr[3]); }); },
+  padOk() { return Input.pads().some((p) => { const b = padButtons(p), pr = Input.padPrev[p.index] || []; return (b[0] && !pr[0]) || (b[2] && !pr[2]); }); },
+  padBack() { return Input.pads().some((p) => { const b = padButtons(p), pr = Input.padPrev[p.index] || []; return (b[1] && !pr[1]) || (b[3] && !pr[3]); }); },
 
   /* ---------------- opzioni ---------------- */
   options(from) {
@@ -318,6 +318,7 @@ Object.assign(Game, {
         <button id="mute">AUDIO: ${Audio.muted ? 'SPENTO' : 'ACCESO'} (TASTO M)</button>
         <button id="full">SCHERMO INTERO: ${fs ? 'SÌ' : 'NO'}</button>
         <button id="keys">TASTI DELLA TASTIERA</button>
+        <button id="padtest">PROVA E CALIBRA IL CONTROLLER</button>
         <button id="padkeys">PULSANTI DEL CONTROLLER</button>
         <button id="padstyle">SIMBOLI CONTROLLER: ${PAD_STYLE_NAMES[padStyleSetting()]}${padStyleSetting() === 'auto' ? ' (' + PAD_STYLE_NAMES[padStyle()] + ')' : ''}</button>
         <button id="back">INDIETRO</button>
@@ -334,6 +335,7 @@ Object.assign(Game, {
     });
     UI.on('#keys', () => this.remap('kb', from));
     UI.on('#padkeys', () => this.remap('pad', from));
+    UI.on('#padtest', () => this.padTest(from));
     UI.on('#padstyle', () => { const o = ['auto', 'ps', 'xbox']; setPadStyle(o[(o.indexOf(padStyleSetting()) + 1) % 3]); this.options(from); refocus('#padstyle'); });
     UI.on('#back', back);
   },
@@ -380,7 +382,7 @@ Object.assign(Game, {
     if (!this.capture || !this.capture.pad) return false;
     for (const p of Input.pads()) {
       const prev = Input.padPrev[p.index] || [];
-      const i = p.buttons.findIndex((b, k) => b.pressed && !prev[k] && k < 12);
+      const i = padButtons(p).findIndex((b, k) => b && !prev[k] && k < 12);
       if (i >= 0) { const fn = this.capture.fn; this.capture = null; fn(i); return true; }
     }
     return true;
