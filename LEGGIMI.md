@@ -86,6 +86,19 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.9.1
+- **Menu principale disegnato nel gioco** (non più pulsanti da pagina web): logo, raggi colorati, voci in stile
+  sala giochi con la barra dorata, descrizione della voce scelta, Sentinels ai lati che alternano guardia,
+  arma in pugno e posa. Si usa con frecce/croce + INVIO/✕, col mouse o toccando la voce;
+  sulla difficoltà ◀ ▶ la cambia. Se nessuno tocca niente per 40 secondi parte il giro del cabinato.
+- **Scelta dei Sentinels**: quelli in fila alternano guardia e posa con l'arma, quello scelto resta nella sua posa.
+
+## Novità della 1.9
+- **Menu principale ridisegnato**: logo al centro, GIOCA in evidenza, le altre voci su due colonne,
+  i Sentinels ai due lati.
+- **Scelta dei Sentinels**: Ignis (rosso) al centro, gli altri ai lati e più vicini, tutti più grandi;
+  ◀ ▶ si muove nell'ordine in cui li vedi. Nelle schede in basso c'è il ritratto del Sentinel scelto.
+
 ## Novità della 1.8.1 / 1.8.2
 - **Controller della PlayStation Classic** (Sony, USB, 2018) riconosciuto da solo: ✕ ○ □ △, L1/R1/L2/R2,
   SELECT, START e croce funzionano senza calibrare.

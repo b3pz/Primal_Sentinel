@@ -108,3 +108,39 @@ Stile emblema da serie tokusatsu, luce da sinistra in alto, niente testo.
 Quando me le carichi faccio io: ritaglio, scala, ancoraggio ai piedi, ricolore dove serve, inserimento
 nell'atlante e in gioco (titano verde nell'evocazione e nella cavalcata di Kharon, pilota sugli scooter,
 prese vere senza il soldato disegnato, nuovo fondale ed emblemi nella scelta dei Sentinels).
+
+---
+
+# Seconda serie (1.9): volti frontali e pose di presentazione
+
+## 6. I volti frontali dei sei Sentinels → `volti.png`
+Allega: `fighters.png` e la tavola a 16 pose di Kharon (per colori e caschi).
+
+```
+Sei ritratti in pixel art HD a 16 bit per la schermata di scelta del personaggio di un picchiaduro arcade
+anni '90, sfondo trasparente, griglia 2 righe x 3 colonne, tutti della stessa dimensione e alla stessa
+altezza. Ogni ritratto: busto e casco di un ranger visto perfettamente DI FRONTE, spalle comprese,
+sguardo dritto verso chi guarda, luce da sinistra in alto, contorno scuro, riflesso lucido sulla visiera,
+identici ai personaggi dell'immagine allegata:
+1) ROSSO: casco rosso con visiera nera a punta verso il basso, cresta argento;
+2) BLU: casco blu con due corna argentate ai lati;
+3) GIALLO: casco giallo con orecchie da felino;
+4) ROSA: casco rosa con alette appuntite all'indietro;
+5) NERO: casco nero massiccio con bordo argento a forma di zanne;
+6) VERDE (Kharon): elmo verde smeraldo da guerriero, spallaccio bianco a mezzaluna e mantello dorato.
+Tuta con il motivo a V bianco sul petto, cintura non visibile. Niente testo, niente numeri, niente sfondo.
+```
+
+## 7. Le pose di presentazione (facoltative) → `posa_ignis.png` … `posa_kharon.png`
+Per la scelta del personaggio "da sala giochi": ognuno fa la sua posa quando lo scegli.
+Allega `fighters.png` (per Kharon la sua tavola). Nel prompt cambia solo **[EROE]** come per le prese.
+
+```
+Sprite sheet di pixel art HD a 16 bit per un picchiaduro arcade anni '90, sfondo trasparente.
+Soggetto: [EROE], identico al personaggio dell'immagine allegata (stessi colori, proporzioni e scala).
+Griglia 1 riga x 3 colonne, stessa scala, piedi alla stessa altezza, rivolto verso chi guarda (tre quarti):
+1) in attesa: guardia rilassata, arma in mano abbassata;
+2) presentazione: posa eroica da serie tokusatsu, arma alzata al cielo, gambe larghe;
+3) scelto: posa di battaglia, un braccio teso in avanti che indica, l'altro con l'arma dietro.
+Contorno scuro, luce da sinistra in alto, niente testo, niente ombra per terra.
+```

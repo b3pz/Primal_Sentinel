@@ -58,7 +58,7 @@ const Game = {
   pendingEv: [], sendT: 0, back: null, afterDialog: null, overReason: '',
 
   /* ---------------- menus ---------------- */
-  menu() {
+  menuHTML() {
     this.mode = 'menu';
     this.back = null;
     if (this.online) { Net.leave(); this.online = null; }
@@ -79,7 +79,7 @@ const Game = {
         <button id="howto">COME SI GIOCA</button>
         <button id="options">OPZIONI</button>
       </nav>
-      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.8.2</div>`, 'menu');
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.9.1</div>`, 'menu');
     UI.on('#play', () => { this.modeKind = 'campaign'; this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
     UI.on('#extras', () => this.extras());
@@ -229,7 +229,7 @@ const Game = {
     // touch: tap a Sentinel to choose it, tap it again to confirm
     const ts = Touch.tap && slots.find((s) => s.dev === 'touch');
     if (ts && ts.t > 0.2 && !ts.ready && Touch.tap.y > 250 && Touch.tap.y < 600) {
-      const n = this.heroCount(), h = [...Array(n).keys()].find((k) => Math.abs(Touch.tap.x - (140 + k * (1000 / (n - 1)))) < 1000 / (n - 1) / 2);
+      const n = this.heroCount(), h = [...Array(n).keys()].find((k) => Math.abs(Touch.tap.x - lobbyX(k, n)) < LOBBY_SP / 2);
       if (h !== undefined && !slots.some((o) => o !== ts && o.ready && o.hero === h)) {
         if (h === ts.hero) { ts.ready = true; Audio.sfx('confirm'); } else { ts.hero = h; Audio.sfx('select'); }
       }
@@ -243,8 +243,9 @@ const Game = {
         let dir = 0;
         if (c.pressed.l) dir = -1; if (c.pressed.r) dir = 1;
         if (dir) {
-          let h = s.hero; const n = this.heroCount();
-          for (let k = 0; k < n; k++) { h = (h + dir + n) % n; if (!slots.some((o) => o !== s && o.ready && o.hero === h)) break; }
+          const n = this.heroCount(), ord = LOBBY_ORDER.filter((q) => q < n);
+          let pos = ord.indexOf(s.hero), h = s.hero;
+          for (let k = 0; k < n; k++) { pos = (pos + dir + n) % n; h = ord[pos]; if (!slots.some((o) => o !== s && o.ready && o.hero === h)) break; }
           s.hero = h; Audio.sfx('select');
         }
         // alternate costumes (unlocked with the sigils / by finishing the story)
@@ -331,7 +332,7 @@ const Game = {
     const n = this.heroCount();
     const PC = ['#ffd35a', '#5fe0ff', '#7bf0b1', '#ff8ad8'];
     const anim = this._lobAnim || (this._lobAnim = {});
-    const xs = (i) => 140 + i * (1000 / (n - 1));
+    const xs = (h) => lobbyX(h, n);
     // who is on each hero
     const on = {};
     slots.forEach((s, i) => { (on[s.hero] = on[s.hero] || []).push([i, s]); });
@@ -340,7 +341,7 @@ const Game = {
       const sel = on[h];
       anim[h] = lerp(anim[h] || 0, sel ? 1 : 0, Math.min(1, dt * 10));
       const a = anim[h], hero = HEROES[h];
-      const x = xs(h), y = lerp(470 + Math.abs(h - (n - 1) / 2) * 10, 560, a), sc = lerp(1.0, 1.3, a);
+      const off = LOBBY_ORDER.indexOf(h) - 2, x = xs(h), y = lerp(505 - Math.abs(off) * 8, 572, a), sc = lerp(1.22, 1.45, a), face = off < 0 ? 1 : off > 0 ? -1 : 1;
       // emblem disc of the titan under the chosen Sentinel
       g.save(); g.globalAlpha = 0.25 + a * 0.75;
       g.fillStyle = hero.color + '55'; g.beginPath(); g.ellipse(x, y + 4, 80 * sc, 20 * sc, 0, 0, 7); g.fill();
@@ -355,15 +356,16 @@ const Game = {
       }
       g.restore();
       // reflection
-      g.save(); g.translate(x, y); g.scale(1, -0.35); g.globalAlpha = 0.18; heroSpr(h, 0, 0, 0, { scale: sc, face: h < n / 2 ? 1 : -1 }); g.restore();
+      g.save(); g.translate(x, y); g.scale(1, -0.35); g.globalAlpha = 0.18; heroSpr(h, 0, 0, 0, { scale: sc, face }); g.restore();
       const ready = sel && sel.some(([, s]) => s.ready);
-      const fr = ready ? 8 : sel ? (Math.floor(t * 2 + h) % 6 === 0 ? 4 : 0) : 0;
+      // in line: guard and weapon stance in turn · chosen: its pose · ready: pose with the glow
+      const fr = ready || sel ? 8 : ((t * 0.5 + h * 0.43) % 2 < 1.1 ? 10 : 0);
       if (a > 0.5) glowAt(x, y - 110, 120 * sc, hero.color, 0.3 * a);
-      heroSpr(h, fr, x, y, { scale: sc, face: h < n / 2 ? 1 : -1, alpha: 0.55 + a * 0.45, skin: sel ? sel[0][1].skin || 0 : 0 });
+      heroSpr(h, fr, x, y, { scale: sc, face, alpha: 0.6 + a * 0.4, skin: sel ? sel[0][1].skin || 0 : 0 });
       if (ready && a > 0.9) glowAt(x, y - 120, 150, hero.color, 0.25 + Math.sin(t * 10) * 0.15);
       // player markers above the head
       (sel || []).forEach(([i, s], k) => {
-        const my = y - 220 * sc / 1.2 - 34 - k * 40 + Math.sin(t * 5) * 4;
+        const my = y - 205 * sc - 18 - k * 40 + Math.sin(t * 5) * 4;
         const col = PC[i];
         g.fillStyle = '#05070c'; g.beginPath(); g.moveTo(x - 22, my + 6); g.lineTo(x + 22, my + 6); g.lineTo(x, my + 28); g.fill();
         g.fillStyle = col; g.beginPath(); g.moveTo(x - 17, my + 8); g.lineTo(x + 17, my + 8); g.lineTo(x, my + 24); g.fill();
@@ -386,11 +388,18 @@ const Game = {
       }
       const hero = HEROES[s.hero];
       const devName = online ? (s.me ? 'TU' : s.name) + (s.host ? ' · HOST' : '') : s.dev === 'kb' ? 'TASTIERA' : s.dev === 'kbA' ? 'TASTIERA 1' : s.dev === 'kbB' ? 'TASTIERA 2' : s.dev === 'touch' ? 'TOUCH' : 'CONTROLLER ' + (+s.dev.slice(3) + 1);
-      ptxt(`${i + 1}P · ${devName}`, x + 18, y + 22, 8, PC[i]);
-      ptxt(hero.name, x + w - 14, y + 22, 11, hero.color, 'right');
-      txt(hero.trait || hero.specialText, x + 18, y + 46, 12, '#fff1c6', 'left', 700);
-      if (hero.pro) { txt('+ ' + hero.pro, x + 18, y + 68, 12, '#9ff0c0', 'left', 600); txt('− ' + hero.con, x + 18, y + 89, 12, '#ffb0a0', 'left', 600); }
-      if (!online && this.skinsUnlocked().length > 1 && !s.ready) ptxt(`▲▼ ${SKINS[s.skin || 0].name}`, x + w / 2 + 20, y + 22, 7, '#ffd35a', 'center');
+      // portrait of the chosen Sentinel, then its gift, strength and weakness
+      drawPortrait(s.hero, x + 46, y + 52, 0.6);
+      const tx = x + 94, tw = w - 104;
+      ptxt(`${i + 1}P · ${devName}`, tx, y + 18, 7, PC[i]);
+      ptxt(hero.name, x + w - 12, y + 18, 10, hero.color, 'right');
+      const [tName, tDesc] = (hero.trait || hero.specialText || '').split(': ');
+      ptxt(tName || '', tx, y + 38, 8, '#ffd35a');
+      g.font = `600 11px ${FONT}`;
+      const fit = (str) => { str = str || ''; if (g.measureText(str).width <= tw) return str; while (str.length > 3 && g.measureText(str + '…').width > tw) str = str.slice(0, -1); return str.trim() + '…'; };
+      if (tDesc) txt(fit(tDesc), tx, y + 55, 11, '#fff1c6', 'left', 600);
+      if (hero.pro) { txt(fit('+ ' + hero.pro), tx, y + 74, 11, '#9ff0c0', 'left', 600); txt(fit('− ' + hero.con), tx, y + 92, 11, '#ffb0a0', 'left', 600); }
+      if (!online && this.skinsUnlocked().length > 1 && !s.ready) ptxt(`▲▼ ${SKINS[s.skin || 0].name}`, x + w - 12, y + 38, 7, '#ffd35a', 'right');
     }
     if (online) {
       g.fillStyle = 'rgba(4,10,20,.88)'; g.fillRect(0, 110, W, 44);
@@ -447,8 +456,9 @@ const Game = {
       let dir = 0; if (c.pressed.l) dir = -1; if (c.pressed.r) dir = 1;
       if (dir) {
         let h = me.hero;
-        const n = this.heroCount();
-        for (let k = 0; k < n; k++) { h = (h + dir + n) % n; if (!Net.lobby.some((o) => o !== me && o.hero === h)) break; }
+        const n = this.heroCount(), ord = LOBBY_ORDER.filter((q) => q < n);
+        let pos = ord.indexOf(h);
+        for (let k = 0; k < n; k++) { pos = (pos + dir + n) % n; h = ord[pos]; if (!Net.lobby.some((o) => o !== me && o.hero === h)) break; }
         me.hero = h; Audio.sfx('select');
         if (Net.role === 'client') Net.sendPick(h, false); else Net.pushLobby();
       }
@@ -477,7 +487,7 @@ const Game = {
     this.pendingEv.push({ t: 'txt', x: 640, y: 200, s: `${p.name} HA LASCIATO LA PARTITA`, c: '#ffb0a0', size: 22, fixed: 1 });
   },
   connectionLost(why) {
-    if (this.mode === 'menu') return;
+    if (this.mode === 'menu' || this.mode === 'mmenu') return;
     this.online = null;
     Net.reset();
     this.mode = 'menu';
@@ -844,6 +854,10 @@ const Game = {
 
 };
 
+/* character select line-up: red in the middle, the others at its sides (Kharon at the far right) */
+const LOBBY_ORDER = [2, 1, 0, 3, 4, 5], LOBBY_SP = 185;
+function lobbyX(h, n) { void n; return W / 2 + (LOBBY_ORDER.indexOf(h) - 2) * LOBBY_SP; }
+
 /* ---------------- main loop ---------------- */
 let lastT = 0, acc = 0;
 const STEP = 1 / 60;
@@ -870,15 +884,15 @@ function frame(ts) {
     stepFX(dt);
     Game.draw(Net.view());
     if (!Net.lastView) { g.fillStyle = '#050c14'; g.fillRect(0, 0, W, H); txt('In attesa dell\'host…', W / 2, H / 2, 24, '#c8d6e4', 'center', 800); }
-  } else if (Game.mode === 'menu' || Game.mode === 'loading') {
+  } else if (Game.mode === 'mmenu') { Game.menuT = (Game.menuT || 0) + dt; Game.tickMainMenu(dt); g.setTransform(1, 0, 0, 1, 0, 0); drawMainMenu(Game.mm); }
+  else if (Game.mode === 'menu' || Game.mode === 'loading') {
     // animated backdrop behind the DOM menu
     g.setTransform(1, 0, 0, 1, 0, 0);
     Game.menuT = (Game.menuT || 0) + dt;
     if (IMG.port) {
       drawStageBackdrop('port', 300);
       g.fillStyle = 'rgba(3,8,16,.35)'; g.fillRect(0, 0, W, H);
-      const k = Game.menuT;
-      HEROES.slice(0, Game.heroCount ? Game.heroCount() : CORE_HEROES).forEach((h, i) => { const x = 700 + i * 105, y = 620 + (i % 2) * 30; drawShadow(x, y, 36); heroSpr(i, Math.floor(k * 1.5 + i) % 7 === 0 ? 4 : 0, x, y, { scale: 1.0, face: -1 }); });
+      drawMenuHeroes(Game.menuT);
     }
   } else {
     Game.gatherInputs();
