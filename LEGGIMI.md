@@ -1,10 +1,30 @@
 # PRIMAL SENTINELS — Il cuore dei titani
-Ideato e sviluppato da b3pZ. Build 1.6: campagna completa in 8 capitoli, modalità extra, da 1 a 4 giocatori.
+Ideato e sviluppato da b3pZ. Build 1.7: campagna completa in 8 capitoli, modalità extra, da 1 a 4 giocatori.
 
 ## Avvio
 Estrai tutto lo ZIP e apri `index.html` con Chrome, Edge o Firefox (Mac o Windows).
 Non serve installare nulla. Per GitHub Pages pubblica il contenuto della cartella
 `primal-sentinels` così com'è (index.html, js, assets, vendor devono restare insieme).
+
+## Telefono e tablet (novità 1.7)
+Il gioco funziona anche su telefono e tablet (Android e iPhone/iPad, in orizzontale).
+1. Pubblica la cartella `primal-sentinels` su GitHub Pages (o un qualsiasi sito https).
+2. Apri l'indirizzo dal telefono con Chrome (Android) o Safari (iPhone).
+3. **Installa come app**: Chrome → menu ⋮ → *Installa app* / *Aggiungi a schermata Home*;
+   Safari → Condividi → *Aggiungi alla schermata Home*. Parte a schermo intero, in orizzontale,
+   con la sua icona, e dopo la prima apertura funziona anche **senza internet** (tranne l'online).
+
+Comandi touch (compaiono solo sui dispositivi touch):
+- **Levetta** a sinistra: appare dove appoggi il pollice. Spinta fino in fondo di lato = **corsa**.
+- **Pulsanti** a destra: ATTACCO (grande), SALTO, SPECIALE, PISTOLA, SCHIVA, SQUADRA
+  (tenuto premuto = evocazione del titano). In alto al centro **II** = pausa.
+- Titolo e demo: **tocca lo schermo**. Menu: tocca le voci. Scelta dei Sentinels:
+  **tocca un Sentinel** per sceglierlo, toccalo di nuovo per confermare.
+- Se giri il telefono in verticale o esci dall'app, la partita va in pausa da sola.
+- Puoi collegare un controller Bluetooth al telefono: funziona come sul PC.
+- Online dal telefono: sulla rete dati (4G/5G) alcuni operatori bloccano il collegamento diretto;
+  se la stanza non si collega, usa il Wi-Fi. Chi ha un server TURN può aggiungerlo all'indirizzo:
+  `?turn=turn:server:3478&tu=utente&tp=password` (viene ricordato su quel dispositivo).
 
 ## Modalità
 - **Gioca · 1–4 giocatori su questo PC**: cooperativa locale. Ogni giocatore entra
@@ -65,6 +85,24 @@ Attacco = pugno, pistola = colpo pesante, schivata tenuta = parata, salto = pass
 Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale.
 
 
+
+## Novità della 1.7
+- **Versione mobile**: comandi touch (levetta + pulsanti), app installabile con icona, schermo intero
+  in orizzontale, gioco offline, pausa automatica, avviso "ruota il telefono" (vedi sopra).
+- **Nuova scelta dei Sentinels** in stile sala giochi: tutti i Sentinels in fila nella Camera dei Cuori,
+  Argo dietro nel suo cilindro; quello scelto avanza sul disco con l'emblema del suo titano e le frecce
+  1P/2P/3P/4P lo indicano. In basso, per ogni giocatore, la dote del Sentinel con pregio e difetto.
+- **Doti dei Sentinels**: Ignis FIAMMA (i colpi di spada incendiano), Azur PORTATA (la lancia arriva più
+  lontano), Lyra DOPPIO SALTO, Aura PLANATA (tieni salto per scendere piano), Onyx CORAZZA (i colpi
+  leggeri non lo interrompono), Kharon PARATA (schivata da fermo = parata).
+- **Presentazione dei boss**: prima di ogni boss lo schermo VS con i suoi **punti di forza** e i suoi
+  **punti deboli** (come batterlo). Attacco/salto per saltarla.
+- **La bottega di Sette**: tra un capitolo e l'altro si spendono le monete raccolte (monete, gemme,
+  sigilli, boss, zone ripulite, civili salvati) in potenziamenti per il resto della partita: più vita,
+  energia più veloce, più colpi di pistola, barra squadra carica in partenza, crediti.
+- **Argo nell'intro**: il mentore appare nella sala dei cuori durante l'introduzione.
+- Correzioni: i nemici aggirano pensiline e auto invece di fermarsi contro; i Sentinels controllati dal
+  computer scendono dai tetti delle auto e dalle rocce quando il nemico è in strada.
 
 ## Novità della 1.6.9
 - **Il Colpo di squadra avviene nell'arena**: i giocatori si mettono in fila dove sono (rivolti verso i nemici),
@@ -215,7 +253,10 @@ Server di incontro personale (facoltativo): `index.html?peer=indirizzo:porta`.
 - Cooperativa locale con due tastiere e con due controller simulati.
 - Cooperativa online tra due browser reali: stanza, lobby, scelta degli eroi, intro, dialoghi,
   livello, duello gigante e uscita di un giocatore.
-- Non sono stati provati controller fisici, Safari su Mac né reti con firewall restrittivi.
+- 1.7: telefono simulato (844×390, touch) e tablet (1024×768): tocco sul titolo, menu, scelta del
+  Sentinel toccandolo, partita con levetta (camminata e corsa) e pulsanti, pausa, avviso in verticale,
+  tutorial con i comandi touch. Schermate VS dei boss, bottega, nuova scelta dei Sentinels.
+- Non sono stati provati controller fisici, telefoni reali, Safari su Mac/iPhone né reti con firewall restrittivi.
 
 ## File
 `index.html`, `style.css` · `js/`: gioco (dati, motore, rendering, cinematiche, rete)
@@ -225,3 +266,5 @@ Server di incontro personale (facoltativo): `index.html?peer=indirizzo:porta`.
 `artbook.html`: catalogo visivo · `ASSET_STATUS.md`: inventario · `assets/music`: brani MP3 facoltativi.
 `js/extra.js`: galleria, cavalcata, crollo, mosse in coppia, evocazione, modalità · `js/modes.js`: menu extra,
 classifiche, demo, galleria, opzioni · `js/cpu.js`: giocatore controllato dal computer (demo e test).
+`js/touch.js`: comandi touch · `manifest.json`, `sw.js`: app installabile e gioco offline (`tools/build_sw.py` rigenera l'elenco)
+`PROMPT_IMMAGINI.md`: i prompt per le tavole ancora da generare (titano verde, scooter, prese, base, emblemi).
