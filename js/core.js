@@ -100,7 +100,7 @@ const KH_MAP2 = [0, 1, 0, 1, 2, 3, 3, 5, 2, 3, 4, 3, 2, 5, 6, 0];   // same, on 
 function beastSheet(key) { return frameOf('giants', key) ? 'giants' : 'extra2'; }
 function heroSprite(h, f) {
   const H = HEROES[h] || HEROES[0];
-  if (H.sheet && frameOf('heroes2', H.id + '_0')) return ['heroes2', `${H.id}_${f}`, 1, 0];   // his own 16-pose sheet
+  if (H.sheet && frameOf('heroes2', H.id + '_0')) return ['heroes2', `${H.id}_${f}`, 1.2, 0];   // his sheet stands in a low guard: bring him to the others' height   // his own 16-pose sheet
   if (H.sheet === 'bosses' && !frameOf('fighters', H.id + '_0') && frameOf('bosses2', H.id + 'P_0')) return ['bosses2', H.id + 'P_' + (KH_MAP2[f] ?? 0), 0.93, 0];
   if (H.sheet === 'bosses' && !frameOf('fighters', H.id + '_0')) return ['bosses', H.id + '_' + (KH_MAP[f] ?? 0), 0.93, f === 14 ? -1.45 : f === 13 ? -0.9 : 0];
   return ['fighters', `${H.id}_${f}`, 1, 0];
@@ -111,6 +111,7 @@ function poseSpr(h, i, x, y, opt = {}) {
   const key = `${(HEROES[h] || HEROES[0]).id}_p${i}`;
   if (!frameOf('poses', key)) { heroSpr(h, POSE_FALLBACK[i] ?? 0, x, y, opt); return; }
   const o = { ...opt };
+  if (HEROES[h] && HEROES[h].sheet) o.scale = (opt.scale || 1) * 1.15;
   if (opt.skin) o.img = skinned('poses', key, opt.skin);
   spr('poses', key, x, y, o);
 }
@@ -346,8 +347,24 @@ const Audio = {
     s.connect(f); f.connect(a); a.connect(this.out || this.master);
     s.start(t);
   },
+  /* 1.12: synthetic "voices" — a talking blip in each character's register (like old console RPGs) */
+  voice(who, i = 0) {
+    const V = VOICES[who]; if (!V || this.muted || !this.ctx) return;
+    const [base, type, vol, jit] = V;
+    const f = base * (1 + jit * Math.sin(i * 2.7 + who.length));
+    this.tone(f, 0.055, type, vol, 0.92);
+    if (who === 'BORIS' || who === 'TRIVOR') this.tone(f * 0.5, 0.06, 'square', vol * 0.6, 0.9);
+  },
+  shout(hero) {
+    // a Sentinel's battle cry on the special: breath + rising vowel
+    if (this.muted || !this.ctx) return;
+    const b = [300, 250, 380, 420, 190, 230][hero] || 300;
+    this.noise(0.12, 0.05, 1400); this.tone(b, 0.1, 'sawtooth', 0.04, 1.25); this.tone(b * 1.25, 0.18, 'square', 0.03, 0.7, 0.08);
+  },
   sfx(name) {
     switch (name) {
+      case 'shout0': case 'shout1': case 'shout2': case 'shout3': case 'shout4': case 'shout5': this.shout(+name.slice(5)); break;
+      case 'roar': this.tone(90, 0.7, 'sawtooth', 0.07, 0.5); this.tone(60, 0.8, 'square', 0.05, 0.6, 0.05); this.noise(0.6, 0.08, 150); break;
       case 'punch': this.tone(230, 0.06, 'square', 0.03); this.noise(0.05, 0.03, 1800); break;
       case 'kick': this.tone(160, 0.09, 'square', 0.035); this.noise(0.07, 0.03, 1200); break;
       case 'hit': this.tone(95, 0.11, 'sawtooth', 0.05, 0.4); this.noise(0.08, 0.06, 600); break;
@@ -479,6 +496,12 @@ function resetKeymaps() {
 }
 /* controller symbols: PlayStation (✕ ○ □ △, L1 R1…) or Xbox (A B X Y, LB RB…).
    OPZIONI → SIMBOLI CONTROLLER: automatico (riconosce il controller collegato), PlayStation o Xbox */
+const VOICES = {   // [base Hz, wave, volume, jitter]
+  ASTRO: [760, 'square', 0.018, 0.25], BORIS: [150, 'sawtooth', 0.022, 0.08], ARMV3Z: [180, 'triangle', 0.035, 0.12],
+  VESPERA: [300, 'sine', 0.04, 0.2], KHARON: [120, 'sawtooth', 0.022, 0.1], SIRIO: [150, 'triangle', 0.035, 0.12], TRIVOR: [90, 'sawtooth', 0.03, 0.15],
+  'DOTT.SSA VALLI': [290, 'triangle', 0.035, 0.18], IGNIS: [220, 'square', 0.016, 0.15], AZUR: [200, 'triangle', 0.035, 0.1], LYRA: [340, 'square', 0.015, 0.2],
+  AURA: [320, 'triangle', 0.035, 0.18], ONYX: [140, 'triangle', 0.04, 0.08],
+};
 const PAD_NAMES_PS = ['✕', '○', '□', '△', 'L1', 'R1', 'L2', 'R2', 'SELECT', 'START', 'L3', 'R3', '↑', '↓', '←', '→', 'PS'];
 const PAD_NAMES_XB = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'VIEW', 'MENU', 'L3', 'R3', '↑', '↓', '←', '→', 'XBOX'];
 const PAD_STYLE_NAMES = { auto: 'AUTOMATICO', ps: 'PLAYSTATION', xbox: 'XBOX' };

@@ -86,6 +86,24 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.12
+- **Boss a tre fasi** (come Cuphead): a 2/3 e a 1/3 della vita il boss ruggisce, respinge tutti e passa a una
+  nuova serie di attacchi, più veloce (tacche e "FASE 1/3" sulla barra del boss).
+- **Sottomenu disegnati nel gioco** come il menu principale: Modalità extra, Capitoli, Opzioni (volumi con ◀ ▶) e Pausa.
+- **Voci**: ogni personaggio "parla" con un suono suo mentre scorre il testo (Astro acuto, Boris cupo, ArMV3z
+  profondo…); i Sentinels gridano quando fanno la speciale; i boss ruggiscono al cambio di fase.
+- **Sirio in squadra**: se giochi un capitolo con il sesto Sentinel, dice la sua prima della partenza.
+  Il Sentinel verde si chiama **Sirio** e ha la stessa altezza degli altri (prima sembrava più piccolo).
+- **Dialoghi**: il nome del Sentinel è seguito da quello civile (IGNIS · CIUSKY…). **Finale aperto** verso il
+  prologo e il capitolo successivo: "LA STORIA CONTINUA...".
+- **Continua nei duelli giganti**: riparti subito, il mostro resta ferito.
+- **Pressa** (capitolo 6): scorre su una rotaia e insegue i giocatori, si ferma sopra il bersaglio (cerchio rosso)
+  e schiaccia; attira i soldati sotto di lei per schiacciarli (+400 ciascuno).
+- **Oggetti a tema**: niente pensiline e cassonetti nei posti sbagliati — container sul molo del capitolo 5 e
+  nella fabbrica del capitolo 6.
+- **Treno**: il tetto della locomotiva si attacca al paesaggio senza la cucitura del fumo.
+- **Unione dei titani**: al posto dei cinque titani in fila, ognuno entra da solo con il suo nome, stile sigla.
+
 ## Novità della 1.11.2
 - **Tetto del treno e della locomotiva dipinti** (le tue tavole): il paesaggio scorre veloce, il tetto segue la
   telecamera, dall'ultimo tratto si combatte sul tetto rosso della locomotiva con le ciminiere.

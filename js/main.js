@@ -79,7 +79,7 @@ const Game = {
         <button id="howto">COME SI GIOCA</button>
         <button id="options">OPZIONI</button>
       </nav>
-      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.11.2</div>`, 'menu');
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.12</div>`, 'menu');
     UI.on('#play', () => { this.modeKind = 'campaign'; this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
     UI.on('#extras', () => this.extras());
@@ -513,7 +513,8 @@ const Game = {
     const L = LEVELS[idx];
     Audio.playSong(L.music);
     if (checkpoint) { this.enterStage(idx, checkpoint); return; }
-    this.dialog([{ card: true }, ...L.intro], () => this.enterStage(idx, 0));
+    const sirio = this.players.some((p) => p.hero === 5) ? (SIRIO_LINES[idx] || []) : [];
+    this.dialog([{ card: true }, ...L.intro, ...sirio], () => this.enterStage(idx, 0));
   },
   simPlayers(keepLives) { return this.players.filter((p) => p.device !== 'gone').map((p) => ({ id: p.id, hero: p.hero, skin: p.skin || 0, name: p.name, lives: keepLives ? p.lives : Math.max(3, p.lives), score: p.score })); },
   enterStage(idx, cp) {
@@ -617,7 +618,13 @@ const Game = {
       this.credits--; this.chapterCont = (this.chapterCont || 0) + 1;
       for (const p of this.players) p.lives = 3;
       Audio.sfx('confirm');
-      if (this.overKind === 'giant') { this.G = newGiant(this.levelIdx, this.simPlayers()); this.mode = 'giant'; }
+      if (this.overKind === 'giant') {
+        // continue right where you fell: your titan is repaired, the monster keeps the damage it took
+        const ehp = this.G && this.G.en ? this.G.en.hp : null;
+        this.G = newGiant(this.levelIdx, this.simPlayers());
+        if (ehp) { this.G.en.hp = Math.max(ehp, this.G.en.max * 0.15); this.G.banner = { text: 'CONTINUA!', sub: 'IL TITANO È DI NUOVO IN PIEDI · IL MOSTRO È ANCORA FERITO', t: 2.4 }; }
+        this.mode = 'giant';
+      }
       else { const cp = this.S.checkpoint, cont = this.chapterCont; this.enterStage(this.levelIdx, cp); this.chapterCont = cont; }
       return;
     }
@@ -814,7 +821,7 @@ const Game = {
       case 'intro':
         if (this.online === 'client') { introSounds(this._cIntroT || 0, v.t); this._cIntroT = v.t; }
         drawIntro(v.t); break;
-      case 'ending': drawEnding(v.t, v.heroes); if (v.un && v.t > 4) { panel(W / 2 - 330, 90, 660, 70, '#ffd35a', 0.9); ptitle('SBLOCCATI: KHARON E COSTUME ORO', W / 2, 128, 16, '#ffffff', '#ffd35a'); ptxt('SCEGLILI NELLA SCHERMATA DEI GIOCATORI · NUOVE VOCI IN GALLERIA', W / 2, 150, 8, '#fff1c6', 'center'); } break;
+      case 'ending': drawEnding(v.t, v.heroes); if (v.un && v.t > 4) { panel(W / 2 - 330, 90, 660, 70, '#ffd35a', 0.9); ptitle('SBLOCCATI: SIRIO E COSTUME ORO', W / 2, 128, 16, '#ffffff', '#ffd35a'); ptxt('SCEGLILI NELLA SCHERMATA DEI GIOCATORI · NUOVE VOCI IN GALLERIA', W / 2, 150, 8, '#fff1c6', 'center'); } break;
       case 'cont': drawContinue(v); break;
       case 'final': drawFinal(v); break;
       case 'summary': drawSummary(v); break;
@@ -892,7 +899,8 @@ function frame(ts) {
     stepFX(dt);
     Game.draw(Net.view());
     if (!Net.lastView) { g.fillStyle = '#050c14'; g.fillRect(0, 0, W, H); txt('In attesa dell\'host…', W / 2, H / 2, 24, '#c8d6e4', 'center', 800); }
-  } else if (Game.mode === 'mmenu') { Game.menuT = (Game.menuT || 0) + dt; Game.tickMainMenu(dt); g.setTransform(1, 0, 0, 1, 0, 0); drawMainMenu(Game.mm); }
+  } else if (Game.mode === 'cmenu') { Game.menuT = (Game.menuT || 0) + dt; Game.tickCMenu(dt); g.setTransform(1, 0, 0, 1, 0, 0); if (Game.mode === 'cmenu') drawCMenu(Game.cm); }
+  else if (Game.mode === 'mmenu') { Game.menuT = (Game.menuT || 0) + dt; Game.tickMainMenu(dt); g.setTransform(1, 0, 0, 1, 0, 0); drawMainMenu(Game.mm); }
   else if (Game.mode === 'menu' || Game.mode === 'loading') {
     // animated backdrop behind the DOM menu
     g.setTransform(1, 0, 0, 1, 0, 0);
@@ -935,7 +943,7 @@ function frame(ts) {
 Input.init();
 Touch.init();
 const IMAGES = [
-  ['fighters', 'assets/sprites/fighters.png'], ['bosses', 'assets/sprites/bosses.png'], ['titans', 'assets/sprites/titans.png'], ['giants', 'assets/sprites/giants.png'], ['extra', 'assets/sprites/extra.png'], ['bosses2', 'assets/sprites/bosses2.png'], ['heroes2', 'assets/sprites/heroes2.png'], ['mentors', 'assets/sprites/mentors.png'], ['pad_ps', 'assets/ui/pad_ps.png'], ['extra2', 'assets/sprites/extra2.png'], ['grabs', 'assets/sprites/grabs.png'], ['faces', 'assets/sprites/faces.png'], ['poses', 'assets/sprites/poses.png'], ['train', 'assets/sprites/train.png'], ['train_roof', 'assets/bg/train_roof.jpg'], ['loco_roof', 'assets/bg/loco_roof.jpg'], ['base', 'assets/bg/base.jpg'],
+  ['fighters', 'assets/sprites/fighters.png'], ['bosses', 'assets/sprites/bosses.png'], ['titans', 'assets/sprites/titans.png'], ['giants', 'assets/sprites/giants.png'], ['extra', 'assets/sprites/extra.png'], ['bosses2', 'assets/sprites/bosses2.png'], ['heroes2', 'assets/sprites/heroes2.png'], ['mentors', 'assets/sprites/mentors.png'], ['pad_ps', 'assets/ui/pad_ps.png'], ['extra2', 'assets/sprites/extra2.png'], ['grabs', 'assets/sprites/grabs.png'], ['faces', 'assets/sprites/faces.png'], ['poses', 'assets/sprites/poses.png'], ['train', 'assets/sprites/train.png'], ['train_roof', 'assets/bg/train_roof.jpg'], ['loco_roof', 'assets/bg/loco_roof.png'], ['base', 'assets/bg/base.jpg'],
   ['cine_run', 'assets/bg/cine_run.jpg'], ['cine_duel', 'assets/bg/cine_duel.jpg'], ['cine_rex', 'assets/bg/cine_rex.jpg'], ['cine_cavern', 'assets/bg/cine_cavern.jpg'], ['cine_cockpit', 'assets/bg/cine_cockpit.jpg'], ['cine_dawn', 'assets/bg/cine_dawn.jpg'],
   ['items', 'assets/sprites/items.png'], ['people', 'assets/sprites/people.png'],
   ['port', 'assets/bg/port.jpg'], ['harbor', 'assets/bg/harbor.jpg'], ['rail', 'assets/bg/rail.jpg'], ['park', 'assets/bg/park.jpg'],

@@ -120,7 +120,7 @@ const Touch = {
     if (!this.on) return;
     const menu = !document.querySelector('#screen').classList.contains('hidden');
     const m = Game.mode;
-    const show = !menu && !['title', 'loading', 'menu', 'mmenu'].includes(m);
+    const show = !menu && !['title', 'loading', 'menu', 'mmenu', 'cmenu'].includes(m);
     this.root.classList.toggle('hide', !show);
     this.root.classList.toggle('game', ['stage', 'giant', 'client'].includes(m));
     this.root.classList.toggle('lobby', m === 'lobby');

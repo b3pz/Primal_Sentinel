@@ -403,15 +403,30 @@ CHAPTER_CINES.board = [
 CHAPTER_CINES.union = [
   { d: 5.5, sub: ['PORTO AURORA IN FIAMME', 'Cinque Cuori chiamano. Cinque titani rispondono, attraversando la città.'], cues: [[0.5, 'stomp'], [1.6, 'stomp'], [2.7, 'stomp'], [3.8, 'stomp']],
     draw(k, t) { stillArt('cine_run', t, Math.max(0, Math.sin(t * 5.7)) * 3); } },
-  { d: 5, sub: ['', 'Uno dopo l\'altro, i titani corrono verso il mare.'], cues: [[0.4, 'stomp'], [1.2, 'stomp'], [2, 'stomp']],
+  // 1.12: one cut per titan (tokusatsu roll-call) instead of five titans running in a line
+  { d: 5.5, sub: ['', 'Uno dopo l\'altro, i titani rispondono alla chiamata.'], cues: [[0.15, 'stomp'], [1.25, 'stomp'], [2.35, 'bosswind'], [3.45, 'stomp'], [4.55, 'stomp']],
     draw(k, t) {
-      drawStageBackdrop('siege', 1200);
-      tintScreen('#10040a', 0.3);
-      BEASTS.forEach((n, i) => {
-        const x = -300 + (k - i * 0.35) * 520;
-        const y = n === 'ptero' ? 420 : 560 + (i % 2) * 90;
-        beast(n, 'run', x, y, 1.0);
-      });
+      const i = Math.min(4, Math.floor(k / 1.1)), kk = k - i * 1.1, n = BEASTS[i], col = BEAST_COL[i];
+      const from = i % 2 ? 1 : -1;   // alternate sides
+      drawStageBackdrop('siege', 900 + i * 380);
+      tintScreen('#08020a', 0.55);
+      // coloured light fan behind the titan
+      g.save(); g.globalCompositeOperation = 'lighter';
+      for (let r = 0; r < 7; r++) { const a = -Math.PI / 2 + (r - 3) * 0.28 + Math.sin(t * 2 + r) * 0.03; g.globalAlpha = 0.09; g.fillStyle = col; g.beginPath(); g.moveTo(W / 2, 520); g.lineTo(W / 2 + Math.cos(a - 0.07) * 900, 520 + Math.sin(a - 0.07) * 900); g.lineTo(W / 2 + Math.cos(a + 0.07) * 900, 520 + Math.sin(a + 0.07) * 900); g.fill(); }
+      g.restore();
+      // it slides in and stops, with speed lines and dust
+      const ease = 1 - Math.pow(1 - clamp(kk / 0.45, 0, 1), 3);
+      const x = W / 2 - from * (1 - ease) * 900, y = n === 'ptero' ? 440 : 660;
+      if (ease < 1) for (let s2 = 0; s2 < 12; s2++) { g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(x - from * (200 + s2 * 40), 250 + s2 * 34, from * -260, 3); }
+      g.save(); if (kk > 0.4 && kk < 0.6) g.translate(rand(-1, 1) * 10, rand(-1, 1) * 10);
+      beast(n, kk < 0.45 ? 'run' : 'roar', x, y, 1.5, from > 0 ? -1 : 1);
+      g.restore();
+      if (kk > 0.4 && n !== 'ptero') for (let dq = 0; dq < 6; dq++) { g.fillStyle = `rgba(160,140,120,${0.35 * (1 - (kk - 0.4) / 0.7)})`; g.beginPath(); g.arc(x + (dq - 2.5) * 70, 660 - (kk - 0.4) * 60, 30 + (kk - 0.4) * 60, 0, 7); g.fill(); }
+      // name band in its colour
+      const ba = clamp((kk - 0.35) * 4, 0, 1);
+      g.globalAlpha = ba; g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(0, 90, W, 70); g.fillStyle = col; g.fillRect(0, 90, W, 4); g.fillRect(0, 156, W, 4);
+      ptitle(BEAST_NAME[n], W / 2, 140, 34, '#ffffff', col); g.globalAlpha = 1;
+      if (kk < 0.08) { g.fillStyle = `rgba(255,255,255,${1 - kk / 0.08})`; g.fillRect(0, 0, W, H); }
     } },
   { d: 7.2, sub: ['', ''], cues: [[0.1, 'morph'], [1.2, 'heavy'], [2.4, 'heavy'], [3.6, 'heavy'], [4.8, 'heavy'], [6, 'team']],
     draw(k, t) { combineSeq(k, 7.2, false); } },

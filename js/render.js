@@ -284,6 +284,7 @@ function drawDrawable(o, cam, t) {
     g.beginPath(); g.moveTo(x, y - 105); g.lineTo(x + o.fc * 900, y - 105); g.stroke(); g.restore();
   }
   if (o.pf) { drawPlatform(o, x, y, t); return; }
+  if (o.pr !== undefined) { drawPressHead(o, x, y, t); return; }
   if (o.bm) { drawBeam(o, x, t); return; }
   const gz = o.gz || 0;
   if (o.sh) drawShadow(x, y - gz, o.sh * (o.sc > 1 ? o.sc * 0.8 : 1), z - gz);
@@ -346,12 +347,12 @@ function trainAmount(v) {
 }
 /* 1.11.2: painted roof backgrounds (train_roof / loco_roof): the sky half rushes past, the roof half moves with the camera */
 const ROOF_SPLIT = 436, ROOF_OY = 22;
-function tileRows(img, off, sy, sh, dy) {
+function tileRows(img, off, sy, sh, dy, noFlip = false) {
   const tw = img.width;
   for (let i = Math.floor(off / tw); i * tw - off < W; i++) {
     const x = Math.round(i * tw - off);
     g.save();
-    if (i % 2) { g.translate(x + tw, 0); g.scale(-1, 1); g.drawImage(img, 0, sy, tw, sh, 0, dy, tw, sh); }
+    if (i % 2 && !noFlip) { g.translate(x + tw, 0); g.scale(-1, 1); g.drawImage(img, 0, sy, tw, sh, 0, dy, tw, sh); }
     else g.drawImage(img, 0, sy, tw, sh, x, dy, tw, sh);
     g.restore();
   }
@@ -378,8 +379,9 @@ function drawTrainPainted(cam, t, a, portal) {
   g.save(); g.beginPath(); g.rect(0, ROOF_OY + ROOF_SPLIT, Math.max(0, Math.min(W, lx)), H); g.clip();
   tileRows(img, cam, ROOF_SPLIT, img.height - ROOF_SPLIT, ROOF_OY + ROOF_SPLIT); g.restore();
   if (lx < W && loco) {
+    // the locomotive: its roof, plus stacks and smoke cut out of the sky (loco_roof.png has a transparent sky)
     g.save(); g.beginPath(); g.rect(Math.max(0, lx), 0, W, H); g.clip();
-    tileRows(loco, cam - (L.loco - 80) % loco.width, ROOF_SPLIT - 120, loco.height - ROOF_SPLIT + 120, ROOF_OY + ROOF_SPLIT - 120); g.restore();
+    tileRows(loco, cam - (L.loco - 80) % loco.width, 0, loco.height, ROOF_OY, true); g.restore();
   }
   // open gaps between the wagons (same geometry as the simulation)
   const top = HORIZON, h = H - HORIZON;
@@ -413,7 +415,7 @@ function drawTrain(cam, t, a, portal) {
     for (let i = Math.floor(off / tw); i * tw - off < W; i++) {
       const x = i * tw - off;
       g.save();
-      if (i % 2) { g.translate(x + tw, 0); g.scale(-1, 1); g.drawImage(img, 0, 0, img.width, sh, 0, 0, tw, dh); }
+      if (i % 2 && !noFlip) { g.translate(x + tw, 0); g.scale(-1, 1); g.drawImage(img, 0, 0, img.width, sh, 0, 0, tw, dh); }
       else g.drawImage(img, 0, 0, img.width, sh, x, 0, tw, dh);
       g.restore();
     }
@@ -717,6 +719,9 @@ function drawHUD(h, t) {
     const bv = h.boss.hp / h.boss.mx;
     HUDFX.boss = Math.max(bv, (HUDFX.boss ?? bv) - 0.003);
     segBar(bx, by + 24, 560, 14, bv, HUDFX.boss, '#ff6a3a', 20);
+    // phase marks at 2/3 and 1/3
+    for (const m of [0.66, 0.33]) { g.fillStyle = bv > m ? '#fff1a6' : '#5a3a3a'; g.fillRect(bx + 560 * m - 2, by + 18, 4, 26); }
+    ptxt(`FASE ${bv > 0.66 ? 1 : bv > 0.33 ? 2 : 3}/3`, bx + 280, by + 12, 8, '#ffd35a', 'center');
     if (h.boss.g) {
       ptxt('IN GUARDIA! COLPISCILO ALLE SPALLE O SFONDA LA GUARDIA CON L\'ARMA', W / 2, by - 30, 9, '#bfe6ff', 'center');
       segBar(W / 2 - 120, by - 22, 240, 7, h.boss.gm / 100, 0, '#bfe6ff', 6);
@@ -1033,6 +1038,27 @@ function drawTeamReady(t) {
 }
 
 /* ---------- platforms drawn as solid boxes: front face + top face ---------- */
+/* chapter 6: the hunting press — a steel head hanging from a trolley on an overhead rail */
+function drawPressHead(o, x, y, t) {
+  const lift = o.pr, bottom = y - 8 - lift, hw = 92, hh = 78;
+  g.save();
+  // overhead rail across the screen + trolley
+  g.fillStyle = '#10141a'; g.fillRect(0, 118, W, 16); g.fillStyle = '#3a4250'; g.fillRect(0, 118, W, 4);
+  g.fillStyle = '#e0b020'; for (let k = 0; k < W; k += 60) g.fillRect(k, 128, 30, 6);
+  g.fillStyle = '#05070c'; g.fillRect(x - 60, 104, 120, 36); g.fillStyle = '#5a6272'; g.fillRect(x - 56, 108, 112, 26);
+  g.fillStyle = '#ff5a3a'; if (o.fl || Math.floor(t * 6) % 2) g.fillRect(x - 6, 112, 12, 8);
+  // piston rods
+  g.fillStyle = '#05070c'; g.fillRect(x - 38, 134, 20, bottom - hh - 134); g.fillRect(x + 18, 134, 20, bottom - hh - 134);
+  g.fillStyle = '#9aa6b6'; g.fillRect(x - 34, 134, 12, bottom - hh - 134); g.fillRect(x + 22, 134, 12, bottom - hh - 134);
+  // the head
+  g.fillStyle = '#05070c'; g.fillRect(x - hw - 4, bottom - hh - 4, hw * 2 + 8, hh + 8);
+  const hg = g.createLinearGradient(0, bottom - hh, 0, bottom); hg.addColorStop(0, '#6a7282'); hg.addColorStop(1, '#2a3038');
+  g.fillStyle = hg; g.fillRect(x - hw, bottom - hh, hw * 2, hh);
+  g.fillStyle = '#e0b020'; for (let k = 0; k < 7; k++) { g.fillRect(x - hw + 6 + k * 26, bottom - 22, 13, 16); }
+  g.fillStyle = '#05070c'; for (let k = 0; k < 7; k++) g.fillRect(x - hw + 19 + k * 26, bottom - 22, 13, 16);
+  if (o.fl) { g.globalCompositeOperation = 'lighter'; g.fillStyle = 'rgba(255,220,140,.5)'; g.fillRect(x - hw, bottom - hh, hw * 2, hh); }
+  g.restore();
+}
 function drawPlatform(o, x, y, t) {
   const w = o.w, d = o.dp, h = o.h, L = x - w / 2, top = y - h;
   drawShadow(x, y + 4, w * 0.55, 0);
@@ -1069,6 +1095,28 @@ function drawPlatform(o, x, y, t) {
     g.fillStyle = '#2a5a34'; for (let i = 1; i < 5; i++) g.fillRect(L + i * w / 5, top + 8, 4, h - 18);
     g.fillStyle = '#f2f2f2'; g.fillRect(L + w / 2 - 14, top + h / 2 - 6, 28, 12);
     g.fillStyle = '#05070c'; for (const wx of [L + 16, L + w - 16]) { g.beginPath(); g.arc(wx, y - 2, 7, 0, 7); g.fill(); }
+  } else if (o.pf === 'hvac') {
+    // rooftop air-conditioning unit: metal box, big fan grille on top, pipes
+    g.fillStyle = '#05070c'; g.fillRect(L - 3, top - d - 3, w + 6, d + h + 6);
+    g.fillStyle = '#5a6574'; g.fillRect(L, top - d, w, d);
+    g.fillStyle = '#2a3038'; g.beginPath(); g.ellipse(L + w * 0.3, top - d / 2, 34, d / 2 - 6, 0, 0, 7); g.fill(); g.beginPath(); g.ellipse(L + w * 0.72, top - d / 2, 34, d / 2 - 6, 0, 0, 7); g.fill();
+    g.strokeStyle = '#8894a4'; g.lineWidth = 2; for (const cx of [L + w * 0.3, L + w * 0.72]) { const a = t * 18; g.beginPath(); g.moveTo(cx + Math.cos(a) * 28, top - d / 2 + Math.sin(a) * 14); g.lineTo(cx - Math.cos(a) * 28, top - d / 2 - Math.sin(a) * 14); g.stroke(); }
+    g.fillStyle = '#788596'; g.fillRect(L, top, w, h);
+    g.fillStyle = '#9aa7b8'; g.fillRect(L, top, w, 5);
+    g.fillStyle = '#4a5462'; for (let i = 0; i < 9; i++) g.fillRect(L + 14 + i * (w - 28) / 9, top + 18, 10, h - 40);
+    g.fillStyle = '#c0392b'; g.fillRect(L + w - 40, top + h - 26, 26, 10);
+    g.fillStyle = '#3a4250'; g.fillRect(L - 18, y - 30, 20, 10); g.fillRect(L - 22, y - 34, 8, 34);
+  } else if (o.pf === 'cargo') {
+    // two stacked steel cargo crates with hazard stripes (the underground factory)
+    g.fillStyle = '#05070c'; g.fillRect(L - 3, top - d - 3, w + 6, d + h + 6);
+    g.fillStyle = '#2c3a40'; g.fillRect(L, top - d, w, d);
+    g.fillStyle = '#3a4c54'; for (let i = 0; i < 8; i++) g.fillRect(L + 6 + i * (w - 12) / 8, top - d + 5, (w - 12) / 8 - 5, d - 10);
+    const cg = g.createLinearGradient(0, top, 0, y); cg.addColorStop(0, '#4a6470'); cg.addColorStop(1, '#22323a');
+    g.fillStyle = cg; g.fillRect(L, top, w, h);
+    for (let i = 0; i < 14; i++) { g.fillStyle = i % 2 ? 'rgba(0,0,0,.28)' : 'rgba(255,255,255,.07)'; g.fillRect(L + 8 + i * (w - 16) / 14, top + 6, (w - 16) / 14, h - 12); }
+    g.fillStyle = '#16202a'; g.fillRect(L, top, 8, h); g.fillRect(L + w - 8, top, 8, h); g.fillRect(L, top, w, 6); g.fillRect(L, y - 8, w, 8);
+    g.fillStyle = 'rgba(160,80,40,.45)'; g.fillRect(L + 30, top + h - 30, 40, 18); g.fillRect(L + w - 70, top + 10, 30, 22);   // rust
+    g.fillStyle = '#e0b020'; g.fillRect(L + w / 2 - 34, top + 20, 68, 20); g.fillStyle = '#05070c'; g.font = `400 9px ${PXFONT}`; g.textAlign = 'center'; g.fillText('CARGO 07', L + w / 2, top + 34);
   } else if (o.pf === 'shelter') {
     // bus shelter: roof on top, lit advertising panel in front
     g.fillStyle = '#05070c'; g.fillRect(L - 3, top - d - 3, w + 6, d + h + 6);

@@ -29,7 +29,7 @@ function mechInit(S) {
     return;
   }
   for (const [type, x, y, zone] of MECH_PROPS[S.lvl] || []) S.props.push({ id: nid(), type, x, y, hp: PROPS[type].hp, max: PROPS[type].hp, shake: 0, zone, cd: 0, spawnT: 3 + Math.random() * 3 });
-  if (S.lvl === 5) S.haz.push({ id: nid(), type: 'press', x: 2250, y: 600, t: 0 });
+  if (S.lvl === 5) S.haz.push({ id: nid(), type: 'press', x: 2250, y: 600, t: 0, zone: 1 });
 }
 
 /* props with special behaviour when hit; returns true when handled */
@@ -135,13 +135,23 @@ function stepMech(S, dt) {
     }
     if (h.type === 'spot' && h.t > 2.4) h.dead = true;
     if (h.type === 'press') {
-      const c = h.t % 3.4;
-      if (c >= 2.8 && !h.slam) {
-        h.slam = true; sfx(S, 'stomp'); shake(S, 8); ev(S, { t: 'ring', x: h.x, y: h.y, c: '#ffd35a', r: 160, life: 0.4 });
-        for (const p of S.players) if (!p.out && Math.abs(p.x - h.x) < 95 && Math.abs(p.y - h.y) < 45 && p.z < 80) hurtPlayer(S, p, 22, { knock: true, from: h.x });
-        for (const e of S.enemies) if (hittable(e) && !e.boss && Math.abs(e.x - h.x) < 95 && Math.abs(e.y - h.y) < 45) damageEnemy(S, null, e, 60, { knock: true, heavy: true, from: h.x });
+      // 1.12: the press runs on an overhead rail and HUNTS the players: it follows the nearest one, locks on
+      // (red target on the floor), then slams. It crushes the Veil soldiers too: lure them under it.
+      const active = S.zoneIdx === h.zone && S.zoneOn;
+      const c = h.t % 3.2;
+      if (!active) { h.t = 0; h.slam = false; continue; }
+      const tgt = alivePlayers(S).sort((a, b) => Math.abs(a.x - h.x) - Math.abs(b.x - h.x))[0];
+      if (tgt && c < 1.9) { h.x += clamp(tgt.x - h.x, -1, 1) * Math.min(Math.abs(tgt.x - h.x), 230 * dt); h.y += clamp(tgt.y - h.y, -1, 1) * Math.min(Math.abs(tgt.y - h.y), 120 * dt); }
+      if (c >= 1.9 && !h.warned) { h.warned = true; floatText(S, h.x, h.y - 260, 'PRESSA! SPOSTATI!', '#ff8a5a', 20); sfx(S, 'siren'); }
+      if (c >= 2.6 && !h.slam) {
+        h.slam = true; sfx(S, 'stomp'); sfx(S, 'heavy'); shake(S, 12); ev(S, { t: 'ring', x: h.x, y: h.y, c: '#ffd35a', r: 200, life: 0.45 }); sparks(S, h.x, h.y - 20, '#ffd35a', 20);
+        for (const p of S.players) if (!p.out && Math.abs(p.x - h.x) < 100 && Math.abs(p.y - h.y) < 48 && p.z < 80) hurtPlayer(S, p, 24, { knock: true, from: h.x });
+        let n = 0;
+        for (const e of S.enemies) if (hittable(e) && !e.boss && Math.abs(e.x - h.x) < 100 && Math.abs(e.y - h.y) < 48) { damageEnemy(S, null, e, 90, { knock: true, heavy: true, from: h.x }); n++; }
+        if (n) { ev(S, { t: 'pop', x: Math.round(h.x), y: Math.round(h.y - 220), s: n > 1 ? `SCHIACCIATI ×${n}!` : 'SCHIACCIATO!', c: '#ffd35a' }); for (const p of alivePlayers(S)) p.score += 400 * n; }
       }
-      if (c < 2.8) h.slam = false;
+      if (c < 1.9) { h.slam = false; h.warned = false; }
+      h.x = clamp(h.x, S.cam + 120, S.cam + W - 120); h.y = clamp(h.y, FLOOR_TOP + 20, FLOOR_BOTTOM - 10);
     }
   }
   S.haz = S.haz.filter((h) => !h.dead);
@@ -167,9 +177,11 @@ function mechView(S, d, r) {
       if (h.t < 1.2) d.push({ i: h.id, tg: [r(h.x), r(h.y), 85], x: r(h.x), y: r(h.y), s: 'extra', f: 'spotlight', z: r(Math.max(0, 700 - (h.t / 1.2) * 700 * (h.t > 0.9 ? 1 : 0.2))), sc: 0.6, sh: 0, a: h.t > 0.9 ? 1 : 0.0001 });
       else d.push({ i: h.id, s: 'extra', f: 'spotlight', x: r(h.x), y: r(h.y), sc: 0.6, sh: 50, r: 0.2, a: +clamp(2.4 - h.t, 0, 1).toFixed(2) });
     } else if (h.type === 'press') {
-      const c = h.t % 3.4;
-      const warn = c > 2.2 && c < 2.8;
-      d.push({ i: h.id, s: 'extra', f: 'press', x: r(h.x + (warn ? Math.sin(S.t * 60) * 3 : 0)), y: r(h.y + 40), sc: 0.9, sh: 0, sy: h.y - 60, tg: warn ? [r(h.x), r(h.y), 95] : undefined, fl: c > 2.8 && c < 3.0 ? 1 : 0 });
+      const c = h.t % 3.2, on = S.zoneIdx === h.zone && S.zoneOn;
+      const lock = c > 1.9 && c < 2.6, down = c >= 2.6 && c < 2.95;
+      // the head hangs high while it hunts, drops on the slam, then rises again
+      const lift = !on ? 170 : down ? 0 : c < 1.9 ? 170 : lock ? 170 - (c - 1.9) / 0.7 * 40 : 170 * clamp((c - 2.95) / 0.25, 0, 1);
+      d.push({ i: h.id, pr: r(lift * 1.6), x: r(h.x), y: r(h.y), sy: h.y + 2, tg: on && c < 2.6 ? [r(h.x), r(h.y), lock ? 105 : 60] : undefined, fl: down ? 1 : 0 });
     }
   }
 }

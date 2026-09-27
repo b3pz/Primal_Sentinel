@@ -328,7 +328,7 @@ function drawDialog(v) {
     // a hero speaks: highlight them
     const idx = heroes.indexOf(HEROES.findIndex((h) => h.name === who));
     const x = idx >= 0 ? 360 + idx * 95 : 1020;
-    if (idx < 0) { drawShadow(x, 620, 40); spr('fighters', sp[1], x, 620, { scale: 1.15, face: -1 }); }
+    if (idx < 0) { drawShadow(x, 620, 40); heroSpr(HEROES.findIndex((h) => h.name === who), 0, x, 620, { scale: 1.15, face: -1 }); }
     else { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35; g.fillStyle = sp[2]; g.beginPath(); g.ellipse(x, 490, 60, 110, 0, 0, 7); g.fill(); g.restore(); }
   }
   // text box with the illustrated portrait of the speaker
@@ -348,8 +348,9 @@ function drawDialog(v) {
     g.restore();
     g.strokeStyle = col; g.lineWidth = 3; g.strokeRect(60, H - 262, 220, 222);
   }
-  if (who !== 'NARRATORE') ptxt(who, tx, H - 154, 14, col, 'left');
+  if (who !== 'NARRATORE') { const hh = HEROES.find((h) => h.name === who); ptxt(hh && hh.civil && hh.civil.toUpperCase() !== who ? `${who} · ${hh.civil.toUpperCase()}` : who, tx, H - 154, 14, col, 'left'); }
   const shown = text.slice(0, Math.floor(k * 48));
+  { const nb = Math.floor(shown.length / 3); if (drawDialog._line !== v.i) { drawDialog._line = v.i; drawDialog._blip = 0; } if (nb > (drawDialog._blip || 0) && shown.length < text.length && !/[ .,]$/.test(shown)) { drawDialog._blip = nb; Audio.voice(who, nb); } }
   const lines = wrapText(shown, W - tx - 110, 24);
   lines.forEach((ln, i) => txt(ln, tx, H - (who !== 'NARRATORE' ? 112 : 140) + i * 34, 24, who === 'NARRATORE' ? '#dfe7ef' : '#f4f6fa', 'left', who === 'NARRATORE' ? 600 : 700));
   if (shown.length >= text.length && Math.floor(k * 2.5) % 2) txt('▼', W - 90, H - 60, 18, '#ffcf7a', 'center', 900);
@@ -370,7 +371,7 @@ function drawEnding(t, heroes) {
     ['I TITANI', 'TIRANNO · TRICERATOPO · FELINO · PTEROSAURO · MASTODONTE · DRAGO'],
     ['LA CAMERA DEI CUORI', 'ARMV3Z · ASTRO · BORIS · IRENE VALLI'],
     ['I TITANI DORMONO', 'MA SE IL VARCO SI RIAPRIRÀ, I CUORI SAPRANNO CHI CHIAMARE'],
-    ['GRAZIE PER AVER GIOCATO', 'PORTO AURORA È SALVA'],
+    ['GRAZIE PER AVER GIOCATO', 'LA STORIA CONTINUA...'],
   ];
   const idx = Math.floor(t / 4.2);
   const c = credits[Math.min(idx, credits.length - 1)];

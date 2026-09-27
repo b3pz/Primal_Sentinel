@@ -480,7 +480,7 @@ function drawGallery(v) {
   const info = (lines, y0 = 230) => lines.forEach((l, i) => { const w = wrapText(l, 440, 14); w.forEach((ww, k) => txt(ww, 660, y0 + (i * 2 + k) * 26 + i * 10, 14, i === 0 ? '#ffe9a8' : '#c8d6e4', 'left', 700)); });
   if (!it.ok) {
     lockedTxt();
-    const need = { hero: 'Completa la storia per sbloccare Kharon.', cine: 'Arriva più avanti nella storia.', bg: 'Arriva più avanti nella storia.' }[it.kind] || 'Arriva più avanti nella storia.';
+    const need = { hero: 'Completa la storia per sbloccare Sirio, il sesto Sentinel.', cine: 'Arriva più avanti nella storia.', bg: 'Arriva più avanti nella storia.' }[it.kind] || 'Arriva più avanti nella storia.';
     txt(need, 880, 380, 15, '#9fb4c8', 'center', 700);
   } else if (it.kind === 'hero') {
     const h = HEROES[it.i];

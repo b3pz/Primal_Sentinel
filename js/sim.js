@@ -577,7 +577,7 @@ function hitScan(S, p, m) {
     if (p.weapon.uses <= 0) { floatText(S, p.x, p.y - 170, 'ARMA ROTTA', '#c0c8d0', 16); sparks(S, p.x + p.face * 60, p.y - 90, '#c8d2dc', 14); p.weapon = null; }
   }
 }
-function hittable(e) { return e.hp > 0 && !['dead', 'down', 'thrown', 'held', 'burrow', 'gone', 'rise', 'slam', 'fall'].includes(e.st) && !(e.st === 'knock' && e.t > 0.05) && e.inv <= 0; }
+function hittable(e) { return e.hp > 0 && !['dead', 'down', 'thrown', 'held', 'burrow', 'gone', 'rise', 'slam', 'fall', 'roar'].includes(e.st) && !(e.st === 'knock' && e.t > 0.05) && e.inv <= 0; }
 
 function hitProp(S, o, who) {
   if (mechHitProp(S, o, who)) return;
@@ -717,7 +717,7 @@ function special(S, p) {
     else if (p.x < lo + 200) p.face = 1; else if (p.x > hi - 200) p.face = -1;
     if (p.x < lo + 80 && p.face === 1 || p.x > hi - 80 && p.face === -1) p.x += p.face * 40;   // step off the border
   }
-  p.st = 'special'; p.t = 0; p.hit = new Set(); p.inv = 0.7; p.spk = hero.id;
+  p.st = 'special'; p.t = 0; p.hit = new Set(); p.inv = 0.7; p.spk = hero.id; ev(S, { t: 'snd', n: 'shout' + p.hero });
   sfx(S, 'special'); ev(S, { t: 'flash', c: hero.glow, v: 0.25 });
   ev(S, { t: 'pop', x: Math.round(p.x), y: Math.round(p.y - 200), s: hero.special + '!', c: hero.color, big: 1 });
   S.hitstop = 0.06;
@@ -1047,8 +1047,19 @@ function spawnBoss(S, key, x, y) {
 
 function stepBoss(S, e, dt) {
   const B = e.B;
-  const phase2 = e.hp < e.max * 0.5;
-  const sp = B.speed * (phase2 ? 1.2 : 1);
+  // three phases: 2/3 and 1/3 of the life bar
+  const ph = e.hp > e.max * 0.66 ? 1 : e.hp > e.max * 0.33 ? 2 : 3;
+  if (ph > (e.phase || 1) && e.hp > 0 && !['dead', 'gone', 'teleport', 'burrow'].includes(e.st)) {
+    e.phase = ph; e.st = 'roar'; e.t = 0; e.pat = 0; e.guarding = false; e.alpha = 1; e.z = 0;
+    const P = BOSS_PHASES[e.key] || BOSS_PHASES[e.sprite];
+    S.banner = { text: `FASE ${ph}`, sub: P ? P.ph[ph - 2] : 'FURIA', t: 2.2, boss: true };
+    ev(S, { t: 'ring', x: Math.round(e.x), y: Math.round(e.y - 40), c: '#ff5a3a', r: 620, life: 0.8 }); ev(S, { t: 'flash', c: '#ff6a4a', v: 0.45 });
+    shake(S, 18); sfx(S, 'roar'); sfx(S, 'boom');
+    for (const q of S.players) if (!q.out && q.st !== 'dead' && q.st !== 'ko' && Math.abs(q.x - e.x) < 420) hurtPlayer(S, q, 6, { knock: true, from: e.x });
+  }
+  const phase2 = (e.phase || 1) >= 2;
+  const PF = [1, 1, 1.15, 1.3][e.phase || 1];
+  const sp = B.speed * PF;
   const p = nearestPlayer(S, e);
   if (!p && !['dead', 'gone'].includes(e.st)) { e.st = 'idle'; return; }
   const hurtAll = (test, dmg, knock = true) => {
@@ -1062,22 +1073,24 @@ function stepBoss(S, e, dt) {
     }
     case 'idle': case 'walk': {
       e.target = p.id;
-      e.cool -= dt * (phase2 ? 1.35 : 1);
+      e.cool -= dt * [1, 1, 1.3, 1.6][e.phase || 1];
       e.face = p.x > e.x ? 1 : -1;
-      const ranged = ['orbs', 'blast', 'summon', 'split', 'mirror', 'wave', 'teleport', 'burrow'].includes(B.pattern[e.pat % B.pattern.length]);
+      const PP = BOSS_PHASES[e.key] || BOSS_PHASES[e.sprite], pattern = (e.phase || 1) >= 3 && PP ? PP.p3 : (e.phase || 1) === 2 && PP ? PP.p2 : B.pattern;
+      const ranged = ['orbs', 'blast', 'summon', 'split', 'mirror', 'wave', 'teleport', 'burrow'].includes(pattern[e.pat % pattern.length]);
       const want = ranged ? 360 : B.reach * 0.75;
       const ddx = p.x - e.face * want - e.x, ddy = p.y - e.y;
       if (Math.abs(ddx) > 14) { e.x += Math.sign(ddx) * Math.min(Math.abs(ddx), sp * dt); e.walk += dt * 6; e.st = 'walk'; }
       else e.st = 'idle';
       if (Math.abs(ddy) > 8) e.y += Math.sign(ddy) * Math.min(Math.abs(ddy), sp * 0.55 * dt);
       if (e.cool <= 0 && (Math.abs(ddx) < 60 || ranged || e.t > 2.2)) {
-        e.move = B.pattern[e.pat % B.pattern.length]; e.pat++;
+        e.move = pattern[e.pat % pattern.length]; e.pat++;
         e.st = 'wind'; e.t = 0; e.tx = p.x; e.ty = p.y;
         sfx(S, 'bosswind');
         if (e.move === 'guard') { e.st = 'guard'; e.guarding = true; e.gm = 100; e.turnT = 0; }
       }
       break;
     }
+    case 'roar': if (e.t > 1.4) { e.st = 'walk'; e.t = 0; e.cool = 0.4; } break;
     case 'guard': {
       // turns slowly: a quick player can still get behind
       e.turnT = (e.turnT || 0) + dt;
@@ -1088,7 +1101,7 @@ function stepBoss(S, e, dt) {
     case 'wind': {
       const wt = { punch: 0.75, slam: 0.95, charge: 0.7, lunge: 0.6, claw: 0.55, drill: 0.7, slash: 0.55, sweep: 0.8, blast: 0.9, orbs: 0.6, summon: 0.7, split: 0.7, mirror: 0.8, wave: 0.6, teleport: 0.4, burrow: 0.5 }[e.move] || 0.7;
       if (['slam'].includes(e.move)) { e.tx = lerp(e.tx, p.x, dt * 3); e.ty = lerp(e.ty, p.y, dt * 3); }
-      if (e.t > wt * (phase2 ? 0.8 : 1)) { e.st = 'atk'; e.t = 0; e.didHit = false; bossAttack(S, e, p); }
+      if (e.t > wt * [1, 1, 0.85, 0.7][e.phase || 1]) { e.st = 'atk'; e.t = 0; e.didHit = false; bossAttack(S, e, p); }
       break;
     }
     case 'atk': {
@@ -1102,7 +1115,7 @@ function stepBoss(S, e, dt) {
       } else if (e.t > 0.55) { e.st = 'recover'; e.t = 0; }
       break;
     }
-    case 'recover': if (e.t > (phase2 ? 0.35 : 0.6)) { e.st = 'walk'; e.t = 0; e.cool = rand(0.9, 1.6); } break;
+    case 'recover': if (e.t > (phase2 ? 0.35 : 0.6)) { e.st = 'walk'; e.t = 0; e.cool = (e.phase || 1) >= 3 && Math.random() < 0.4 ? 0 : rand(0.9, 1.6); } break;   // phase 3: attacks can chain
     case 'hurt': if (e.t > (e.broken ? 1.8 : 0.45)) { e.st = 'walk'; e.t = 0; e.broken = false; e.cool = Math.min(e.cool, 0.5); } break;
     case 'teleport': {
       e.alpha = Math.max(0, 1 - e.t * 3);
@@ -1435,6 +1448,7 @@ function enemyFrame(e) {
         case 'walk': case 'intro': f = Math.floor(e.walk / 1.5) % 2 ? 1 : 0; break;
         case 'guard': f = 2; break;
         case 'wind': f = special ? 4 : 2; break;
+        case 'roar': f = 4; break;
         case 'atk': f = special ? 4 : 3; break;
         case 'recover': f = special ? 4 : e.t < 0.3 ? 3 : 0; break;
         case 'burrow': f = 7; break;
@@ -1450,7 +1464,7 @@ function enemyFrame(e) {
       case 'walk': case 'intro': f = eight ? [0, 1, 2, 1][Math.floor(e.walk) % 4] : [1, 0, 2, 0][Math.floor(e.walk) % 4]; break;
       case 'idle': case 'appear': case 'teleport': f = 0; break;
       case 'guard': f = eight ? 3 : 5; break;
-      case 'wind': f = 3; break;
+      case 'wind': case 'roar': f = 3; break;
       case 'atk': f = eight ? (e.move === 'slam' ? 5 : 4) : 4; break;
       case 'recover': f = eight ? (e.move === 'slam' ? 5 : 4) : 4; break;
       case 'burrow': f = 3; break;
@@ -1593,7 +1607,7 @@ function buildView(S) {
     }
     // 1.8: real grab poses (the held enemy is drawn separately): 0 presa · 1 ginocchiata · 2 sollevamento · 3 lancio
     const gi = p.civil ? -1 : p.st === 'grab' ? 0 : p.st === 'grabatk' ? (p.t > 0.06 && p.t < 0.22 ? 1 : 0) : p.st === 'throw' ? (p.t < 0.1 ? 2 : 3) : p.st === 'pairslam' ? (p.t < 0.3 ? 2 : 3) : -1;
-    if (gi >= 0 && frameOf('grabs', `${HEROES[p.hero].id}_g${gi}`)) { o.s = 'grabs'; o.f = `${HEROES[p.hero].id}_g${gi}`; o.sc = HERO_SCALE; o.r = 0; }
+    if (gi >= 0 && frameOf('grabs', `${HEROES[p.hero].id}_g${gi}`)) { o.s = 'grabs'; o.f = `${HEROES[p.hero].id}_g${gi}`; o.sc = +(HERO_SCALE * (HEROES[p.hero].sheet ? 1.15 : 1)).toFixed(3); o.r = 0; }
     if (p.weapon) { o.wp = p.weapon.type; o.wa = p.st === 'atk' && p.atk === 'swing' && p.t > 0.1 ? 1 : 0; }
     if (p.st === 'special' || p.st === 'pose') o.au = HEROES[p.hero].glow;
     // personal weapon visible in the finisher, the running strike and the specials

@@ -22,7 +22,7 @@ const HEROES = [
     trait: 'CORAZZA: i colpi leggeri non lo fermano', pro: 'Il più forte e resistente', con: 'Il più lento' },
   // sbloccabile: finisci la storia una volta
   // il sesto Sentinel: liberato dalla corazza di Vespera, Kharon indossa l'armatura verde del primo pilota
-  { id: 'kharon', name: 'KHARON', civil: 'Sirio', role: 'Sesto Sentinel', color: '#3fd06a', glow: '#9dffbf', power: 1.1, speed: 245, hp: 130,
+  { id: 'kharon', name: 'SIRIO', civil: 'Sirio', role: 'Sesto Sentinel', color: '#3fd06a', glow: '#9dffbf', power: 1.1, speed: 245, hp: 130,
     special: 'ONDA DEL TRAGHETTATORE', weapon: 'SPADA DEL PRIMO PILOTA', specialText: 'Due onde di spada rasoterra (lunga distanza)', titan: 'Tiranno rosso', sheet: 'bosses', unlock: true,
     trait: 'PARATA: SCHIVATA da fermo per parare', pro: 'Forte e completo, onde a lunga distanza', con: 'Parare richiede tempismo' },
 ];
@@ -68,6 +68,18 @@ const BOSS_INFO = {
   custode: { str: ['Sfere che inseguono', 'Rinforzi continui', 'Spazzate ampie'], weak: ['Lento', 'Le sfere si schivano in verticale', 'Colpi pesanti da vicino'] },
   kharon2: { str: ['Più veloce e aggressivo', 'Doppia onda di spada', 'Para i colpi frontali'], weak: ['Guardia sfondabile con le armi', 'Scoperto dopo le onde', 'Colpo di squadra'] },
   vespera: { str: ['Raggio oscuro', 'Teletrasporto', 'Evoca i suoi soldati', 'Sfere che inseguono'], weak: ['Poca difesa da vicino', 'Ferma quando carica il raggio', 'Colpo di squadra e titani'] },
+};
+/* 1.12: bosses in three phases (like Cuphead): at 2/3 and 1/3 of their life they roar, push everyone back
+   and switch to a new, faster pattern. p2/p3 = the patterns of phase 2 and 3, ph = the names shown. */
+const BOSS_PHASES = {
+  mastice: { p2: ['slam', 'charge', 'punch', 'slam'], p3: ['charge', 'slam', 'charge', 'punch'], ph: ['ASFALTO ROVENTE', 'FRANA'] },
+  centipede: { p2: ['split', 'lunge', 'claw', 'split'], p3: ['lunge', 'split', 'lunge', 'claw'], ph: ['LO SCIAME', 'LA MUTA'] },
+  trivor: { p2: ['burrow', 'drill', 'burrow', 'claw'], p3: ['drill', 'burrow', 'drill', 'drill'], ph: ['SOTTOTERRA', 'TRIVELLA IMPAZZITA'] },
+  mimesi: { p2: ['mirror', 'slash', 'lunge', 'mirror'], p3: ['lunge', 'mirror', 'slash', 'lunge'], ph: ['SPECCHI ROTTI', 'MILLE RIFLESSI'] },
+  kharon: { p2: ['wave', 'slash', 'lunge', 'wave'], p3: ['wave', 'lunge', 'wave', 'slash', 'guard'], ph: ['LA CORAZZA SI RISVEGLIA', 'ORDINI DI VESPERA'] },
+  custode: { p2: ['orbs', 'summon', 'sweep', 'orbs'], p3: ['summon', 'orbs', 'sweep', 'orbs'], ph: ['LA FLOTTA SI SVEGLIA', 'ULTIMA DIFESA'] },
+  kharon2: { p2: ['wave', 'lunge', 'wave', 'guard'], p3: ['wave', 'wave', 'lunge', 'slash'], ph: ['LA CORAZZA SI INCRINA', 'L\'ULTIMO COMANDO'] },
+  vespera: { p2: ['teleport', 'blast', 'orbs', 'summon'], p3: ['orbs', 'teleport', 'blast', 'orbs', 'blast'], ph: ['LA CORONA OSCURA', 'LA REGINA SENZA TRONO'] },
 };
 const BOSSES = {
   mastice: { name: 'MASTICE', title: 'COLOSSO DI ASFALTO', hp: 620, scale: 0.78, speed: 95, reach: 175, dmg: 22, frames: 8, pattern: ['punch', 'slam', 'punch', 'charge'] },
@@ -211,7 +223,7 @@ const LEVELS = [
     n: 4, id: 'teatro', title: 'IL TEATRO DEGLI SPECCHI', place: 'QUARTIERE DEI TEATRI', bg: 'theater', length: 4500, music: 3,
     zones: [
       { x: 650, name: 'IL FOYER', w: [['lancer', 3], ['soldier', 3]], c: ['lady'], p: [['crate', 520, 600]] },
-      { x: 1650, name: 'LA GALLERIA DEGLI SPECCHI', w: [['shade', 2], ['soldier', 3], ['lancer', 2]], c: [], p: [['barrel', 1500, 640], ['bin', 1900, 540]] },
+      { x: 1650, name: 'LA GALLERIA DEGLI SPECCHI', w: [['shade', 2], ['soldier', 3], ['lancer', 2]], c: [], p: [['barrel', 1500, 640], ['crate', 1900, 540]] },
       { x: 2700, name: 'IL PALCOSCENICO', w: [['shade', 3], ['brute', 2], ['lancer', 2]], c: ['suit'], p: [['crate', 2600, 560], ['crate', 3050, 660]] },
       { x: 3650, name: 'MIMESI', boss: 'mimesi', p: [] },
     ],
@@ -238,7 +250,7 @@ const LEVELS = [
     n: 5, id: 'assedio', title: 'ASSEDIO A PORTO AURORA', place: 'CITTÀ SOTTO ASSEDIO', bg: 'siege', length: 4700, music: 4,
     zones: [
       { x: 650, name: 'IL LUNGOMARE IN FIAMME', w: [['soldier', 4], ['lancer', 3]], c: ['waiter', 'kid'], p: [['barrel', 560, 650], ['crate', 950, 540]] },
-      { x: 1700, name: 'I TETTI', w: [['brute', 2], ['lancer', 4]], c: ['elder'], p: [['crate', 1550, 600], ['bin', 1950, 660]] },
+      { x: 1700, name: 'IL MOLO', w: [['brute', 2], ['lancer', 4]], c: ['elder'], p: [['crate', 1550, 600], ['barrel', 2400, 660]] },
       { x: 2750, name: 'IL CENTRO COMUNICAZIONI', w: [['brute', 2], ['lancer', 3], ['soldier', 3]], c: ['girl', 'fisher'], p: [['barrel', 2650, 560], ['crate', 3050, 640]] },
       { x: 3750, name: 'KHARON', boss: 'kharon', p: [] },
     ],
@@ -271,7 +283,7 @@ const LEVELS = [
     zones: [
       { x: 650, name: 'LE GALLERIE', w: [['soldier', 3], ['brute', 2]], c: [], p: [['crate', 520, 600], ['crate', 930, 660]] },
       { x: 1650, name: 'LA CATENA DI MONTAGGIO', w: [['lancer', 4], ['brute', 2]], c: [], p: [['barrel', 1500, 560], ['barrel', 1950, 650]] },
-      { x: 2700, name: 'LA SALA DEI CUORI SPENTI', w: [['shade', 2], ['brute', 2], ['lancer', 3]], c: ['scientist'], p: [['crate', 2600, 640], ['bin', 3000, 540]] },
+      { x: 2700, name: 'LA SALA DEI CUORI SPENTI', w: [['shade', 2], ['brute', 2], ['lancer', 3]], c: ['scientist'], p: [['crate', 2600, 640], ['barrel', 3000, 540]] },
       { x: 3700, name: 'IL CUSTODE', boss: 'custode', p: [] },
     ],
     weapons: [['pipe', 1200, 600], ['pipe', 2300, 640]],
@@ -312,7 +324,7 @@ const LEVELS = [
       ["ARMV3Z", "Mirate alla corazza, non all'uomo. Sotto c'è un amico."],
     ],
     outro: [
-      ["KHARON", "La corazza... si è spezzata. Dopo mille anni, sono libero."],
+      ["SIRIO", "La corazza... si è spezzata. Dopo mille anni, sono libero."],
       ["ARMV3Z", "Bentornato, Sirio. Il Cuore verde è di nuovo tuo, e il Drago Verde ti riconosce. Sei il sesto Sentinel."],
       ["VESPERA", "Che scena commovente. Ma io non ho bisogno di un traditore."],
       ["VESPERA", "Titani... ascoltate la mia voce. Tornate da me."],
@@ -354,10 +366,26 @@ const LEVELS = [
       ["ASTRO", "Ce l'abbiamo fatta! Ce l'abbiamo fatta! Posso ballare? Sto già ballando!"],
       ["BORIS", "...Va bene. Oggi balla."],
       ["ARMV3Z", "I titani tornano a dormire sotto la città. Questa volta come custodi, non come armi. E voi con loro."],
+      ["ARMV3Z", "Però non vi ho raccontato tutto di quella notte, mille anni fa. Come io e Sirio portammo via i Cuori da sotto il trono di Vespera."],
+      ["SIRIO", "E non eravamo soli, quella notte. Qualcuno ci aiutò a fuggire... e non ha mai chiesto niente in cambio. Finora."],
+      ["NARRATORE", "Lontano, oltre il mare di Porto Aurora, un nuovo varco si apre. Senza luce, senza rumore. Qualcuno ha sentito i Cuori svegliarsi."],
+      ["ASTRO", "Ehm... ArMV3z? Il radar segna qualcosa. E non è viola."],
+      ["NARRATORE", "LA STORIA CONTINUA..."],
     ],
   },
 ];
 
+/* 1.12: when Sirio (Kharon, the sixth Sentinel) is in the team replaying an earlier chapter, he adds his line */
+const SIRIO_LINES = [
+  [['SIRIO', 'Mastice... lo costruì Vespera con il fango dei porti che conquistava. Colpitelo quando si rialza: è lento a ricomporsi.']],
+  [['SIRIO', 'Quel convoglio l\'ho scortato io, una volta. Mi vergogno ancora. Stavolta lo fermiamo.']],
+  [['SIRIO', 'Il Tiranno Rosso fu il mio primo titano. Parlagli piano, Ciusky: ricorda chi lo tratta bene.']],
+  [['SIRIO', 'Mimesi copiava anche me. Cambiate ritmo spesso: non riesce a star dietro a chi improvvisa.']],
+  [['SIRIO', 'Ricordo questa notte dall\'altra parte della spada. Adesso so da che parte stare.']],
+  [['SIRIO', 'Il Custode ricostruiva i titani che io stesso avevo guidato. Facciamolo tacere per sempre.']],
+  [['SIRIO', 'Tornare lassù libero... è una sensazione strana. Andiamo a chiudere i conti.']],
+  [['SIRIO', 'Vespera, ti ho servita per mille anni. Stanotte ti restituisco il favore.']],
+];
 /* Speaker → portrait sprite for dialogue boxes */
 const SPEAKERS = {
   'IGNIS': ['fighters', 'ignis_0', '#ff5b4f'], 'AZUR': ['fighters', 'azur_0', '#5d9bff'], 'LYRA': ['fighters', 'lyra_0', '#f7d046'],
@@ -395,14 +423,16 @@ const PLATS = {
   dumpster: { w: 150, d: 50, h: 92 },
   shelter: { w: 300, d: 48, h: 180 },
   rock: { w: 180, d: 44, h: 110 },
+  hvac: { w: 220, d: 50, h: 100 },    // rooftop air-conditioning unit (chapter 5, on the roofs)
+  cargo: { w: 190, d: 50, h: 104 },   // stacked steel cargo crates (chapter 6, the factory)
 };
 const LEVEL_EXTRAS = [
   { plats: [['car', 1080, 548], ['dumpster', 2330, 582], ['shelter', 2390, 540], ['car', 3330, 660]], sigils: [[1080, 525, 'top'], [2420, 520, 'top'], [3150, 560, 'crate']], drones: { 2: 1 }, more: { 2: [['shield', 1]] } },
   { plats: [], sigils: [[500, 600, 'crate'], [2100, 540, 'crate'], [4300, 505, 'floor']], drones: {}, more: { 0: [['dog', 2]], 3: [['grenadier', 2]] } },
   { plats: [['dumpster', 1300, 560], ['car', 4350, 650]], sigils: [[1300, 540, 'top'], [2600, 540, 'crate'], [4350, 628, 'top']], drones: { 1: 2, 2: 2 }, more: { 0: [['dog', 3]], 1: [['grenadier', 2]], 2: [['shield', 2]], 3: [['dog', 3]] } },
   { plats: [], sigils: [[520, 600, 'crate'], [1900, 540, 'crate'], [3050, 660, 'crate']], drones: {}, more: { 1: [['ninja', 2]], 2: [['ninja', 3]] } },
-  { plats: [['car', 1100, 650], ['dumpster', 2100, 582], ['shelter', 2160, 540]], sigils: [[1100, 628, 'top'], [2180, 520, 'top'], [3050, 640, 'crate']], drones: { 0: 1, 1: 2, 2: 2 }, more: { 0: [['shield', 2]], 1: [['grenadier', 2]], 2: [['ninja', 2], ['shield', 2]] } },
-  { plats: [['dumpster', 1250, 600]], sigils: [[1250, 580, 'top'], [930, 660, 'crate'], [3000, 540, 'crate']], drones: { 2: 2 }, more: { 0: [['dog', 3]], 1: [['shield', 2]], 2: [['grenadier', 2], ['ninja', 2]] } },
+  { plats: [['car', 1100, 650], ['cargo', 1950, 600], ['cargo', 2180, 540]], sigils: [[1100, 628, 'top'], [2180, 520, 'top'], [3050, 640, 'crate']], drones: { 0: 1, 1: 2, 2: 2 }, more: { 0: [['shield', 2]], 1: [['grenadier', 2]], 2: [['ninja', 2], ['shield', 2]] } },
+  { plats: [['cargo', 1250, 600]], sigils: [[1250, 580, 'top'], [930, 660, 'crate'], [3000, 540, 'crate']], drones: { 2: 2 }, more: { 0: [['dog', 3]], 1: [['shield', 2]], 2: [['grenadier', 2], ['ninja', 2]] } },
   { plats: [['rock', 1250, 600], ['rock', 2350, 560]], sigils: [[520, 600, 'crate'], [1950, 540, 'crate'], [2650, 560, 'crate']], drones: { 0: 2, 2: 2 }, more: { 0: [['ninja', 3]], 1: [['grenadier', 2], ['dog', 3]], 2: [['shield', 3]] } },
   { plats: [['rock', 1300, 600], ['rock', 2400, 620], ['rock', 4500, 580], ['rock', 5400, 640]], sigils: [[1300, 578, 'top'], [1500, 540, 'crate'], [4500, 558, 'top']], drones: { 1: 2, 2: 2 }, more: { 0: [['ninja', 3], ['dog', 3]], 1: [['shield', 2], ['grenadier', 2]], 2: [['ninja', 3], ['shield', 2]] } },
 ];
