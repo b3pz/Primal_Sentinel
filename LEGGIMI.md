@@ -66,6 +66,15 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.6.6
+- **ARGO, il Guardiano dei Cuori**: il mentore nella colonna di luce. Dà le missioni all'inizio dei capitoli,
+  conosceva Kharon mille anni fa e saluta i Sentinels nel finale.
+- **SETTE, il robot assistente**: commenta i capitoli (e va nel panico), presenta COME SI GIOCA e giudica il
+  voto nel riepilogo di fine capitolo.
+- **Kharon è il sesto Sentinel verde**: da giocabile ha l'armatura verde e il mantello d'oro (il Kharon nemico
+  resta scuro). Argo glielo annuncia quando la corazza del Velo si spezza.
+- Galleria: nuova sezione ALLEATI (Argo, Sette, Dott.ssa Valli).
+
 ## Novità della 1.6.5
 - Gli scooter del capitolo 1 ora hanno un soldato del Velo alla guida.
 

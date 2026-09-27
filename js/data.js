@@ -16,8 +16,9 @@ const HEROES = [
   { id: 'onyx', name: 'ONYX', civil: 'Bruno', role: 'Potente', color: '#b9c6d4', glow: '#e3ecf5', power: 1.25, speed: 222, hp: 140,
     special: 'SCURE TELLURICA', weapon: 'ASCIA ZANNA', specialText: 'Colpo d\'ascia che spacca il suolo (da vicino)', titan: 'Mastodonte nero' },
   // sbloccabile: finisci la storia una volta
-  { id: 'kharon', name: 'KHARON', civil: 'Kharon', role: 'Comandante', color: '#d24a5a', glow: '#ff8a9a', power: 1.1, speed: 245, hp: 130,
-    special: 'ONDA DEL TRAGHETTATORE', weapon: 'SPADA DEL VELO', specialText: 'Due onde di spada rasoterra (lunga distanza)', titan: 'Tiranno rosso', sheet: 'bosses', unlock: true },
+  // il sesto Sentinel: liberato dalla corazza del Velo, Kharon indossa l'armatura verde del primo pilota
+  { id: 'kharon', name: 'KHARON', civil: 'Kharon', role: 'Sesto Sentinel', color: '#3fd06a', glow: '#9dffbf', power: 1.1, speed: 245, hp: 130,
+    special: 'ONDA DEL TRAGHETTATORE', weapon: 'SPADA DEL PRIMO PILOTA', specialText: 'Due onde di spada rasoterra (lunga distanza)', titan: 'Tiranno rosso', sheet: 'bosses', unlock: true },
 ];
 /* i cinque Sentinels "di base" (Kharon è un personaggio extra) */
 const CORE_HEROES = 5;
@@ -113,11 +114,14 @@ const LEVELS = [
     weapons: [['pipe', 1300, 600]],
     intro: [
       ['NARRATORE', 'Porto Aurora, 23:47. Le sirene suonano da dieci minuti. Nessuno sa ancora perché.'],
+      ['ARGO', 'Sentinels, ascoltatemi. Sono Argo, custode dei Cuori. Il Velo si è aperto su Porto Aurora e i Cuori hanno scelto voi.'],
+      ['SETTE', 'Ahi ahi ahi! Soldati del Velo in ogni vicolo! Ho acceso i radar: ci sono civili sul lungomare!'],
       ['IGNIS', 'Sono usciti dagli specchi delle vetrine... Prima i civili: portiamoli via dal lungomare!'],
     ],
     outro: [
       ['NARRATORE', 'Tra i resti di Mastice brilla un simbolo: lo stesso inciso sulle armature dei Sentinels.'],
       ['AZUR', 'Non stava attaccando a caso. Scavava. Cercava qualcosa sotto la città.'],
+      ['ARGO', 'Quel simbolo... non vedevo un marchio del Velo da mille anni. Restate uniti, Sentinels.'],
       ['NARRATORE', 'Intanto, un convoglio carico di prigionieri corre verso un portale. A bordo c\'è una scienziata rapita.'],
     ],
   },
@@ -133,6 +137,7 @@ const LEVELS = [
     weapons: [['pipe', 1200, 640], ['oar', 2400, 560]],
     intro: [
       ['NARRATORE', 'Il convoglio ha già lasciato la città. Dieci minuti al portale.'],
+      ['SETTE', 'Ho agganciato il segnale del convoglio: dieci minuti al portale. Nove e cinquantanove... nove e cinquantotto...'],
       ['LYRA', 'Dentro ci sono persone. Io salto sul treno: voi coprite i vagoni!'],
     ],
     outro: [
@@ -154,6 +159,7 @@ const LEVELS = [
     intro: [
       ['DOTT.SSA VALLI', 'Il segnale viene da sotto il recinto del tirannosauro. Sentite anche voi questo battito?'],
       ['ONYX', 'Lo sento nel petto. Come se l\'armatura... riconoscesse casa.'],
+      ['ARGO', 'Sotto quel parco dorme il primo dei titani. Se si risveglia, ascoltatelo: non è una macchina, è un compagno.'],
     ],
     mid: [
       ['TRIVOR', 'GRRRAAAH! Il Velo mi dona la sua forza!'],
@@ -177,6 +183,7 @@ const LEVELS = [
     intro: [
       ['NARRATORE', 'Un intero quartiere è diventato un set irreale. Ogni specchio riflette qualcuno che non c\'è.'],
       ['AZUR', 'Quelle copie... si muovono come noi. Qualcuno ci ha studiati.'],
+      ['SETTE', 'I miei sensori vedono cinque di voi... e poi altri cinque. Non mi piace. Non mi piace per niente!'],
     ],
     outro: [
       ['VESPERA', 'Guardate, piccoli custodi. Guardate cosa facevano i vostri titani quando erano miei.'],
@@ -197,11 +204,13 @@ const LEVELS = [
     intro: [
       ['KHARON', 'Consegnatemi i Cuori e la città vivrà. Rifiutate e la guarderete bruciare.'],
       ['IGNIS', 'Porto Aurora è casa nostra. Non trattiamo con chi la incendia!'],
+      ['ARGO', 'Kharon... conosco quella voce. Sentinels, qualunque cosa accada, non odiatelo.'],
     ],
     mid: [
       ['KHARON', 'Siete migliori di quanto credessi. Ma questa notte non è mia: è sua.'],
       ['NARRATORE', 'Kharon spezza un frammento del Velo sui resti di Mastice. Il colosso si rialza, alto come un palazzo.'],
       ['AURA', 'Da soli non basta. Tutti e cinque, adesso: UNIONE DEI TITANI!'],
+      ['ARGO', 'I cinque Cuori battono insieme. Titani, unitevi!'],
     ],
     outro: [
       ['NARRATORE', 'Il colosso cade in mare. Nella luce dell\'esplosione, Kharon esita. Poi scompare nel Velo.'],
@@ -220,11 +229,14 @@ const LEVELS = [
     intro: [
       ['NARRATORE', 'Scheletri di macchine giganti riempiono la caverna. Qui le armature perdono energia.'],
       ['ONYX', 'Le celle non si ricaricano. Qualunque cosa ci sia qui sotto... ci sta svuotando.'],
+      ['SETTE', 'Energia dei Cuori al 40%... al 38%... Argo, stai sparendo!'],
+      ['ARGO', 'Quaggiù il Velo mi toglie la voce. Andate avanti senza di me, ma non lasciate spegnere i vostri Cuori.'],
     ],
     outro: [
       ['KHARON', 'Aspettate. Non combatto contro di voi.'],
       ['KHARON', 'Mille anni fa ero il primo pilota dei titani. Fui io a liberarli da Vespera e a cancellarne la memoria.'],
       ['KHARON', 'Lei mi punì con questa corazza. Finché la indosso, devo obbedirle. Distruggetela... oltre il Velo.'],
+      ['ARGO', 'Kharon, vecchio amico. Il Cuore verde ti aspetta da mille anni.'],
     ],
   },
   {
@@ -238,10 +250,12 @@ const LEVELS = [
     weapons: [['oar', 1200, 620]],
     intro: [
       ['NARRATORE', 'Oltre il Velo, la gravità cambia direzione a ogni passo. I nemici delle prime notti sono tornati, più forti.'],
+      ['SETTE', 'Gravità ridotta! Tenetevi forte... io non posso, non ho le calamite ai piedi!'],
       ['LYRA', 'Kharon è in cima alla scalinata. Dobbiamo spezzare la sua corazza senza ucciderlo.'],
     ],
     outro: [
       ['KHARON', 'La corazza... si è spezzata. Sono libero. Grazie, Sentinels.'],
+      ['ARGO', 'Da oggi il Cuore verde è di nuovo tuo, Kharon. Sei il sesto Sentinel.'],
       ['VESPERA', 'Che commovente. E adesso, miei titani... tornate da me.'],
       ['NARRATORE', 'Uno dopo l\'altro, i cinque titani si voltano verso Vespera. Per salvarli bisogna raggiungere i loro Cuori dall\'interno.'],
     ],
@@ -259,6 +273,7 @@ const LEVELS = [
     giant: { player: 'concordia', enemy: 'eclipse', bg: 'dawn', final: true },
     intro: [
       ['KHARON', 'Vi apro la strada. L\'ultima battaglia è vostra.'],
+      ['ARGO', 'Oltre il Velo non posso seguirvi. Ma ogni Cuore porta un pezzo di me. Andate.'],
       ['IGNIS', 'Sentinels... questa è l\'ultima alba del Velo!'],
     ],
     mid: [
@@ -270,6 +285,8 @@ const LEVELS = [
     outro: [
       ['NARRATORE', 'Il Velo si richiude per sempre. Sul mare di Porto Aurora sorge il sole.'],
       ['IGNIS', 'Non abbiamo vinto perché li controllavamo. Abbiamo vinto perché hanno scelto noi.'],
+      ['SETTE', 'Ce l\'abbiamo fatta! Ce l\'abbiamo fatta! Posso ballare? Sto già ballando!'],
+      ['ARGO', 'I titani ora dormono sereni. Siete voi i loro custodi, Sentinels. Io veglierò su tutti voi.'],
       ['NARRATORE', 'I titani tornano a dormire sotto la città. Questa volta, come custodi. FINE.'],
     ],
   },
@@ -281,9 +298,10 @@ const SPEAKERS = {
   'AURA': ['fighters', 'aura_0', '#ff78bb'], 'ONYX': ['fighters', 'onyx_0', '#b9c6d4'],
   'KHARON': ['bosses', 'kharon_0', '#d24a5a'], 'VESPERA': ['bosses', 'vespera_0', '#b77dff'], 'TRIVOR': ['bosses', 'trivor_0', '#4fc3a8'],
   'DOTT.SSA VALLI': ['people', 'scientist_idle0', '#9fd6ff'], 'NARRATORE': null,
+  'ARGO': ['mentors', 'argo_0', '#6fc8ff'], 'SETTE': ['mentors', 'sette_2', '#ffd35a'],
 };
 /* illustrated dialogue portraits */
-const PORTRAIT = { IGNIS: 'pt_ignis', AZUR: 'pt_azur', LYRA: 'pt_lyra', AURA: 'pt_aura', ONYX: 'pt_onyx', VESPERA: 'pt_vespera', KHARON: 'pt_kharon', 'DOTT.SSA VALLI': 'pt_valli', MASTICE: 'pt_mastice' };
+const PORTRAIT = { ARGO: 'mentors:argo_7', SETTE: 'mentors:sette_2', IGNIS: 'pt_ignis', AZUR: 'pt_azur', LYRA: 'pt_lyra', AURA: 'pt_aura', ONYX: 'pt_onyx', VESPERA: 'pt_vespera', KHARON: 'pt_kharon', 'DOTT.SSA VALLI': 'pt_valli', MASTICE: 'pt_mastice' };
 
 /* ------------------------------------------------------------
    DIFFICOLTÀ · crediti = quante volte la squadra può continuare

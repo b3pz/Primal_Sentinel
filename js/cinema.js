@@ -297,7 +297,16 @@ function drawDialog(v) {
   const heroes = v.heroes && v.heroes.length ? v.heroes : [0];
   heroes.forEach((h, i) => { drawShadow(360 + i * 95, 560, 34); heroSpr(h, 0, 360 + i * 95, 560, { scale: 1.0, face: 1, alpha: 0.95 }); });
   const sp = SPEAKERS[who];
-  if (sp && !HEROES.some((h) => h.name === who)) {
+  const typing = text && k * 48 < text.length;
+  if (sp && sp[0] === 'mentors') {
+    // Argo in his column of light, Sette the robot: they move their mouth / hands while talking
+    const argo = who === 'ARGO';
+    const key = argo ? (typing && Math.floor(k * 7) % 2 ? 'argo_1' : /!/.test(text) ? 'argo_2' : 'argo_0')
+      : /ahi|sparendo|non mi piace/i.test(text) ? (Math.floor(k * 5) % 2 ? 'sette_3' : 'sette_0') : /ballare|fatta/i.test(text) ? (Math.floor(k * 4) % 2 ? 'sette_7' : 'sette_5') : typing && Math.floor(k * 6) % 2 ? 'sette_2' : 'sette_0';
+    if (argo) glowAt(1020, 430, 260, '#6fc8ff', 0.35 + Math.sin(k * 3) * 0.08);
+    drawShadow(1020, 620, argo ? 110 : 50);
+    spr('mentors', key, 1020, 620, { scale: argo ? 1 : 1.3, face: -1 });
+  } else if (sp && !HEROES.some((h) => h.name === who)) {
     const [sheet, key] = sp;
     const sc = sheet === 'people' ? 1.5 : sheet === 'bosses' ? (who === 'TRIVOR' ? 1.9 : 1.6) : 1.1;
     drawShadow(1020, 620, 60);
@@ -317,11 +326,12 @@ function drawDialog(v) {
   if (who === 'KHARON' && (v.lv >= 6 || (v.lv === 5 && /libero|pilota|corazza/i.test(text)))) pk = 'pt_kharon_face';
   const tx = pk ? 300 : 90;
   if (pk) {
-    const f = frameOf('extra', pk);
+    const [psheet, pkey] = pk.includes(':') ? pk.split(':') : ['extra', pk];
+    const f = frameOf(psheet, pkey);
     g.save(); g.beginPath(); g.rect(60, H - 262, 220, 222); g.clip();
     const grd = g.createRadialGradient(170, H - 150, 10, 170, H - 150, 150); grd.addColorStop(0, col + '66'); grd.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = grd; g.fillRect(60, H - 262, 220, 222);
-    spr('extra', pk, 170, H - 40, { scale: 1.1 });
+    spr(psheet, pkey, 170, H - 40, { scale: f ? Math.min(1.1, 212 / f[3]) : 1.1 });
     g.restore();
     g.strokeStyle = col; g.lineWidth = 3; g.strokeRect(60, H - 262, 220, 222);
   }
@@ -426,6 +436,12 @@ function drawSummary(v) {
     const col = { S: '#ffd35a', A: '#7bf0b1', B: '#69c0ff', C: '#c8d6e4' }[st.rank] || '#fff';
     ptitle(st.rank || 'C', 0, 60, 150, '#ffffff', col);
     g.restore();
+  }
+  if (t > 2 && frameOf('mentors', 'sette_0')) {
+    const pose = { S: Math.floor(t * 4) % 2 ? 'sette_7' : 'sette_5', A: 'sette_5', B: 'sette_2', C: Math.floor(t * 4) % 2 ? 'sette_3' : 'sette_0' }[st.rank] || 'sette_2';
+    const say = { S: 'INCREDIBILE! RECORD!', A: 'OTTIMO LAVORO!', B: 'BENE, SENTINELS!', C: 'AHI AHI... ALLENIAMOCI!' }[st.rank] || '';
+    drawShadow(1180, 700, 30); spr('mentors', pose, 1180, 700, { scale: 0.85, face: -1 });
+    ptxt(say, 1120, 580, 9, '#ffd35a', 'right');
   }
   (st.unlock || []).forEach((u, i) => { if (t > 2.4 + i * 0.4) { panel(760, 520 + i * 44, 460, 36, '#ffd35a', 0.9); ptxt('SBLOCCATO! ' + u, 990, 544 + i * 44, 10, Math.floor(t * 6) % 2 ? '#ffffff' : '#ffd35a', 'center'); } });
   if (t > 2.2 && Math.floor(t * 2) % 2) ptxt('PREMI ATTACCO PER CONTINUARE', W / 2, H - 30, 12, '#ffffff', 'center');

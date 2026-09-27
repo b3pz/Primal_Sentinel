@@ -275,6 +275,7 @@ Object.assign(Game, {
     ];
     return [
       { name: 'SENTINELS', items: HEROES.map((h, i) => ({ kind: 'hero', i, name: h.name, ok: i < CORE_HEROES || !!u.story })) },
+      { name: 'ALLEATI', items: [{ kind: 'ally', a: 'argo', name: 'ARGO', ok: true }, { kind: 'ally', a: 'sette', name: 'SETTE', ok: true }, { kind: 'ally', a: 'valli', name: 'DOTT.SSA VALLI', ok: prog >= 2 }] },
       { name: 'NEMICI', items: Object.keys(ENEMIES).map((k) => ({ kind: 'enemy', k, name: ENEMIES[k].name.toUpperCase(), ok: true })) },
       { name: 'BOSS', items: Object.keys(BOSSES).filter((k) => k !== 'kharon2').map((k, i) => ({ kind: 'boss', k, name: BOSSES[k].name, ok: prog >= i || !!u.story })) },
       { name: 'TITANI', items: [...BEASTS.map((b) => ({ kind: 'beast', b, name: BEAST_NAME[b], ok: prog >= 2 })), { kind: 'conc', name: 'CONCORDIA', ok: prog >= 4 }, ...Object.keys(GIANTS).map((k, i) => ({ kind: 'giant', k, name: GIANTS[k].name, ok: prog >= [2, 4, 7][i] }))] },
@@ -483,6 +484,10 @@ function drawGallery(v) {
     info([`${h.civil.toUpperCase()} · ${h.role.toUpperCase()}`, `ARMA: ${h.weapon}`, `SPECIALE: ${h.special} — ${h.specialText}`, `TITANO: ${h.titan}`]);
     const bars = [['POTENZA', h.power / 1.3], ['VELOCITÀ', h.speed / 310], ['VITA', h.hp / 150]];
     bars.forEach(([n, val], i) => { ptxt(n, 660, 520 + i * 30, 9, '#9fb4c8'); segBar(780, 510 + i * 30, 300, 10, val, 0, h.color, 10); });
+  } else if (it.kind === 'ally') {
+    if (it.a === 'argo') { glowAt(cx, cy - 190, 220, '#6fc8ff', 0.35); spr('mentors', `argo_${[0, 1, 0, 2, 4, 3][Math.floor(t * 1.2) % 6]}`, cx, cy, { scale: 1.1 }); info(['IL GUARDIANO DEI CUORI', 'Antico pilota dei titani: di lui resta la coscienza, dentro una colonna di luce nella Camera dei Cuori. Ha scelto i cinque Sentinels e ha conosciuto Kharon mille anni fa.']); }
+    else if (it.a === 'sette') { drawShadow(cx, cy, 50); spr('mentors', `sette_${Math.floor(t * 1.5) % 8}`, cx, cy, { scale: 1.7 }); info(['IL ROBOT ASSISTENTE', 'Tiene in piedi la base, controlla i radar e va nel panico con grande stile. Ti spiega i comandi in COME SI GIOCA e commenta ogni capitolo.']); }
+    else { drawShadow(cx, cy, 40); spr('people', Math.floor(t) % 3 ? 'scientist_idle0' : 'scientist_point', cx, cy, { scale: 2 }); info(['SCIENZIATA', 'Irene Valli ha studiato le armature per vent\'anni. Liberata dal convoglio, scopre dove dormono i titani.']); }
   } else if (it.kind === 'enemy') {
     const d = ENEMIES[it.k];
     const f = d.sheet === 'extra' || d.villain ? [0, 1, 0, 2, 3, 4, 5][Math.floor(t * 3) % 7] : [0, 1, 2, 3, 4, 5, 6, 7][Math.floor(t * 3) % 8];

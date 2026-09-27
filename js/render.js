@@ -486,7 +486,8 @@ function drawPortrait(hero, x, y, s = 0.52, dim = false) {
   const grd = g.createRadialGradient(x, y, 4, x, y, hb * 1.3);
   grd.addColorStop(0, HEROES[hero].color + '88'); grd.addColorStop(1, 'rgba(0,0,0,0)');
   g.fillStyle = grd; g.fillRect(x - hb, y - hb, hb * 2, hb * 2);
-  spr('extra', 'pt_' + HEROES[hero].id, x + 4 * s / 0.52, y + hb, { scale: 0.36 * (s / 0.52), alpha: dim ? 0.35 : 1 });
+  if (HEROES[hero].sheet) heroSpr(hero, 0, x + 2 * s / 0.52, y + hb * 2.3, { scale: 0.62 * (s / 0.52), alpha: dim ? 0.35 : 1 });   // the green sixth Sentinel
+  else spr('extra', 'pt_' + HEROES[hero].id, x + 4 * s / 0.52, y + hb, { scale: 0.36 * (s / 0.52), alpha: dim ? 0.35 : 1 });
   g.restore();
   g.strokeStyle = HEROES[hero].color; g.lineWidth = 2; g.strokeRect(x - hb, y - hb, hb * 2, hb * 2);
 }

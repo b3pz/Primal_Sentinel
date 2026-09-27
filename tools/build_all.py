@@ -37,3 +37,4 @@ print('quantized')
 # boss pose sheets (1.6.2) go in their own atlas
 exec(open('build_boss_poses.py').read())
 exec(open('build_kharon.py').read())
+exec(open('build_mentors.py').read())

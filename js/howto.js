@@ -359,6 +359,8 @@ function drawHowto(pg, t, scheme, hero, opt = {}) {
   ptxt(SCHEME_NAMES[scheme], cx + 240, vy + 34, 10, '#9fe8ff', 'center');
   if (scheme === 'pad') drawPad(cx + 10, cy + 20, s.lit, color);
   else drawKeyboard(cx + 20, cy + 30, s.lit, color, scheme);
+  // Sette presents the lesson from the corner of the control panel
+  if (frameOf('mentors', 'sette_0')) { const pose = lt < 1.2 ? 'sette_5' : Math.floor(lt * 2) % 4 === 0 ? 'sette_2' : 'sette_4'; spr('mentors', pose, 1175, vy + vh - 6, { scale: 0.8, face: -1 }); }
   // header
   ptitle('COME SI GIOCA', W / 2, 62, 30, '#fff6d6', '#ffb03a');
   ptxt(`${pg + 1}/${HOWTO.length} · ${P.title}`, 40, 98, 12, color);
