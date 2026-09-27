@@ -70,7 +70,7 @@ const Game = {
         <button id="howto">COME SI GIOCA</button>
         <button id="audio">AUDIO: ${Audio.muted ? 'SPENTO' : 'ACCESO'}</button>
       </nav>
-      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.4</div>`, 'menu');
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.5</div>`, 'menu');
     UI.on('#play', () => { this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
     UI.on('#chapters', () => this.chapters());
@@ -442,11 +442,12 @@ const Game = {
   stageResult(r) {
     const L = LEVELS[this.levelIdx];
     this.carryScores(this.S.players);
+    if (r === 'bonus') { Audio.playSong(8); this.afterClear(); return; }
     const S = this.S;
     this.stats = { lvl: this.levelIdx, time: S.t + (this.stageTimeBefore || 0), saved: S.saved, sigils: S.sigils.slice(), dmg: S.dmgTaken, cont: (this.chapterCont || 0) + S.contUsed,
       players: S.players.map((p) => ({ h: p.hero, n: p.name, sc: p.score, ko: p.kos, cb: p.maxCombo })) };
     if (r === 'giant') {
-      this.dialog(L.mid, () => { this.G = newGiant(this.levelIdx, this.simPlayers()); this.mode = 'giant'; FX.parts = []; Audio.playSong(7); });
+      this.dialog(L.mid, () => this.playCine(MID_CINE[this.levelIdx], () => { this.G = newGiant(this.levelIdx, this.simPlayers()); this.mode = 'giant'; FX.parts = []; Audio.playSong(7); }));
       return;
     }
     this.levelClear();
@@ -458,6 +459,14 @@ const Game = {
     this.summary(() => this.afterClear());
   },
   afterClear() {
+    if (BONUS_AFTER.includes(this.levelIdx) && !this.bonusDone) {
+      // bonus stage: destroy Vespera's capsule in 30 seconds
+      this.bonusDone = true;
+      this.S = newStage(this.levelIdx, this.simPlayers(), 0, bonusLevel(this.levelIdx));
+      this.S.credits = this.credits; this.mode = 'stage'; FX.parts = []; Audio.playSong(3);
+      return;
+    }
+    this.bonusDone = false;
     // an animated cinematic tells what happens between this chapter and the next
     this.playCine(this.levelIdx, () => {
       if (this.levelIdx >= LEVELS.length - 1) { this.mode = 'ending'; this.endT = 0; Audio.playSong(8); }
@@ -730,7 +739,7 @@ function frame(ts) {
     g.setTransform(1, 0, 0, 1, 0, 0);
     Game.menuT = (Game.menuT || 0) + dt;
     if (IMG.port) {
-      drawStageBackdrop('port', 300 + Game.menuT * 25);
+      drawStageBackdrop('port', 300);
       g.fillStyle = 'rgba(3,8,16,.35)'; g.fillRect(0, 0, W, H);
       const k = Game.menuT;
       HEROES.forEach((h, i) => { const x = 700 + i * 110, y = 620 + (i % 2) * 30; drawShadow(x, y, 36); spr('fighters', `${h.id}_${Math.floor(k * 1.5 + i) % 7 === 0 ? 4 : 0}`, x, y, { scale: 1.0, face: -1 }); });
@@ -766,7 +775,8 @@ function frame(ts) {
 /* ---------------- boot ---------------- */
 Input.init();
 const IMAGES = [
-  ['fighters', 'assets/sprites/fighters.png'], ['bosses', 'assets/sprites/bosses.png'], ['titans', 'assets/sprites/titans.png'],
+  ['fighters', 'assets/sprites/fighters.png'], ['bosses', 'assets/sprites/bosses.png'], ['titans', 'assets/sprites/titans.png'], ['giants', 'assets/sprites/giants.png'], ['extra', 'assets/sprites/extra.png'],
+  ['cine_run', 'assets/bg/cine_run.jpg'], ['cine_duel', 'assets/bg/cine_duel.jpg'], ['cine_rex', 'assets/bg/cine_rex.jpg'], ['cine_cavern', 'assets/bg/cine_cavern.jpg'], ['cine_cockpit', 'assets/bg/cine_cockpit.jpg'], ['cine_dawn', 'assets/bg/cine_dawn.jpg'],
   ['items', 'assets/sprites/items.png'], ['people', 'assets/sprites/people.png'],
   ['port', 'assets/bg/port.jpg'], ['harbor', 'assets/bg/harbor.jpg'], ['rail', 'assets/bg/rail.jpg'], ['park', 'assets/bg/park.jpg'],
   ['theater', 'assets/bg/theater.jpg'], ['siege', 'assets/bg/siege.jpg'], ['graveyard', 'assets/bg/graveyard.jpg'], ['veil', 'assets/bg/veil.jpg'],
@@ -791,7 +801,7 @@ window.gameStatus = () => ({
 
 /* ---------------- title screen ---------------- */
 function drawTitle(t) {
-  drawStageBackdrop('port', 300 + t * 25);
+  drawStageBackdrop('port', 300);
   const grd = g.createLinearGradient(0, 0, 0, H);
   grd.addColorStop(0, 'rgba(3,6,16,.75)'); grd.addColorStop(0.6, 'rgba(3,6,16,.35)'); grd.addColorStop(1, 'rgba(3,6,16,.85)');
   g.fillStyle = grd; g.fillRect(0, 0, W, H);

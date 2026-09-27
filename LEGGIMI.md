@@ -1,5 +1,5 @@
 # PRIMAL SENTINELS — Il cuore dei titani
-Ideato e sviluppato da b3pZ. Build 1.4: campagna completa in 8 capitoli, da 1 a 4 giocatori.
+Ideato e sviluppato da b3pZ. Build 1.5: campagna completa in 8 capitoli, da 1 a 4 giocatori.
 
 ## Avvio
 Estrai tutto lo ZIP e apri `index.html` con Chrome, Edge o Firefox (Mac o Windows).
@@ -44,6 +44,22 @@ quando servono: colpo di squadra pronto, "SPRIGIONA IL TUO POTERE!", "AFFERRALO!
 Attacco = pugno, pistola = colpo pesante, schivata tenuta = parata, salto = passo rapido.
 Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale.
 
+
+
+## Novità della 1.5
+- **Duelli giganti con pose vere**: Tiranno rosso e Concordia hanno pose per morso/pugno, codata/montante,
+  parata, colpo subito, arma finale; Trivor, Mastice risorto e Vespera Eclisse caricano, colpiscono e crollano.
+- **Cinematiche dei titani**: il risveglio del Tiranno rosso (capitolo 3), la corsa dei cinque titani e
+  l'unione pezzo per pezzo in Concordia con la cabina di pilotaggio (capitolo 5), Concordia Alba (capitolo 8),
+  la caverna dei titani nell'intro e l'alba finale.
+- **Nuovi nemici**: droni con jetpack, scudati (solo colpi forti o alle spalle), granatieri che lanciano
+  granate da lontano, mastini meccanici veloci, ninja del Velo che si teletrasportano alle spalle.
+- **Una meccanica per capitolo**: scooter che attraversano la strada (1), treno (2), specchi che generano
+  copie oscure finché non li rompi e riflettori che cadono (4), antenna da difendere (5), generatori che
+  ricaricano l'energia e pressa idraulica (6), gravità ridotta e rocce fluttuanti (7-8).
+- **Livelli bonus** dopo i capitoli 2, 4 e 6: distruggi la capsula del Velo in 30 secondi.
+- **Ritratti illustrati** nei dialoghi e nell'HUD.
+- **Sfondi fermi** nell'intro, nelle cinematiche, nei dialoghi e nei menu: si muovono solo i personaggi.
 
 ## Novità della 1.4
 - **Difficoltà** (menu principale): Facile (crediti infiniti), Normale (4 crediti per tutta la partita),

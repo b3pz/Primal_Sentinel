@@ -92,7 +92,7 @@ function drawIntro(t) {
   let shakeV = 0;
   if (t < 22) {
     // ---------------- scenes 1–3: the promenade ----------------
-    const pan = t * 22;
+    const pan = 0;   // static camera: only the people move
     if (t > 9 && t < 14) shakeV = 6 * Math.sin((t - 9) * 3);
     g.translate(rand(-1, 1) * shakeV, rand(-1, 1) * shakeV);
     drawStageBackdrop('port', 260 + pan);
@@ -130,7 +130,7 @@ function drawIntro(t) {
   } else if (t < 31) {
     // ---------------- scene 4: Vespera beyond the veil ----------------
     const k = t - 22;
-    coverImage('veil', 1.05 + k * 0.004, 0.5, 0.6);
+    coverImage('veil', 1.05, 0.5, 0.6);
     g.fillStyle = 'rgba(20,0,40,.45)'; g.fillRect(0, 0, W, H);
     // mirror frame
     g.save();
@@ -157,7 +157,7 @@ function drawIntro(t) {
   } else if (t < 38) {
     // ---------------- scene 5: the chamber of the cores ----------------
     const k = t - 31;
-    const zoom = 1.02 + k * 0.025;
+    const zoom = 1.04;
     coverImage('story_cores', zoom, 0.5, 0.45);
     g.fillStyle = 'rgba(0,10,20,.25)'; g.fillRect(0, 0, W, H);
     // capsule centres measured on the artwork (image pixels): glass from y 180 to 282
@@ -183,7 +183,14 @@ function drawIntro(t) {
       for (let y = foot - f[3] * hs; y < foot; y += 3) g.fillRect(cx - f[2] * hs / 2, y, f[2] * hs, 1);
       g.restore();
     });
-    if (k > 4.5) {
+    if (k > 3.6) {
+      // cut to the cavern where the five titans sleep, their eyes lighting up one by one
+      const a = clamp((k - 3.6) / 0.5, 0, 1);
+      coverImage('cine_cavern', 1.0, 0.5, 0.5, a);
+      const eyes = [[455, 270, '#ff4a3d'], [770, 372, '#5aa8ff'], [1080, 330, '#ffe066'], [870, 250, '#ff8ac8'], [1290, 290, '#ff4a3d']];
+      eyes.forEach(([x, y, col], i) => { const on = clamp((k - 4.2 - i * 0.3) * 3, 0, 1); if (on) glowAt(x * 1280 / 1672, y * 720 / 941, 60, col, on * (0.6 + Math.sin(t * 6 + i) * 0.2)); });
+    }
+    if (false) {
       // silhouettes of the titans in the dark
       const a = clamp((k - 4.5) / 1.2, 0, 0.9);
       spr('titans', 'rex_side', 250, 700, { scale: 1.2, img: tinted('titans', 'rex_side', '#05070c', 'source-atop', 0.85), alpha: a });
@@ -267,7 +274,7 @@ function drawDialog(v) {
   const k = v.t;
   // background: the chapter's stage, darkened
   const bgName = v.card ? L.bg : L.bg;
-  coverImage(bgName, 1.05 + Math.sin(k * 0.05) * 0.01, v.i % 2 ? 0.2 : 0.6, 0.5);
+  coverImage(bgName, 1.05, 0.5, 0.5);
   g.fillStyle = 'rgba(3,6,14,.55)'; g.fillRect(0, 0, W, H);
   // chapter card
   if (v.card) {
@@ -281,7 +288,7 @@ function drawDialog(v) {
   }
   // actors on stage: heroes of the players on the left, speaker on the right if villain
   const heroes = v.heroes && v.heroes.length ? v.heroes : [0];
-  heroes.forEach((h, i) => { drawShadow(180 + i * 95, 610, 34); spr('fighters', HEROES[h].id + '_0', 180 + i * 95, 610, { scale: 1.0, face: 1, alpha: 0.95 }); });
+  heroes.forEach((h, i) => { drawShadow(360 + i * 95, 560, 34); spr('fighters', HEROES[h].id + '_0', 360 + i * 95, 560, { scale: 1.0, face: 1, alpha: 0.95 }); });
   const sp = SPEAKERS[who];
   if (sp && !HEROES.some((h) => h.name === who)) {
     const [sheet, key] = sp;
@@ -291,28 +298,39 @@ function drawDialog(v) {
   } else if (sp) {
     // a hero speaks: highlight them
     const idx = heroes.indexOf(HEROES.findIndex((h) => h.name === who));
-    const x = idx >= 0 ? 180 + idx * 95 : 1020;
+    const x = idx >= 0 ? 360 + idx * 95 : 1020;
     if (idx < 0) { drawShadow(x, 620, 40); spr('fighters', sp[1], x, 620, { scale: 1.15, face: -1 }); }
-    else { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35; g.fillStyle = sp[2]; g.beginPath(); g.ellipse(x, 540, 60, 110, 0, 0, 7); g.fill(); g.restore(); }
+    else { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35; g.fillStyle = sp[2]; g.beginPath(); g.ellipse(x, 490, 60, 110, 0, 0, 7); g.fill(); g.restore(); }
   }
-  // text box
+  // text box with the illustrated portrait of the speaker
   g.fillStyle = 'rgba(4,10,20,.9)'; g.fillRect(60, H - 190, W - 120, 150);
   const col = sp ? sp[2] : '#ffcf7a';
   g.fillStyle = col; g.fillRect(60, H - 190, W - 120, 3);
-  if (who !== 'NARRATORE') ptxt(who, 90, H - 154, 14, col, 'left');
+  let pk = PORTRAIT[who];
+  if (who === 'KHARON' && (v.lv >= 6 || (v.lv === 5 && /libero|pilota|corazza/i.test(text)))) pk = 'pt_kharon_face';
+  const tx = pk ? 300 : 90;
+  if (pk) {
+    const f = frameOf('extra', pk);
+    g.save(); g.beginPath(); g.rect(60, H - 262, 220, 222); g.clip();
+    const grd = g.createRadialGradient(170, H - 150, 10, 170, H - 150, 150); grd.addColorStop(0, col + '66'); grd.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grd; g.fillRect(60, H - 262, 220, 222);
+    spr('extra', pk, 170, H - 40, { scale: 1.1 });
+    g.restore();
+    g.strokeStyle = col; g.lineWidth = 3; g.strokeRect(60, H - 262, 220, 222);
+  }
+  if (who !== 'NARRATORE') ptxt(who, tx, H - 154, 14, col, 'left');
   const shown = text.slice(0, Math.floor(k * 48));
-  const lines = wrapText(shown, W - 200, 24);
-  lines.forEach((ln, i) => txt(ln, 90, H - (who !== 'NARRATORE' ? 112 : 140) + i * 34, 24, who === 'NARRATORE' ? '#dfe7ef' : '#f4f6fa', 'left', who === 'NARRATORE' ? 600 : 700));
+  const lines = wrapText(shown, W - tx - 110, 24);
+  lines.forEach((ln, i) => txt(ln, tx, H - (who !== 'NARRATORE' ? 112 : 140) + i * 34, 24, who === 'NARRATORE' ? '#dfe7ef' : '#f4f6fa', 'left', who === 'NARRATORE' ? 600 : 700));
   if (shown.length >= text.length && Math.floor(k * 2.5) % 2) txt('▼', W - 90, H - 60, 18, '#ffcf7a', 'center', 900);
   ptxt(`${v.i + 1}/${v.lines.length} · PUGNO: AVANTI · START: SALTA`, W - 80, H - 14, 8, '#7e8fa2', 'right');
 }
 
 /* ---------------- ending ---------------- */
 function drawEnding(t, heroes) {
-  coverImage('dawn', 1.1 - Math.min(t, 20) * 0.003, 0.6, 0.5);
+  coverImage('cine_dawn', 1.0, 0.5, 0.5);
   g.fillStyle = `rgba(255,190,120,${0.1 + Math.sin(t * 0.5) * 0.04})`; g.fillRect(0, 0, W, H);
   const tx = 640;
-  spr('titans', 'concordia_front', 980, 690, { scale: 1.2, alpha: clamp(t / 3, 0, 0.9) });
   const hs = heroes && heroes.length ? [...new Set([...heroes, 0, 1, 2, 3, 4])] : [0, 1, 2, 3, 4];
   hs.slice(0, 5).forEach((h, i) => { drawShadow(160 + i * 110, 650, 34); spr('fighters', HEROES[h].id + '_0', 160 + i * 110, 650, { scale: 1.0 }); });
   const credits = [

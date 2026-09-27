@@ -223,30 +223,26 @@ function buildGiantView(G) {
   let px = P.x, py = 690, prot = 0, psx = 1, glow = 0;
   const bob = Math.sin(G.t * 2.2) * 4;
   switch (P.st) {
-    case 'jab': { const k = Math.sin(Math.min(1, P.t / 0.36) * Math.PI); px += k * 70; prot = k * 0.06; break; }
-    case 'heavy': { const w = P.super ? 0.35 : 0.5; const k = P.t < w ? -P.t / w : Math.sin(Math.min(1, (P.t - w) / 0.4) * Math.PI); px += k * (k < 0 ? 40 : 120); prot = k * 0.09; glow = P.super ? 1 : 0; break; }
-    case 'guard': psx = 0.97; prot = -0.05; break;
-    case 'step': px += 0; prot = 0.04; break;
-    case 'finisher': glow = 1; prot = -0.03; break;
-    case 'hurt': prot = -0.08; px -= 20; break;
-    case 'down': prot = -Math.min(1, P.t) * 0.5; py += Math.min(1, P.t) * 60; break;
-    case 'walk': prot = Math.sin(G.t * 4.4) * 0.025; break;
+    case 'jab': { const k = Math.sin(Math.min(1, P.t / 0.36) * Math.PI); px += k * 40; break; }
+    case 'heavy': { const w = P.super ? 0.35 : 0.5; const k = P.t < w ? -P.t / w : Math.sin(Math.min(1, (P.t - w) / 0.4) * Math.PI); px += k * (k < 0 ? 30 : 80); glow = P.super ? 1 : 0; break; }
+    case 'finisher': glow = 1; break;
+    case 'hurt': px -= 20; break;
   }
+  // real poses from the generated sheets
+  const rex = G.T === TITAN_KINDS.rex;
+  const heavyWind = P.st === 'heavy' && P.t < (P.super ? 0.35 : 0.5);
+  const pf = {
+    intro: rex ? 5 : 0, idle: 0, walk: [0, 1][Math.floor(G.t * 3) % 2], jab: 2,
+    heavy: heavyWind ? (rex ? 4 : 1) : 3, guard: 4, step: rex ? 4 : 1,
+    finisher: rex ? 5 : 6, hurt: rex ? 6 : 5, down: 7,
+  }[P.st] ?? 0;
   const eDef = G.E;
-  const eight = eDef.frames === 8;
-  let ef = 0;
-  switch (E.st) {
-    case 'idle': case 'intro': ef = eight ? [0, 1, 2, 1][Math.floor(E.walk * 2) % 4] : [0, 1, 0, 2][Math.floor(E.walk * 2) % 4]; break;
-    case 'wind': ef = 3; break;
-    case 'atk': ef = eight ? (E.move === 'stomp' ? 5 : 4) : 4; break;
-    case 'recover': ef = eight ? 4 : 4; break;
-    case 'hurt': case 'stagger': ef = eight ? 6 : 5; break;
-    case 'dead': ef = eight ? 7 : 5; break;
-  }
+  // giant monster sheet: 0 idle · 1 wind-up · 2 attack · 3 hit · 4 defeated
+  const ef = { wind: 1, atk: 2, recover: E.t < 0.35 ? 2 : 0, hurt: 3, stagger: 3, dead: E.t < 0.8 ? 3 : 4 }[E.st] ?? 0;
   return {
     m: 'giant', lv: G.lvl, bg: G.conf.bg, t: +G.t.toFixed(2),
-    pl: { k: G.T === TITAN_KINDS.rex ? 'rex' : 'concordia', x: Math.round(px + P.off), y: Math.round(py + bob * 0.3), r: +prot.toFixed(3), sx: psx, gl: glow, fl: P.flash > 0 ? 1 : 0, gd: P.guard || P.st === 'guard' ? 1 : 0, fin: P.st === 'finisher' ? +P.t.toFixed(2) : 0, fz: G.final ? 1 : 0 },
-    en: { s: eDef.sprite, f: `${eDef.sprite}_${ef}`, x: Math.round(E.x + E.off), y: 690, sc: eDef.scale, fl: E.flash > 0 || (E.st === 'dead' && Math.floor(E.t * 12) % 2) ? 1 : 0, wn: E.st === 'wind' ? E.move : 0, a: E.st === 'dead' ? +Math.max(0, 1 - Math.max(0, E.t - 2.2) / 0.8).toFixed(2) : 1, st: E.st === 'stagger' ? 1 : 0 },
+    pl: { k: rex ? 'rex' : 'concordia', f: (rex ? 'rexb_' : 'conc_') + pf, x: Math.round(px + P.off), y: Math.round(py + bob * 0.3), r: +prot.toFixed(3), sx: psx, gl: glow, fl: P.flash > 0 ? 1 : 0, gd: P.guard || P.st === 'guard' ? 1 : 0, fin: P.st === 'finisher' ? +P.t.toFixed(2) : 0, fz: G.final ? 1 : 0 },
+    en: { s: 'giants', f: `${eDef.sprite}G_${ef}`, st2: E.st, x: Math.round(E.x + E.off), y: 690, sc: 1, fl: E.flash > 0 || (E.st === 'dead' && Math.floor(E.t * 12) % 2) ? 1 : 0, wn: E.st === 'wind' ? E.move : 0, a: E.st === 'dead' ? +Math.max(0, 1 - Math.max(0, E.t - 2.2) / 0.8).toFixed(2) : 1, st: E.st === 'stagger' ? 1 : 0 },
     sh: G.shock ? Math.round(G.shock.x) : 0,
     rn: G.shots.map((s) => [Math.round(s.x), Math.round(s.y)]),
     hud: {

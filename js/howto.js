@@ -273,8 +273,8 @@ function drawHowto(pg, t, scheme, hero, opt = {}) {
   if (s.giant) {
     coverImage('siege', 1.0, 0.3, 0.5, 1);
     g.fillStyle = 'rgba(6,10,30,.35)'; g.fillRect(vx, vy, vw, vh);
-    spr('titans', 'concordia_side', s.px - 150, vy + vh - 10, { scale: 0.62, flash: s.beam ? 0.3 : 0 });
-    spr('bosses', `mastice_${s.stagger ? 6 : lt > 0.4 && lt < 1.6 ? 4 : 0}`, 520, vy + vh - 10, { scale: 0.62, face: -1, flash: s.beam ? 0.6 : 0 });
+    spr('giants', 'conc_' + (s.beam ? 6 : s.guard ? 4 : s.lit.includes('punch') ? 2 : s.lit.includes('shoot') ? 3 : 0), s.px - 120, vy + vh - 10, { scale: 0.62 });
+    spr('giants', `masticeG_${s.stagger ? 3 : lt > 0.4 && lt < 1.6 ? 2 : 0}`, 540, vy + vh - 10, { scale: 0.62, face: -1, flash: s.beam ? 0.6 : 0 });
     if (s.guard) { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.5; g.strokeStyle = '#bfe6ff'; g.lineWidth = 6; g.beginPath(); g.ellipse(s.px - 40, vy + 300, 34, 140, 0, -1.3, 1.3); g.stroke(); g.restore(); }
     if (s.beam) { g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = '#ffd35a'; g.globalAlpha = 0.7; g.fillRect(s.px - 120, vy + 240, 520, 60); g.fillStyle = '#fff'; g.fillRect(s.px - 120, vy + 258, 520, 24); g.restore(); }
     ptxt('EQUILIBRIO', 440, vy + 30, 8, '#f0c0a0');

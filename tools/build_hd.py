@@ -29,8 +29,8 @@ def scaled(f, k):
     return clean(Image.fromarray(a)), f['ax'] * k, f['ay'] * k
 
 
-def cut(name, rows, cols, thr=200):
-    fr, _ = segment(name, rows, cols, thr=thr, merge_dist=40)
+def cut(name, rows, cols, thr=200, row_cuts=None):
+    fr, _ = segment(name, rows, cols, thr=thr, merge_dist=40, row_cuts=row_cuts)
     grid = {}
     for f in fr:
         grid[(f['row'], f['col'])] = f

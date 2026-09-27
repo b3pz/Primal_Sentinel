@@ -286,7 +286,6 @@ function drawDrawable(o, cam, t) {
   if (o.pf) { drawPlatform(o, x, y, t); return; }
   const gz = o.gz || 0;
   if (o.sh) drawShadow(x, y - gz, o.sh * (o.sc > 1 ? o.sc * 0.8 : 1), z - gz);
-  if (o.dr) { drawDrone(o, x, y - z, t); return; }
   if (o.sg) glowAt(x, y - z - 20, 60, '#ffd35a', 0.5 + Math.sin(t * 6) * 0.2);
   if (o.au) {
     g.save(); g.globalCompositeOperation = 'lighter';
@@ -470,17 +469,16 @@ function renderStage(v) {
 
 /* ---------- HUD ---------- */
 function drawPortrait(hero, x, y, s = 0.52, dim = false) {
-  const key = HEROES[hero].id + '_0';
-  const f = frameOf('fighters', key);
+  const hb = 34 * s / 0.52;
   g.save();
-  g.beginPath(); g.rect(x - 34, y - 34, 68, 68); g.clip();
-  g.fillStyle = dim ? '#1a1f28' : '#0b1824'; g.fillRect(x - 34, y - 34, 68, 68);
-  const grd = g.createRadialGradient(x, y, 4, x, y, 44);
+  g.beginPath(); g.rect(x - hb, y - hb, hb * 2, hb * 2); g.clip();
+  g.fillStyle = dim ? '#1a1f28' : '#0b1824'; g.fillRect(x - hb, y - hb, hb * 2, hb * 2);
+  const grd = g.createRadialGradient(x, y, 4, x, y, hb * 1.3);
   grd.addColorStop(0, HEROES[hero].color + '88'); grd.addColorStop(1, 'rgba(0,0,0,0)');
-  g.fillStyle = grd; g.fillRect(x - 34, y - 34, 68, 68);
-  if (f) spr('fighters', key, x - 4, y - 30 + f[5] * s * 1.25, { scale: s * 1.25, alpha: dim ? 0.35 : 1 });
+  g.fillStyle = grd; g.fillRect(x - hb, y - hb, hb * 2, hb * 2);
+  spr('extra', 'pt_' + HEROES[hero].id, x + 4 * s / 0.52, y + hb, { scale: 0.36 * (s / 0.52), alpha: dim ? 0.35 : 1 });
   g.restore();
-  g.strokeStyle = HEROES[hero].color; g.lineWidth = 2; g.strokeRect(x - 34, y - 34, 68, 68);
+  g.strokeStyle = HEROES[hero].color; g.lineWidth = 2; g.strokeRect(x - hb, y - hb, hb * 2, hb * 2);
 }
 
 /* key names for the on-screen hints, depending on the device of each local player */
@@ -532,6 +530,7 @@ function drawHUD(h, t) {
     }
     if (p.cb > 1) ptxt(`${p.cb} COLPI!`, x + pw - 14, y + 88, 11, Math.floor(t * 10) % 2 ? '#fff1c6' : '#ffb03a', 'right');
   });
+  if (h.bt !== undefined) { panel(W / 2 - 110, 20, 220, 64, '#c07bff', 0.85); ptitle(String(Math.ceil(h.bt)), W / 2, 72, 40, h.bt < 8 ? '#ffd0c0' : '#fff6d6', h.bt < 8 ? '#ff4a3a' : '#c07bff'); }
   // credits and sigils
   ptxt(h.cr < 0 ? 'CREDITI LIBERI' : `CREDITI ${h.cr}`, 22, H - 14, 9, h.cr === 0 ? '#ff8a7a' : '#9fb4c8');
   ptxt(`SIGILLI ${h.sg || 0}/3`, W - 22, H - 14, 9, '#ffd35a', 'right');
@@ -670,7 +669,7 @@ function renderGiant(v) {
   g.save();
   if (FX.shake) g.translate(rand(-1, 1) * FX.shake, rand(-1, 1) * FX.shake);
   // background pushed back: zoomed out and darker, with the sky tinted
-  drawBackdrop(v.bg, 300 + Math.sin(t * 0.1) * 40);
+  drawBackdrop(v.bg, 300);
   g.fillStyle = v.pl.fz ? 'rgba(40,10,60,.35)' : 'rgba(6,10,30,.35)'; g.fillRect(0, 0, W, H);
   // ground dust line
   const P = v.pl, E = v.en;
@@ -680,9 +679,9 @@ function renderGiant(v) {
     g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35 + Math.sin(t * 25) * 0.25;
     g.fillStyle = E.wn === 'beam' ? '#c07bff' : '#ff6a4a';
     g.beginPath(); g.arc(E.x - 60, 380, 120, 0, 7); g.fill(); g.restore();
-    txt(E.wn === 'beam' ? 'RAGGIO! PARA!' : E.wn === 'charge' ? 'CARICA! PARA O SPOSTATI!' : E.wn === 'stomp' ? 'ONDA SISMICA! PARA!' : E.wn === 'rain' ? 'PIOGGIA DEL VELO! PARA!' : 'ATTACCO!', E.x - 60, 150, 20, '#ffd0c0', 'center', 900);
+    ptitle(E.wn === 'beam' ? 'RAGGIO! PARA!' : E.wn === 'charge' ? 'CARICA! PARA!' : E.wn === 'stomp' ? 'ONDA SISMICA! PARA!' : E.wn === 'rain' ? 'PIOGGIA DEL VELO!' : 'ATTACCO! PARA!', E.x - 60, 170, 18, '#ffffff', '#ff6a4a');
   }
-  spr('bosses', E.f, E.x, E.y, { scale: E.sc, face: -1, flash: E.fl ? 0.7 : 0, alpha: E.a });
+  spr('giants', E.f, E.x, E.y, { scale: E.sc, face: -1, flash: E.fl ? 0.7 : 0, alpha: E.a });
   if (E.st) { g.save(); g.globalAlpha = 0.5 + Math.sin(t * 20) * 0.4; txt('✦ ✦ ✦', E.x, 170, 36, '#fff1a6', 'center', 900); g.restore(); }
   // titan
   const T = TITAN_KINDS[P.k];
@@ -692,7 +691,7 @@ function renderGiant(v) {
     grd.addColorStop(0, P.fz ? '#ffe6a0' : T.color); grd.addColorStop(1, 'rgba(0,0,0,0)');
     g.globalAlpha = (P.gl ? 0.6 : 0.28) + Math.sin(t * 12) * 0.1; g.fillStyle = grd; g.fillRect(P.x - 360, 60, 720, 700); g.restore();
   }
-  spr('titans', T.key, P.x, P.y, { scale: T.scale, face: 1, rot: P.r, sx: P.sx, flash: P.fl ? 0.6 : 0 });
+  spr('giants', P.f, P.x, P.y, { scale: P.k === 'rex' ? 1.22 : 1, face: 1, flash: P.fl ? 0.6 : 0 });
   if (P.gd) {
     g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.4 + Math.sin(t * 14) * 0.15;
     g.strokeStyle = '#bfe6ff'; g.lineWidth = 8; g.beginPath(); g.ellipse(P.x + 200, 400, 60, 250, 0, -1.3, 1.3); g.stroke(); g.restore();
@@ -720,7 +719,7 @@ function drawGiantHUD(h, t) {
   segBar(32, 54, 496, 16, tv, HUDFX.gt, '#58e0a0', 16);
   ptxt('ENERGIA', 32, 96, 8, '#9fc8ea');
   segBar(100, 88, 200, 8, h.ten / 100, 0, h.ten >= 50 ? '#5fc2ff' : '#3d6f9a', 2);
-  h.p.forEach((p, i) => { g.globalAlpha = p.act ? 1 : 0.5; drawPortrait(p.h, 352 + i * 44, 96, 0.3); g.globalAlpha = 1; });
+  h.p.forEach((p, i) => { g.globalAlpha = p.act ? 1 : 0.5; drawPortrait(p.h, 340 + i * 44, 92, 0.3); g.globalAlpha = 1; });
   ptxt(h.en, W - 32, 42, 14, '#ffbe75', 'right');
   const ev = h.ehp / h.emx; HUDFX.ge = Math.max(ev, (HUDFX.ge ?? ev) - 0.003);
   segBar(W - 528, 54, 496, 16, ev, HUDFX.ge, '#ff6a3a', 16);
@@ -845,7 +844,16 @@ function drawPlatform(o, x, y, t) {
   const w = o.w, d = o.dp, h = o.h, L = x - w / 2, top = y - h;
   drawShadow(x, y + 4, w * 0.55, 0);
   g.save();
-  if (o.pf === 'car') {
+  if (o.pf === 'car' || o.pf === 'rock') {
+    // generated sprite, stretched to the platform footprint
+    const key = o.pf;
+    const f = frameOf('extra', key);
+    if (o.pf === 'rock') { glowAt(x, y - h / 2, 120, '#9a3aff', 0.25 + Math.sin(t * 3) * 0.08); }
+    spr('extra', key, x, y + (o.pf === 'rock' ? 10 : 6), { scale: w / f[2], sy: (h + d * 0.9) / (f[3] * w / f[2]) });
+    g.restore();
+    return;
+  }
+  if (false) {
     // top face (roof + bonnet seen from above)
     g.fillStyle = '#05070c'; g.fillRect(L - 3, top - d - 3, w + 6, d + h + 6);
     g.fillStyle = '#8a1e22'; g.fillRect(L, top - d, w, d);

@@ -25,7 +25,11 @@ const ENEMIES = {
   lancer: { sheet: 'fighters', pre: 'lancer', name: 'Lama del Velo', hp: 48, speed: 165, dmg: 11, reach: 96, scale: 0.86, score: 260, wind: 0.36, aggro: 1.35, lunge: true },
   brute: { sheet: 'fighters', pre: 'brute', name: 'Bruto di ruggine', hp: 120, speed: 80, dmg: 17, reach: 104, scale: 1.02, score: 450, wind: 0.75, aggro: 0.8, heavy: true },
   segment: { sheet: 'bosses', pre: 'centipede', name: 'Segmento', hp: 60, speed: 150, dmg: 10, reach: 105, scale: 0.62, score: 350, wind: 0.45, aggro: 1.2, villain: true, lunge: true },
-  drone: { sheet: 'proc', pre: 'drone', name: 'Drone del Velo', hp: 30, speed: 170, dmg: 8, reach: 420, scale: 1, score: 350, wind: 0.55, aggro: 1, flying: true },
+  drone: { sheet: 'extra', pre: 'drone', name: 'Drone del Velo', hp: 30, speed: 170, dmg: 8, reach: 420, scale: 0.8, score: 350, wind: 0.55, aggro: 1, flying: true },
+  shield: { sheet: 'extra', pre: 'shield', name: 'Scudato', hp: 80, speed: 85, dmg: 12, reach: 100, scale: 0.86, score: 450, wind: 0.6, aggro: 0.9, shield: true },
+  grenadier: { sheet: 'extra', pre: 'grenadier', name: 'Granatiere', hp: 50, speed: 100, dmg: 14, reach: 90, scale: 0.86, score: 400, wind: 0.7, aggro: 0.8, ranged: true },
+  dog: { sheet: 'extra', pre: 'dog', name: 'Mastino meccanico', hp: 34, speed: 230, dmg: 8, reach: 96, scale: 0.86, score: 250, wind: 0.3, aggro: 1.6, lunge: true },
+  ninja: { sheet: 'extra', pre: 'ninja', name: 'Ninja del Velo', hp: 60, speed: 175, dmg: 12, reach: 104, scale: 0.86, score: 500, wind: 0.38, aggro: 1.3, blink: true },
   shade: { sheet: 'fighters', pre: 'HERO', name: 'Copia oscura', hp: 70, speed: 150, dmg: 12, reach: 96, scale: 0.86, score: 500, wind: 0.42, aggro: 1.3, shade: true },
 };
 
@@ -66,6 +70,10 @@ const PROPS = {
   crate: { hp: 2, drops: ['pizza', 'can', 'coin', 'energy', 'chicken', 'ammo'] },
   bin: { hp: 1, drops: ['can', 'coin', 'pizza'] },
   barrel: { hp: 1, explode: true, drops: [] },
+  mirror: { hp: 6, drops: ['energy'], sheet: 'extra', sc: 0.9 },
+  generator: { hp: 999, drops: [], sheet: 'extra', sc: 0.8 },
+  antenna: { hp: 100, drops: [], sheet: 'extra', sc: 0.9 },
+  capsule: { hp: 60, drops: [], sheet: 'extra', sc: 1.1 },
 };
 
 /* Walkable band (feet y). Backgrounds have been normalised so the floor starts at 465. */
@@ -134,7 +142,6 @@ const LEVELS = [
     mid: [
       ['TRIVOR', 'GRRRAAAH! Il Velo mi dona la sua forza!'],
       ['NARRATORE', 'Trivor cresce fino a sovrastare gli alberi. Sotto i piedi dei Sentinels la terra si apre...'],
-      ['IGNIS', 'Il titano si è svegliato! Tutti a bordo: TIRANNO ROSSO, IN PIEDI!'],
     ],
     outro: [
       ['VESPERA', '«Inginocchiati, mio guardiano.»'],
@@ -179,7 +186,6 @@ const LEVELS = [
       ['KHARON', 'Siete migliori di quanto credessi. Ma questa notte non è mia: è sua.'],
       ['NARRATORE', 'Kharon spezza un frammento del Velo sui resti di Mastice. Il colosso si rialza, alto come un palazzo.'],
       ['AURA', 'Da soli non basta. Tutti e cinque, adesso: UNIONE DEI TITANI!'],
-      ['NARRATORE', 'Per la prima volta i cinque titani si agganciano l\'uno all\'altro. Nasce CONCORDIA.'],
     ],
     outro: [
       ['NARRATORE', 'Il colosso cade in mare. Nella luce dell\'esplosione, Kharon esita. Poi scompare nel Velo.'],
@@ -243,7 +249,6 @@ const LEVELS = [
       ['NARRATORE', 'Vespera si fonde con la sua fortezza. Il cielo diventa nero.'],
       ['AZUR', 'I Cuori ci rispondono ancora... ma non come prima. Non stiamo più dando ordini.'],
       ['ONYX', 'Allora chiediamolo. Titani: volete combattere con noi?'],
-      ['NARRATORE', 'I titani, finalmente liberi, scelgono di restare. Nasce la forma finale: CONCORDIA ALBA.'],
     ],
     outro: [
       ['NARRATORE', 'Il Velo si richiude per sempre. Sul mare di Porto Aurora sorge il sole.'],
@@ -260,6 +265,8 @@ const SPEAKERS = {
   'KHARON': ['bosses', 'kharon_0', '#d24a5a'], 'VESPERA': ['bosses', 'vespera_0', '#b77dff'], 'TRIVOR': ['bosses', 'trivor_0', '#4fc3a8'],
   'DOTT.SSA VALLI': ['people', 'scientist_idle0', '#9fd6ff'], 'NARRATORE': null,
 };
+/* illustrated dialogue portraits */
+const PORTRAIT = { IGNIS: 'pt_ignis', AZUR: 'pt_azur', LYRA: 'pt_lyra', AURA: 'pt_aura', ONYX: 'pt_onyx', VESPERA: 'pt_vespera', KHARON: 'pt_kharon', 'DOTT.SSA VALLI': 'pt_valli', MASTICE: 'pt_mastice' };
 
 /* ------------------------------------------------------------
    DIFFICOLTÀ · crediti = quante volte la squadra può continuare
@@ -282,14 +289,15 @@ const PLATS = {
   car: { w: 200, d: 46, h: 58 },
   dumpster: { w: 116, d: 42, h: 74 },
   shelter: { w: 230, d: 40, h: 128 },
+  rock: { w: 180, d: 44, h: 110 },
 };
 const LEVEL_EXTRAS = [
-  { plats: [['car', 1080, 548], ['dumpster', 2330, 582], ['shelter', 2390, 540], ['car', 3330, 660]], sigils: [[1080, 525, 'top'], [2420, 520, 'top'], [3150, 560, 'crate']], drones: { 2: 1 } },
-  { plats: [], sigils: [[500, 600, 'crate'], [2100, 540, 'crate'], [3300, 505, 'floor']], drones: {} },
-  { plats: [['dumpster', 1300, 560], ['dumpster', 2320, 650]], sigils: [[1300, 540, 'top'], [2600, 540, 'crate'], [3380, 690, 'floor']], drones: { 1: 2, 2: 2 } },
-  { plats: [], sigils: [[520, 600, 'crate'], [1900, 540, 'crate'], [3050, 660, 'crate']], drones: {} },
-  { plats: [['car', 1100, 650], ['dumpster', 2100, 582], ['shelter', 2160, 540]], sigils: [[1100, 628, 'top'], [2180, 520, 'top'], [3050, 640, 'crate']], drones: { 0: 1, 1: 2, 2: 2 } },
-  { plats: [['dumpster', 1250, 600]], sigils: [[1250, 580, 'top'], [930, 660, 'crate'], [3000, 540, 'crate']], drones: { 2: 2 } },
-  { plats: [], sigils: [[520, 600, 'crate'], [1950, 540, 'crate'], [2650, 560, 'crate']], drones: { 0: 2, 2: 2 } },
-  { plats: [['car', 1300, 600]], sigils: [[1300, 578, 'top'], [1500, 540, 'crate'], [1950, 660, 'crate']], drones: { 1: 2, 2: 2 } },
+  { plats: [['car', 1080, 548], ['dumpster', 2330, 582], ['shelter', 2390, 540], ['car', 3330, 660]], sigils: [[1080, 525, 'top'], [2420, 520, 'top'], [3150, 560, 'crate']], drones: { 2: 1 }, more: { 2: [['shield', 1]] } },
+  { plats: [], sigils: [[500, 600, 'crate'], [2100, 540, 'crate'], [3300, 505, 'floor']], drones: {}, more: { 0: [['dog', 2]], 2: [['grenadier', 2]] } },
+  { plats: [['dumpster', 1300, 560], ['dumpster', 2320, 650]], sigils: [[1300, 540, 'top'], [2600, 540, 'crate'], [3380, 690, 'floor']], drones: { 1: 2, 2: 2 }, more: { 0: [['dog', 3]], 1: [['grenadier', 2]], 2: [['shield', 2]] } },
+  { plats: [], sigils: [[520, 600, 'crate'], [1900, 540, 'crate'], [3050, 660, 'crate']], drones: {}, more: { 1: [['ninja', 2]], 2: [['ninja', 3]] } },
+  { plats: [['car', 1100, 650], ['dumpster', 2100, 582], ['shelter', 2160, 540]], sigils: [[1100, 628, 'top'], [2180, 520, 'top'], [3050, 640, 'crate']], drones: { 0: 1, 1: 2, 2: 2 }, more: { 0: [['shield', 2]], 1: [['grenadier', 2]], 2: [['ninja', 2], ['shield', 2]] } },
+  { plats: [['dumpster', 1250, 600]], sigils: [[1250, 580, 'top'], [930, 660, 'crate'], [3000, 540, 'crate']], drones: { 2: 2 }, more: { 0: [['dog', 3]], 1: [['shield', 2]], 2: [['grenadier', 2], ['ninja', 2]] } },
+  { plats: [['rock', 1250, 600], ['rock', 2350, 560]], sigils: [[520, 600, 'crate'], [1950, 540, 'crate'], [2650, 560, 'crate']], drones: { 0: 2, 2: 2 }, more: { 0: [['ninja', 3]], 1: [['grenadier', 2], ['dog', 3]], 2: [['shield', 3]] } },
+  { plats: [['rock', 1300, 600], ['rock', 2400, 620]], sigils: [[1300, 578, 'top'], [1500, 540, 'crate'], [1950, 660, 'crate']], drones: { 1: 2, 2: 2 }, more: { 0: [['ninja', 3], ['dog', 3]], 1: [['shield', 2], ['grenadier', 2]], 2: [['ninja', 3], ['shield', 2]] } },
 ];

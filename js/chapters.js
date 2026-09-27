@@ -81,7 +81,7 @@ const CHAPTER_CINES = [
       } },
     { d: 7, sub: ['STAZIONE MERCI', 'Intanto i Senzavolto caricano i prigionieri su un convoglio blindato.'], cues: [[0.5, 'siren'], [4, 'laser']],
       draw(k, t) {
-        drawStageBackdrop('rail', 200 + k * 40);
+        drawStageBackdrop('rail', 200);
         rift(1150, 520, 0.6 + Math.sin(t * 3) * 0.05, t);
         const people = ['elder', 'girl', 'scientist', 'kid', 'suit', 'fisher'];
         people.forEach((p, i) => civAt(p, 'walk', 120 + i * 120 + k * 70, 600 + (i % 2) * 30, t + i, 1, 0.95));
@@ -109,7 +109,7 @@ const CHAPTER_CINES = [
       draw(k, t) {
         const beat = Math.max(0, Math.sin(t * Math.PI / 0.8)) ** 8;
         g.save(); g.translate(rand(-1, 1) * beat * 6, 0);
-        drawStageBackdrop('park', 400 + k * 30);
+        drawStageBackdrop('park', 400);
         tintScreen('#050a14', 0.35);
         silhouette('titans', 'rex_side', 640, 900 - Math.min(k, 6) * 30, 1.9, 1, '#200808', 0.8);
         glowAt(640, 620, 380, '#ff3a2a', 0.15 + beat * 0.45);
@@ -117,7 +117,7 @@ const CHAPTER_CINES = [
       } },
     { d: 5, sub: ['', 'Il primo titano si sta svegliando. E Vespera lo sa.'], cues: [[0.2, 'confirm']],
       draw(k, t) {
-        drawStageBackdrop('park', 60 + k * 120);
+        drawStageBackdrop('park', 60);
         ALL5.forEach((i) => heroAt(i, [1, 2, 3, 2][Math.floor(t * 12 + i) % 4], -80 + k * 260 + i * 100, 580 + (i % 2) * 40, 0.95));
       } },
   ],
@@ -142,7 +142,7 @@ const CHAPTER_CINES = [
       } },
     { d: 6.5, sub: ['IL QUARTIERE DEL VELO', 'In città ogni specchio riflette qualcuno che non c\'è.'], cues: [[1, 'laser'], [3, 'laser']],
       draw(k, t) {
-        drawStageBackdrop('theater', 300 + k * 50);
+        drawStageBackdrop('theater', 300);
         ALL5.forEach((i) => {
           const out = clamp((k - 1 - i * 0.6) / 0.8, 0, 1);
           if (!out) return;
@@ -159,7 +159,7 @@ const CHAPTER_CINES = [
         coverImage('theater', 1.05, 0.5, 0.5);
         tintScreen('#000', 0.55);
         [[140, 140, 'rex_side'], [520, 110, 'mammoth_side'], [900, 140, 'tri_side']].forEach(([x, y, key], i) => mirror(x, y, 320, 300, t, () => {
-          coverImage('siege', 1.3, (i * 0.4 + k * 0.02) % 1, 0.3);
+          coverImage('siege', 1.3, (i * 0.4) % 1, 0.3);
           tintScreen('#3a0000', 0.3);
           silhouette('titans', key, x + 160 + Math.sin(t + i) * 10, y + 300, 0.75, i % 2 ? -1 : 1, '#200a0a', 0.95);
           glowAt(x + 160, y + 200, 160, '#ff6a2a', 0.3);
@@ -168,13 +168,13 @@ const CHAPTER_CINES = [
       } },
     { d: 5, sub: ['LYRA', '«...Non può essere vero.»'], cues: [],
       draw(k, t) {
-        coverImage('theater', 1.3 + k * 0.02, 0.5, 0.6);
+        coverImage('theater', 1.3, 0.5, 0.6);
         tintScreen('#000', 0.45);
         spr('fighters', 'lyra_7', 640, 760, { scale: 2.6, face: -1 });
       } },
     { d: 7, sub: ['PORTO AURORA', 'Kharon guida l\'assedio finale. La città brucia.'], cues: [[0.5, 'siren'], [3, 'boom'], [5, 'boom']],
       draw(k, t) {
-        drawStageBackdrop('siege', 500 + k * 40);
+        drawStageBackdrop('siege', 500);
         fireGlow(t);
         spr('bosses', `kharon_${k > 4 ? 3 : 0}`, 900, 560, { scale: 1.9, face: -1 });
         [0, 1, 2, 3].forEach((i) => { const x = 100 + i * 160 + k * 50; drawShadow(x, 660, 34); spr('fighters', `${i % 2 ? 'brute' : 'soldier'}_${[1, 2, 3, 2][Math.floor(t * 7 + i) % 4]}`, x, 660, { scale: i % 2 ? 1.02 : 0.86 }); });
@@ -199,7 +199,7 @@ const CHAPTER_CINES = [
       } },
     { d: 7, sub: ['SOTTO IL PORTO', 'Le incisioni portano giù, in una fabbrica sepolta: un cimitero di titani.'], cues: [[1, 'stomp']],
       draw(k, t) {
-        coverImage('graveyard', 1.25 - k * 0.02, 0.5, clamp(k / 7, 0, 1));
+        coverImage('graveyard', 1.15, 0.5, 0.6);
         tintScreen('#000', 0.2);
         ALL5.forEach((i) => heroAt(i, [1, 2, 3, 2][Math.floor(t * 8 + i) % 4], 200 + i * 80 + k * 50, 690, 0.75));
         for (let i = 0; i < 4; i++) glowAt(150 + i * 330, 380, 70, '#ffb040', 0.35 + Math.sin(t * 7 + i) * 0.1);
@@ -257,7 +257,7 @@ const CHAPTER_CINES = [
       } },
     { d: 6.5, sub: ['L\'ULTIMA ALBA', 'Per salvarli bisogna raggiungere i loro Cuori dall\'interno della fortezza.'], cues: [[0.3, 'confirm']],
       draw(k, t) {
-        drawStageBackdrop('dawn', 300 + k * 120);
+        drawStageBackdrop('dawn', 300);
         ALL5.forEach((i) => heroAt(i, [1, 2, 3, 2][Math.floor(t * 13 + i) % 4], -60 + k * 220 + i * 95, 600 + (i % 2) * 40, 0.95));
       } },
   ],
@@ -272,16 +272,16 @@ const CHAPTER_CINES = [
       } },
     { d: 7, sub: ['PORTO AURORA · IL GIORNO DOPO', 'La città si risveglia. I Sentinels tornano a essere cinque persone qualunque.'], cues: [[0.5, 'crowd'], [3, 'crowd']],
       draw(k, t) {
-        drawStageBackdrop('port', 400 + k * 15);
+        drawStageBackdrop('port', 400);
         tintScreen('#ffb070', 0.18, 'lighter');
         ['waiter', 'lady', 'kid', 'fisher', 'elder', 'girl'].forEach((c, i) => civAt(c, i % 2 ? 'point' : 'idle', 90 + i * 70 + (i > 2 ? 830 : 0), 560 + (i % 3) * 40, t + i, i > 2 ? -1 : 1));
         ALL5.forEach((i) => civAt(HEROES[i].id + 'C', k > 4 ? 'raise' : 'idle', 470 + i * 85, 640 + (i % 2) * 20, t, 1, 1.1));
       } },
     { d: 6.5, sub: ['', 'I titani tornano a dormire sotto la città. Questa volta, come custodi.'], cues: [[0.5, 'morph']],
       draw(k, t) {
-        coverImage('story_cores', 1.02 + k * 0.01, 0.5, 0.45);
+        coverImage('story_cores', 1.02, 0.5, 0.45);
         const CAPS = [266, 354, 443, 531, 620];
-        HEROES.forEach((h, i) => { const [x, y] = coverPoint('story_cores', 1.02 + k * 0.01, 0.5, 0.45, CAPS[i], 243); glowAt(x, y, 110, h.color, 0.45 + Math.sin(t * 2 + i) * 0.15); });
+        HEROES.forEach((h, i) => { const [x, y] = coverPoint('story_cores', 1.02, 0.5, 0.45, CAPS[i], 243); glowAt(x, y, 110, h.color, 0.45 + Math.sin(t * 2 + i) * 0.15); });
       } },
   ],
 ];
@@ -325,3 +325,85 @@ function drawChapterCine(id, t) {
   ptxt('PUGNO / INVIO: SALTA', W - 20, 26, 8, '#8a9aac', 'right');
   ptxt(`${idx + 1}/${CHAPTER_CINES[id].length}`, 20, 26, 8, '#8a9aac', 'left');
 }
+
+/* ============================================================
+   CINEMATICHE DEI TITANI (prima dei duelli giganti)
+   ============================================================ */
+const BEASTS = ['rex', 'tri', 'cat', 'ptero', 'mammoth'];
+const BEAST_COL = ['#ff4a3d', '#3f86ff', '#ffd13a', '#ff5fae', '#d9e2ec'];
+function beast(n, pose, x, y, sc = 1, face = 1, alpha = 1) { drawShadow(x, y, 120 * sc); spr('giants', `beast_${n}_${pose}`, x, y, { scale: sc, face, alpha }); }
+function stillArt(name, t, shakeV = 0) {
+  g.save(); if (shakeV) g.translate(rand(-1, 1) * shakeV, rand(-1, 1) * shakeV);
+  coverImage(name, 1.0, 0.5, 0.5); g.restore();
+}
+/* the combination sequence: 6 stages, a flash between each */
+function combineSeq(k, dur, gold) {
+  g.fillStyle = gold ? '#1a0e04' : '#05070c'; g.fillRect(0, 0, W, H);
+  const n = 6, st = Math.min(n - 1, Math.floor(k / (dur / n))), kk = (k % (dur / n)) / (dur / n);
+  // rays behind
+  g.save(); g.globalCompositeOperation = 'lighter';
+  BEAST_COL.forEach((c, i) => { g.fillStyle = c; g.globalAlpha = 0.18; g.beginPath(); g.moveTo(W / 2, 400); const a = -Math.PI / 2 + (i - 2) * 0.45 + Math.sin(k + i) * 0.05; g.lineTo(W / 2 + Math.cos(a - 0.12) * 1200, 400 + Math.sin(a - 0.12) * 1200); g.lineTo(W / 2 + Math.cos(a + 0.12) * 1200, 400 + Math.sin(a + 0.12) * 1200); g.fill(); });
+  g.restore();
+  glowAt(W / 2, 420, 380, gold ? '#ffd08a' : '#9fd6ff', 0.3);
+  spr('giants', 'combo_' + st, W / 2, 690, { scale: 1.0, flash: kk < 0.15 ? 1 - kk / 0.15 : 0 });
+  if (kk < 0.08 && st > 0) { g.fillStyle = `rgba(255,255,255,${1 - kk / 0.08})`; g.fillRect(0, 0, W, H); }
+  const labels = ['I CINQUE TITANI SPICCANO IL SALTO', 'TRICORNO E FELINO: LE GAMBE', 'TIRANNO ROSSO: IL CORPO', 'MASTODONTE: LE BRACCIA', 'PTEROSAURO: ALI E SCUDO', gold ? 'CONCORDIA ALBA!' : 'CONCORDIA!'];
+  ptitle(labels[st], W / 2, 90, st === 5 ? 44 : 22, '#fff6d6', gold ? '#ffd35a' : '#ffb03a');
+}
+CHAPTER_CINES.awake = [
+  { d: 5.5, sub: ['SOTTO IL PARCO PREISTORICO', 'Cinque titani dormono da millenni. Uno di loro sta per svegliarsi.'], cues: [[1, 'stomp'], [3, 'stomp']],
+    draw(k, t) {
+      stillArt('cine_cavern', t);
+      const beat = Math.max(0, Math.sin(t * Math.PI / 0.9)) ** 8;
+      glowAt(160, 330, 150, '#ff3a2a', 0.2 + beat * 0.5);
+    } },
+  { d: 6, sub: ['', 'Il Tiranno rosso apre gli occhi e si alza.'], cues: [[1.8, 'stomp'], [3.6, 'stomp'], [4.3, 'boom']],
+    draw(k, t) {
+      drawStageBackdrop('park', 1500);
+      tintScreen('#0a0612', 0.35);
+      const pose = k < 1.8 ? 'sleep' : k < 3.8 ? 'wake' : 'roar';
+      g.save(); if (k > 4.3 && k < 5.2) g.translate(rand(-1, 1) * 8, rand(-1, 1) * 8);
+      beast('rex', pose, 640, 650, 1.7);
+      g.restore();
+      if (k > 1.8) glowAt(760, 300, 90, '#ffe060', 0.4);
+      ALL5.forEach((i) => heroAt(i, 0, 150 + i * 70, 690, 0.7));
+    } },
+  { d: 5.5, sub: ['IGNIS', '«Ha risposto al mio Cuore! TIRANNO ROSSO, IN PIEDI!»'], cues: [[0.3, 'boom'], [0.5, 'team']],
+    draw(k, t) { stillArt('cine_rex', t, k < 1 ? (1 - k) * 10 : 0); } },
+];
+CHAPTER_CINES.union = [
+  { d: 5.5, sub: ['PORTO AURORA IN FIAMME', 'Cinque Cuori chiamano. Cinque titani rispondono, attraversando la città.'], cues: [[0.5, 'stomp'], [1.6, 'stomp'], [2.7, 'stomp'], [3.8, 'stomp']],
+    draw(k, t) { stillArt('cine_run', t, Math.max(0, Math.sin(t * 5.7)) * 3); } },
+  { d: 5, sub: ['', 'Uno dopo l\'altro, i titani corrono verso il mare.'], cues: [[0.4, 'stomp'], [1.2, 'stomp'], [2, 'stomp']],
+    draw(k, t) {
+      drawStageBackdrop('siege', 1200);
+      tintScreen('#10040a', 0.3);
+      BEASTS.forEach((n, i) => {
+        const x = -300 + (k - i * 0.35) * 520;
+        const y = n === 'ptero' ? 420 : 560 + (i % 2) * 90;
+        beast(n, 'run', x, y, 1.0);
+      });
+    } },
+  { d: 7.2, sub: ['', ''], cues: [[0.1, 'morph'], [1.2, 'heavy'], [2.4, 'heavy'], [3.6, 'heavy'], [4.8, 'heavy'], [6, 'team']],
+    draw(k, t) { combineSeq(k, 7.2, false); } },
+  { d: 5, sub: ['LA CABINA DI CONCORDIA', 'Cinque mani sui Cuori. Un solo battito.'], cues: [[0.5, 'confirm']],
+    draw(k, t) { stillArt('cine_cockpit', t); } },
+  { d: 5, sub: ['CONCORDIA', 'Contro il colosso risorto dal mare di Porto Aurora.'], cues: [[0.3, 'stomp'], [0.8, 'siren']],
+    draw(k, t) { stillArt('cine_duel', t); } },
+];
+CHAPTER_CINES.final = [
+  { d: 5.5, sub: ['I TITANI SONO LIBERI', 'Nessuno li comanda più. Ognuno sceglie da che parte stare.'], cues: [[0.6, 'stomp'], [2, 'stomp']],
+    draw(k, t) {
+      coverImage('dawn', 1.05, 0.5, 0.5);
+      tintScreen('#2a0030', 0.45);
+      BEASTS.forEach((n, i) => { const on = clamp((k - i * 0.6) * 2, 0, 1); beast(n, on >= 1 && k > 3 + i * 0.2 ? 'roar' : 'wake', 150 + i * 245, n === 'ptero' ? 470 : 640, 0.85, 1, on); if (on) glowAt(150 + i * 245, 520, 110, BEAST_COL[i], 0.25); });
+    } },
+  { d: 6.5, sub: ['', ''], cues: [[0.1, 'morph'], [1.1, 'heavy'], [2.2, 'heavy'], [3.3, 'heavy'], [4.4, 'heavy'], [5.4, 'team']],
+    draw(k, t) { combineSeq(k, 6.5, true); } },
+  { d: 4.5, sub: ['CONCORDIA ALBA', '«Questa volta combattiamo insieme. Per scelta.»'], cues: [[0.5, 'confirm']],
+    draw(k, t) { stillArt('cine_cockpit', t); tintScreen('#ffcf6a', 0.12, 'lighter'); } },
+];
+// the finale ends on the five titans at dawn
+CHAPTER_CINES[7][2] = { d: 6.5, sub: ['', 'I titani tornano a dormire sotto la città. Questa volta, come custodi.'], cues: [[0.5, 'morph']],
+  draw(k, t) { stillArt('cine_dawn', t); } };
+const MID_CINE = { 2: 'awake', 4: 'union', 7: 'final' };

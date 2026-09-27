@@ -7,8 +7,8 @@ const HERO_SCALE = 0.86;
 let NEXT_ID = 1;
 const nid = () => NEXT_ID++;
 
-function newStage(levelIdx, players, checkpoint = 0) {
-  const L = LEVELS[levelIdx];
+function newStage(levelIdx, players, checkpoint = 0, Lover = null) {
+  const L = Lover || LEVELS[levelIdx];
   const S = {
     lvl: levelIdx, L, phase: 'stage', t: 0, cam: 0, camLock: null, zoneIdx: checkpoint, zoneOn: false, wave: 0,
     players: [], enemies: [], props: [], items: [], shots: [], civs: [], events: [], team: 0,
@@ -16,10 +16,10 @@ function newStage(levelIdx, players, checkpoint = 0) {
     hitstop: 0, flashT: 0, checkpoint, ambientT: 1.5, giant: null, result: null,
     plats: [], sigils: [], saved: 0, dmgTaken: 0, contUsed: 0, credits: Infinity,
   };
-  const X = LEVEL_EXTRAS[levelIdx] || { plats: [], sigils: [], drones: {} };
+  const X = (!Lover && LEVEL_EXTRAS[levelIdx]) || { plats: [], sigils: [], drones: {}, more: {} };
   for (const [type, x, y] of X.plats) S.plats.push({ id: nid(), type, x, y, ...PLATS[type] });
   // waves of every zone, with the extra drone waves of this chapter
-  S.zw = L.zones.map((z, i) => (z.w ? z.w.concat(X.drones[i] ? [['drone', X.drones[i]]] : []) : null));
+  S.zw = L.zones.map((z, i) => (z.w ? z.w.concat((X.more || {})[i] || []).concat(X.drones[i] ? [['drone', X.drones[i]]] : []) : null));
   const startX = checkpoint ? L.zones[checkpoint - 1].x + 420 : 200;
   players.forEach((p, i) => {
     const hero = HEROES[p.hero];
@@ -32,7 +32,7 @@ function newStage(levelIdx, players, checkpoint = 0) {
     });
   });
   S.cam = clamp(startX - 380, 0, L.length - W);
-  if (levelIdx === 0 && !checkpoint) {
+  if (levelIdx === 0 && !checkpoint && !Lover) {
     S.phase = 'morph';
     S.players.forEach((p) => { p.civil = true; p.inv = 0; });
     S.banner = { text: 'PREMI SPECIALE PER TRASFORMARTI', sub: 'LA PRIMA TRASFORMAZIONE', t: 12 };
@@ -48,7 +48,8 @@ function newStage(levelIdx, players, checkpoint = 0) {
     const it = makeItem('sigil', x, y, where === 'top' ? groundAt(S, x, y) : 0); it.sigil = idx; it.base = it.z; S.items.push(it);
   });
   // intro ambience: civilians fleeing across the street
-  if (!checkpoint) for (let i = 0; i < 5; i++) S.civs.push(makeCiv(pick(CIVS), S.cam + W + 60 + i * 110, 505 + (i * 37) % 170, 'flee'));
+  if (!checkpoint && !Lover) for (let i = 0; i < 5; i++) S.civs.push(makeCiv(pick(CIVS), S.cam + W + 60 + i * 110, 505 + (i * 37) % 170, 'flee'));
+  mechInit(S);
   return S;
 }
 
@@ -71,11 +72,17 @@ function groundAt(S, x, y) {
   return g;
 }
 /* move an actor unless it would walk into the side of something taller than it */
+const SOLID = { capsule: [44, 26], antenna: [40, 24], generator: [90, 30], mirror: [44, 22] };
+function solidAt(S, x, y) {
+  for (const o of S.props) { const sd = SOLID[o.type]; if (sd && o.hp > 0 && Math.abs(x - o.x) < sd[0] && Math.abs(y - o.y) < sd[1]) return true; }
+  return false;
+}
 function tryMove(S, a, dx, dy) {
   const z = a.z || 0;
-  if (groundAt(S, a.x + dx, a.y + dy) <= z + 10) { a.x += dx; a.y += dy; return true; }
-  if (dx && groundAt(S, a.x + dx, a.y) <= z + 10) { a.x += dx; return false; }
-  if (dy && groundAt(S, a.x, a.y + dy) <= z + 10) { a.y += dy; return false; }
+  const ok = (x, y) => groundAt(S, x, y) <= z + 10 && (z > 60 || !solidAt(S, x, y) || solidAt(S, a.x, a.y));
+  if (ok(a.x + dx, a.y + dy)) { a.x += dx; a.y += dy; return true; }
+  if (dx && ok(a.x + dx, a.y)) { a.x += dx; return false; }
+  if (dy && ok(a.x, a.y + dy)) { a.y += dy; return false; }
   return false;
 }
 
@@ -136,6 +143,7 @@ function stepStage(S, ctrls, dt) {
   stepShots(S, dt);
   stepItems(S, dt);
   stepCivs(S, dt);
+  stepMech(S, dt);
   stepZones(S, dt);
   stepCamera(S, dt);
 
@@ -225,7 +233,7 @@ function stepPlayer(S, p, c, dt) {
       if (!gr) p.pushT = 0;
       if (c.pressed.team && S.team >= 100) { teamAttack(S, p); break; }
       if (c.pressed.special) { special(S, p); break; }
-      if (c.pressed.jump) { p.st = 'jump'; p.t = 0; p.vz = 560; p.jdx = dx * (p.run ? 1.35 : 1); p.jdy = dy; sfx(S, 'jump'); break; }
+      if (c.pressed.jump) { p.st = 'jump'; p.t = 0; p.vz = LOW_GRAVITY.includes(S.lvl) && !S.L.bonus ? 600 : 560; p.jdx = dx * (p.run ? 1.35 : 1); p.jdy = dy; sfx(S, 'jump'); break; }
       if (c.pressed.dodge) { p.st = 'dodge'; p.t = 0; p.inv = 0.38; p.ddir = dx || -p.face; sfx(S, 'dodge'); break; }
       if (c.pressed.shoot) { p.aim = c.u ? 1 : 0; shoot(S, p); break; }
       if (c.pressed.punch) {
@@ -247,7 +255,7 @@ function stepPlayer(S, p, c, dt) {
       break;
     }
     case 'jump': {
-      p.z += p.vz * dt; p.vz -= 1500 * dt;
+      p.z += p.vz * dt; p.vz -= (LOW_GRAVITY.includes(S.lvl) && !S.L.bonus ? 1050 : 1500) * dt;
       // air control: the jump can be steered, needed to land on cars and dumpsters
       p.jdx = lerp(p.jdx, dx * (p.run ? 1.35 : 1), Math.min(1, dt * 8)); p.jdy = lerp(p.jdy, dy, Math.min(1, dt * 8));
       if (dx) p.face = dx;
@@ -374,7 +382,7 @@ function stepPlayer(S, p, c, dt) {
 function FOOT_TOP() { return FLOOR_TOP; }
 
 function grabbable(S, p) {
-  return S.enemies.find((e) => !e.boss && !e.big && !e.def.flying && ['hurt', 'idle', 'walk'].includes(e.st) && Math.abs((e.z || 0) - p.z) < 20 && e.hp > 0 &&
+  return S.enemies.find((e) => !e.boss && !e.big && !e.def.flying && !(e.def.shield && e.st !== 'hurt') && ['hurt', 'idle', 'walk'].includes(e.st) && Math.abs((e.z || 0) - p.z) < 20 && e.hp > 0 &&
     Math.abs(e.y - p.y) < 24 && (e.x - p.x) * p.face > 0 && Math.abs(e.x - p.x) < 80);
 }
 /* the blaster: few shots, magazines are rare */
@@ -432,6 +440,7 @@ function hitScan(S, p, m) {
 function hittable(e) { return e.hp > 0 && !['dead', 'down', 'thrown', 'held', 'burrow', 'gone', 'rise'].includes(e.st) && !(e.st === 'knock' && e.t > 0.05) && e.inv <= 0; }
 
 function hitProp(S, o, who) {
+  if (mechHitProp(S, o, who)) return;
   o.hp--; o.shake = 0.2;
   sparks(S, o.x, o.y - 30, '#d9a66b', 8, 'chip');
   sfx(S, 'break');
@@ -466,6 +475,16 @@ function damageEnemy(S, p, e, dmg, opt = {}) {
         e.guarding = false; e.st = 'hurt'; e.t = 0; e.broken = true;
         ev(S, { t: 'pop', x: Math.round(e.x), y: Math.round(e.y - 260), s: 'GUARDIA ROTTA!', c: '#ffd35a', big: 1 }); ev(S, { t: 'flash', c: '#ffffff', v: 0.3 }); sfx(S, 'boom'); shake(S, 10);
       } else { dmg = dmg * 0.2; if (p.x !== undefined && p.face) p.x -= p.face * 22; }
+    }
+  }
+  if (!e.boss && e.def.shield && !opt.heavy && !opt.unblockable && !opt.keepHeld && ['idle', 'walk', 'wind', 'atk', 'block', 'enter'].includes(e.st)) {
+    const from = opt.from !== undefined ? opt.from : p ? p.x : e.x;
+    if ((from - e.x) * e.face > 0) {
+      // riot shield: only heavy blows (weapon finisher, running strike, specials) or hits from behind get through
+      e.st = 'block'; e.t = 0; sparks(S, e.x + e.face * 40, e.y - 100, '#d0b0ff', 10); sfx(S, 'weapon');
+      if (p && p.face) p.x -= p.face * 12;
+      if (Math.random() < 0.35) floatText(S, e.x, e.y - 185, 'SCUDO! COLPO FORTE O ALLE SPALLE', '#d0b0ff', 13);
+      return;
     }
   }
   dmg = Math.round(dmg);
@@ -653,7 +672,15 @@ function stepEnemy(S, e, dt) {
       const attackers = S.enemies.filter((o) => o !== e && !o.boss && o.target === p.id && ['wind', 'atk'].includes(o.st)).length;
       const close = S.enemies.filter((o) => o !== e && !o.boss && o.target === p.id && Math.abs(o.x - p.x) < d.reach + 30 && o.hp > 0).length;
       const side = e.x < p.x ? -1 : 1;
-      const wantDist = close >= 2 && attackers >= 1 ? 230 : d.reach * 0.78;
+      const wantDist = d.ranged ? 360 : close >= 2 && attackers >= 1 ? 230 : d.reach * 0.78;
+      if (d.blink) {
+        e.blinkT = (e.blinkT ?? rand(2, 4)) - dt;
+        if (e.blinkT <= 0 && Math.abs(p.x - e.x) > 140) {
+          e.blinkT = rand(3, 5); sparks(S, e.x, e.y - 80, '#b77dff', 16, 'fire');
+          e.x = clamp(p.x - p.face * 95, S.cam + 40, S.cam + W - 40); e.y = p.y; e.face = p.x > e.x ? 1 : -1;
+          sparks(S, e.x, e.y - 80, '#b77dff', 16, 'fire'); sfx(S, 'dodge'); e.cool = Math.min(e.cool, 0.25);
+        }
+      }
       const tx = p.x + side * wantDist;
       const ty = p.y + (close >= 2 ? (e.id % 3 - 1) * 40 : 0);
       const ddx = tx - e.x, ddy = ty - e.y;
@@ -664,7 +691,7 @@ function stepEnemy(S, e, dt) {
         e.y += clamp(ddy, -1, 1) * Math.min(Math.abs(ddy), sp * 0.6 * dt);
         e.st = 'walk'; e.walk += dt * 7.5;
       } else e.st = 'idle';
-      const inRange = Math.abs(p.x - e.x) < d.reach + 8 && Math.abs(p.y - e.y) < 22;
+      const inRange = d.ranged ? Math.abs(p.x - e.x) < 520 && Math.abs(p.y - e.y) < 90 : Math.abs(p.x - e.x) < d.reach + 8 && Math.abs(p.y - e.y) < 22;
       if (inRange && e.cool <= 0 && attackers < 2 && Math.abs(p.z - (e.z || 0)) < 60) {
         e.st = 'wind'; e.t = 0; e.kick = Math.random() < 0.35;
         sfx(S, 'wind');
@@ -674,6 +701,15 @@ function stepEnemy(S, e, dt) {
     case 'wind': if (e.t > d.wind) { e.st = 'atk'; e.t = 0; e.didHit = false; } break;
     case 'atk': {
       if (d.lunge && e.t < 0.2) e.x += e.face * 330 * dt;
+      if (!e.didHit && e.t > 0.05 && d.ranged) {
+        e.didHit = true;
+        const p = nearestPlayer(S, e);
+        if (p) {
+          const T = 0.95;
+          S.shots.push({ id: nid(), kind: 'nade', x: e.x + e.face * 60, y: e.y, z: 110, vx: (p.x - e.x - e.face * 60) / T, vy: (p.y - e.y) / T, vz: (1100 * T * T / 2 - 110) / T, grav: 1100, owner: e.id, life: 3, dmg: Math.round(d.dmg * (1 + S.lvl * 0.07)), c: '#c07bff' });
+          sfx(S, 'shot');
+        }
+      }
       if (!e.didHit && e.t > 0.05) {
         e.didHit = true;
         for (const p of S.players) {
@@ -687,6 +723,7 @@ function stepEnemy(S, e, dt) {
       break;
     }
     case 'hurt': if (e.t > 0.38) { e.st = 'walk'; e.t = 0; e.cool = Math.max(e.cool, 0.5); } break;
+    case 'block': if (e.t > 0.3) { e.st = 'walk'; e.t = 0; } break;
     case 'held': if (e.t > 3) { e.st = 'walk'; e.t = 0; const h = S.players.find((q) => q.id === e.holder); if (h) { h.st = 'idle'; h.hold = 0; } } break;
     case 'knock': case 'thrown': {
       e.x += e.vx * dt; e.vx *= 0.985;
@@ -930,7 +967,15 @@ function stepShots(S, dt) {
       if (p) { s.vy = lerp(s.vy || 0, clamp(p.y - s.y, -120, 120), dt * s.homing); }
     }
     s.x += s.vx * dt; s.y += (s.vy || 0) * dt;
-    if (s.vz) { s.z += s.vz * dt; if (s.z <= groundAt(S, s.x, s.y) + 4) { s.life = 0; sparks(S, s.x, s.y, s.c || '#fff', 8); continue; } }
+    if (s.grav) s.vz -= s.grav * dt;
+    if (s.vz) { s.z += s.vz * dt; if (s.z <= groundAt(S, s.x, s.y) + 4) {
+      s.life = 0;
+      if (s.kind === 'nade') {
+        ev(S, { t: 'boom', x: Math.round(s.x), y: Math.round(s.y - 20) }); sfx(S, 'boom'); shake(S, 6);
+        for (const p of S.players) if (!p.out && p.st !== 'dead' && Math.hypot(p.x - s.x, (p.y - s.y) * 1.5) < 95 && p.z < 60) hurtPlayer(S, p, s.dmg, { knock: true, from: s.x });
+      } else sparks(S, s.x, s.y, s.c || '#fff', 8);
+      continue;
+    } }
     if (s.friendly && s.kind === 'bolt') {
       // bolts travel at a height: they hit what is at that height (drones need an upward shot)
       const owner = S.players.find((q) => q.id === s.owner);
@@ -948,7 +993,7 @@ function stepShots(S, dt) {
       }
       for (const o of S.props) if (o.hp > 0 && !s.hit.has(o.id) && Math.abs(o.x - s.x) < 50 && Math.abs(o.y - s.y) < 50) { s.hit.add(o.id); hitProp(S, o, owner); }
     } else {
-      for (const p of S.players) if (!p.out && p.st !== 'dead' && Math.abs(p.x - s.x) < (s.kind === 'wave' ? 48 : 40) && Math.abs(p.y - s.y) < 30 && (s.kind === 'dbolt' ? Math.abs(p.z + 70 - s.z) < 70 : p.z - p.gz < (s.kind === 'wave' ? 50 : 140))) {
+      if (s.kind !== 'nade') for (const p of S.players) if (!p.out && p.st !== 'dead' && Math.abs(p.x - s.x) < (s.kind === 'wave' ? 48 : 40) && Math.abs(p.y - s.y) < 30 && (s.kind === 'dbolt' ? Math.abs(p.z + 70 - s.z) < 70 : p.z - p.gz < (s.kind === 'wave' ? 50 : 140))) {
         if (hurtPlayer(S, p, s.dmg, { knock: s.kind === 'wave', from: s.x - s.vx })) { s.life = 0; sparks(S, s.x, s.y - s.z, s.c || '#c07bff', 12); }
       }
     }
@@ -992,6 +1037,7 @@ function stepCivs(S, dt) {
 /* ---------------- zones & waves ---------------- */
 function stepZones(S, dt) {
   const L = S.L;
+  if (L.bonus) { S.camLock = 0; S.cam = 0; return; }
   if (L.train && !S.boarded && S.cam > L.train - 520) { S.boarded = true; S.banner = { text: 'SUL TRENO IN CORSA!', sub: 'SALTA DA UN VAGONE ALL\'ALTRO · LIBERA I PRIGIONIERI', t: 3.2 }; ev(S, { t: 'flash', c: '#ffffff', v: 0.5 }); sfx(S, 'siren'); }
   const z = L.zones[S.zoneIdx];
   if (!z) return;
@@ -1026,7 +1072,7 @@ function stepZones(S, dt) {
   const alive = S.enemies.filter((e) => e.hp > 0 || !['dead'].includes(e.st)).filter((e) => e.hp > 0).length;
   const zw = S.zw[S.zoneIdx];
   if (S.wave < zw.length - 1 && alive <= 1) { S.wave++; spawnWave(S, z, S.wave); }
-  else if (S.wave >= zw.length - 1 && alive === 0 && !S.enemies.some((e) => e.st === 'knock')) {
+  else if (S.wave >= zw.length - 1 && alive === 0 && !mechZoneBlocked(S) && !S.enemies.some((e) => e.st === 'knock')) {
     // zone clear
     S.zoneOn = false; S.camLock = null; S.zoneIdx++;
     for (const c of S.civs) if (c.mode === 'cower') { S.saved++; c.mode = 'saved'; c.face = -1; c.t = 0; if (c.caged) { c.caged = false; ev(S, { t: 'uncage', x: Math.round(c.x), y: Math.round(c.y) }); } for (const p of alivePlayers(S)) p.score += 300; }
@@ -1122,7 +1168,20 @@ function enemyFrame(e) {
     return [`${s}_${f}`, 0];
   }
   const d = e.def;
-  if (d.flying) return ['drone', e.st === 'knock' || e.st === 'down' || e.st === 'dead' ? 1.2 : 0];
+  if (d.sheet === 'extra') {
+    // generated sheets: 0 idle · 1-2 move · 3 wind-up · 4 attack · 5 hit
+    let f = 0, rot = 0;
+    switch (e.st) {
+      case 'walk': case 'enter': f = [1, 0, 2, 0][Math.floor(e.walk) % 4]; break;
+      case 'wind': f = 3; break; case 'atk': f = 4; break;
+      case 'hurt': case 'held': case 'block': f = d.shield && e.st === 'block' ? 3 : 5; break;
+      case 'knock': case 'thrown': f = 5; rot = -Math.min(1, e.t * 4) * 1.4; break;
+      case 'down': case 'dead': case 'fall': f = 5; rot = -1.45; break;
+      case 'getup': f = 3; break;
+    }
+    if (d.flying && ['walk', 'enter', 'idle'].includes(e.st)) f = [0, 1, 2, 1][Math.floor(e.walk / 4) % 4];
+    return [`${d.pre}_${f}`, rot];
+  }
   let pre = d.pre;
   if (d.shade) pre = HEROES[e.shadeHero].id;
   let f = 0, rot = 0;
@@ -1165,7 +1224,15 @@ function buildView(S) {
   const d = [];
   const r = (v) => Math.round(v);
   for (const pl of S.plats) d.push({ i: pl.id, pf: pl.type, x: r(pl.x), y: r(pl.y), sy: pl.y - pl.d, w: pl.w, dp: pl.d, h: pl.h });
-  for (const o of S.props) if (o.hp > 0) d.push({ i: o.id, s: 'items', f: o.type, x: r(o.x + (o.shake > 0 ? Math.sin(S.t * 80) * 3 : 0)), y: r(o.y), sc: o.type === 'crate' ? 1.05 : 1.0, sh: 30 });
+  for (const o of S.props) if (o.hp > 0) {
+    const pd = PROPS[o.type];
+    const q = { i: o.id, s: pd.sheet || 'items', f: o.type === 'capsule' && o.hp < o.max / 2 ? 'capsule2' : o.type, x: r(o.x + (o.shake > 0 ? Math.sin(S.t * 80) * 3 : 0)), y: r(o.y), sc: pd.sc || (o.type === 'crate' ? 1.05 : 1.0), sh: 30 };
+    if (o.type === 'antenna' || o.type === 'capsule' || o.type === 'mirror') q.hb = +(o.hp / o.max).toFixed(2);
+    if (o.type === 'generator' && o.cd <= 0) q.au = '#c07bff';
+    if (o.type === 'mirror') q.au = '#9a3aff';
+    d.push(q);
+  }
+  mechView(S, d, r);
   for (const it of S.items) d.push({ i: it.id, s: 'items', f: it.type, x: r(it.x), y: r(it.y), z: r(it.z + (it.z === it.base && !ITEMS[it.type].weapon ? 4 + Math.sin(S.t * 4 + it.bob) * 3 : 0)), gz: r(it.base || 0), sc: ITEMS[it.type].weapon ? 1.1 : it.type === 'sigil' ? 1 : 1.15, sh: 18, sg: it.type === 'sigil' ? 1 : 0, a: it.life < 3 && !ITEMS[it.type].weapon ? (Math.floor(S.t * 10) % 2 ? 0.3 : 1) : 1, glow: ITEMS[it.type].weapon ? 0 : 1 });
   for (const c of S.civs) d.push({ i: c.id, s: 'people', f: civFrame(c), x: r(c.x), y: r(c.y), fc: c.face, sc: 1, sh: 26, cg: c.caged ? 1 : 0 });
   for (const e of S.enemies) {
@@ -1174,7 +1241,9 @@ function buildView(S) {
     const boss = e.boss;
     const sc = boss ? e.B.scale : e.def.scale * (e.def.villain ? 1 : 1);
     const o = { i: e.id, s: boss || e.def.villain ? 'bosses' : 'fighters', f, x: r(e.x), y: r(e.y), z: r(e.z || 0), fc: e.face, sc, r: rot, sh: boss ? 90 : 36, gz: r(boss || e.def.flying ? 0 : groundAt(S, e.x, e.y)) };
-    if (e.def && e.def.flying) { o.s = 'proc'; o.dr = 1; o.sh = 24; o.gz = r(groundAt(S, e.x, e.y)); }
+    if (e.def && e.def.sheet === 'extra') o.s = 'extra';
+    if (e.def && e.def.flying) { o.sh = 24; o.gz = r(groundAt(S, e.x, e.y)); }
+    if (e.def && e.def.shield && e.st !== 'knock' && e.st !== 'down') o.sd = 1;
     if (e.st === 'rise') { o.rz = 1; o.sh = 0; }
     if (e.flash > 0) o.fl = 1;
     if (e.st === 'held') { o.z = 16; o.sh = 0; o.x += Math.round(Math.sin(S.t * 40) * 2); }
@@ -1226,7 +1295,7 @@ function buildView(S) {
     if (p.st === 'dodge' || p.run && p.st === 'walk' || p.st === 'special' && p.spk === 'azur') o.gh = 1;
     d.push(o);
   }
-  for (const s of S.shots) d.push({ i: s.id, sh2: s.kind, x: r(s.x), y: r(s.y), z: r(s.z), fc: Math.sign(s.vx) || 1, c: s.c, am: s.aim || 0 });
+  for (const s of S.shots) if (s.kind === 'nade') d.push({ i: s.id, s: 'items', f: 'gem', x: r(s.x), y: r(s.y), z: r(s.z), sc: 0.8, sh: 12, r: +(S.t * 12 % 6.28).toFixed(2) }); else d.push({ i: s.id, sh2: s.kind, x: r(s.x), y: r(s.y), z: r(s.z), fc: Math.sign(s.vx) || 1, c: s.c, am: s.aim || 0 });
 
   const boss = S.enemies.find((e) => e.boss && e.st !== 'gone');
   return {
@@ -1235,7 +1304,7 @@ function buildView(S) {
       p: S.players.map((p) => ({ h: p.hero, n: p.name, hp: Math.max(0, Math.round(p.hp)), mx: p.max, en: Math.round(p.en), sc: p.score, lv: p.lives, out: p.out ? 1 : 0, wp: 0, am: p.ammo, cb: p.comboHitT > 0 && p.combo2 > 1 ? p.combo2 : 0 })),
       team: Math.round(S.team),
       boss: boss ? { n: boss.B.name, t: boss.B.title, hp: Math.max(0, boss.hp), mx: boss.max, g: boss.guarding ? 1 : 0, gm: Math.round(boss.gm || 0), br: boss.broken ? 1 : 0 } : null,
-      cr: S.credits === Infinity ? -1 : S.credits, sg: S.sigils.length,
+      cr: S.credits === Infinity ? -1 : S.credits, sg: S.sigils.length, bt: S.L.bonus ? Math.max(0, +S.bonusT.toFixed(1)) : undefined,
       ban: S.banner ? { t: S.banner.text, s: S.banner.sub || '', k: +S.banner.t.toFixed(2), e: +((S.banner.tot || (S.banner.tot = S.banner.t)) - S.banner.t).toFixed(2), b: S.banner.boss ? 1 : 0 } : null,
       go: !S.zoneOn && S.zoneIdx < S.L.zones.length && S.zoneIdx > 0 && !S.cleared ? 1 : 0,
       lvl: S.lvl, place: S.L.place,
