@@ -66,6 +66,10 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.6.3
+- **Kharon giocabile con la sua tavola**: 16 pose come gli altri eroi (pugno, calcio, affondo, fendente viola, colpo
+  dalla mano con la pistola, salto, caduta, vittoria). `tools/build_kharon.py` la rigenera.
+
 ## Novità della 1.6.2
 - **Nuove pose dei boss** (8 ciascuno) per Centipede, Trivor, Mimesi, Kharon, il Custode e Vespera: guardia, passo,
   carica, attacco, mossa speciale, colpito, a terra, in ginocchio (quando la guardia viene sfondata).

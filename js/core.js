@@ -98,6 +98,7 @@ const KH_MAP = [0, 1, 2, 1, 3, 4, 4, 5, 3, 4, 4, 4, 3, 5, 5, 0];
 const KH_MAP2 = [0, 1, 0, 1, 2, 3, 3, 5, 2, 3, 4, 3, 2, 5, 6, 0];   // same, on the 8-pose sheet
 function heroSprite(h, f) {
   const H = HEROES[h] || HEROES[0];
+  if (H.sheet && frameOf('heroes2', H.id + '_0')) return ['heroes2', `${H.id}_${f}`, 1, 0];   // his own 16-pose sheet
   if (H.sheet === 'bosses' && !frameOf('fighters', H.id + '_0') && frameOf('bosses2', H.id + 'P_0')) return ['bosses2', H.id + 'P_' + (KH_MAP2[f] ?? 0), 0.93, 0];
   if (H.sheet === 'bosses' && !frameOf('fighters', H.id + '_0')) return ['bosses', H.id + '_' + (KH_MAP[f] ?? 0), 0.93, f === 14 ? -1.45 : f === 13 ? -0.9 : 0];
   return ['fighters', `${H.id}_${f}`, 1, 0];
