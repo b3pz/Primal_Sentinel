@@ -86,6 +86,11 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.9.2 (le tue tavole: volti e pose)
+- **Volti frontali** dei sei Sentinels: nelle schede della scelta del personaggio e nei ritratti in partita (in alto).
+- **Pose di presentazione**: nella scelta del personaggio chi è in fila aspetta con l'arma in mano, quello scelto
+  indica, quando è PRONTO alza l'arma al cielo. Le stesse pose nel menu principale e nella schermata VS dei boss.
+
 ## Novità della 1.9.1
 - **Menu principale disegnato nel gioco** (non più pulsanti da pagina web): logo, raggi colorati, voci in stile
   sala giochi con la barra dorata, descrizione della voce scelta, Sentinels ai lati che alternano guardia,

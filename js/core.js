@@ -105,6 +105,15 @@ function heroSprite(h, f) {
   if (H.sheet === 'bosses' && !frameOf('fighters', H.id + '_0')) return ['bosses', H.id + '_' + (KH_MAP[f] ?? 0), 0.93, f === 14 ? -1.45 : f === 13 ? -0.9 : 0];
   return ['fighters', `${H.id}_${f}`, 1, 0];
 }
+/* presentation poses (1.9.2): 0 attesa · 1 presentazione (arma al cielo) · 2 scelto (indica) */
+const POSE_FALLBACK = [10, 8, 8];
+function poseSpr(h, i, x, y, opt = {}) {
+  const key = `${(HEROES[h] || HEROES[0]).id}_p${i}`;
+  if (!frameOf('poses', key)) { heroSpr(h, POSE_FALLBACK[i] ?? 0, x, y, opt); return; }
+  const o = { ...opt };
+  if (opt.skin) o.img = skinned('poses', key, opt.skin);
+  spr('poses', key, x, y, o);
+}
 function heroSpr(h, f, x, y, opt = {}) {
   const [sh, key, m, r] = heroSprite(h, f);
   const o = { ...opt, scale: (opt.scale || 1) * m, rot: (opt.rot || 0) + r };

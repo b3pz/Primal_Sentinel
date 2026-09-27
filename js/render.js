@@ -491,7 +491,8 @@ function drawPortrait(hero, x, y, s = 0.52, dim = false) {
   const grd = g.createRadialGradient(x, y, 4, x, y, hb * 1.3);
   grd.addColorStop(0, HEROES[hero].color + '88'); grd.addColorStop(1, 'rgba(0,0,0,0)');
   g.fillStyle = grd; g.fillRect(x - hb, y - hb, hb * 2, hb * 2);
-  if (HEROES[hero].sheet) heroSpr(hero, 0, x + 2 * s / 0.52, y + hb * 2.3, { scale: 0.62 * (s / 0.52), alpha: dim ? 0.35 : 1 });   // the green sixth Sentinel
+  if (frameOf('faces', 'face_' + hero)) { const f = frameOf('faces', 'face_' + hero); spr('faces', 'face_' + hero, x, y + hb + 2, { scale: (hb * 2.15) / f[3], alpha: dim ? 0.35 : 1 }); }   // 1.9.2 front faces
+  else if (HEROES[hero].sheet) heroSpr(hero, 0, x + 2 * s / 0.52, y + hb * 2.3, { scale: 0.62 * (s / 0.52), alpha: dim ? 0.35 : 1 });   // the green sixth Sentinel
   else spr('extra', 'pt_' + HEROES[hero].id, x + 4 * s / 0.52, y + hb, { scale: 0.36 * (s / 0.52), alpha: dim ? 0.35 : 1 });
   g.restore();
   g.strokeStyle = HEROES[hero].color; g.lineWidth = 2; g.strokeRect(x - hb, y - hb, hb * 2, hb * 2);
@@ -1182,7 +1183,7 @@ function drawBossVs([key, k, heroes]) {
   hs.forEach((h, i) => {
     const sp = hs.length <= 2 ? 180 : hs.length === 3 ? 140 : 112, x = sl + 300 + (i - (hs.length - 1) / 2) * sp, y = 520 + (i % 2) * 30;
     glowAt(x, y - 110, 120, HEROES[h].color, 0.35);
-    drawShadow(x, y, 40); heroSpr(h, k > 1 ? 8 : 0, x, y, { scale: 1.25, face: 1 });
+    drawShadow(x, y, 40); poseSpr(h, k > 1 ? 1 : 0, x, y, { scale: 1.2, face: 1 });
   });
   // boss
   const p8 = frameOf('bosses2', `${s}P_0`);

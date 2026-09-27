@@ -79,7 +79,7 @@ const Game = {
         <button id="howto">COME SI GIOCA</button>
         <button id="options">OPZIONI</button>
       </nav>
-      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.9.1</div>`, 'menu');
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.9.2</div>`, 'menu');
     UI.on('#play', () => { this.modeKind = 'campaign'; this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
     UI.on('#extras', () => this.extras());
@@ -356,12 +356,11 @@ const Game = {
       }
       g.restore();
       // reflection
-      g.save(); g.translate(x, y); g.scale(1, -0.35); g.globalAlpha = 0.18; heroSpr(h, 0, 0, 0, { scale: sc, face }); g.restore();
-      const ready = sel && sel.some(([, s]) => s.ready);
-      // in line: guard and weapon stance in turn · chosen: its pose · ready: pose with the glow
-      const fr = ready || sel ? 8 : ((t * 0.5 + h * 0.43) % 2 < 1.1 ? 10 : 0);
+      const ready = sel && sel.some(([, s]) => s.ready), pi = ready ? 1 : sel ? 2 : 0;
+      g.save(); g.translate(x, y); g.scale(1, -0.35); g.globalAlpha = 0.18; poseSpr(h, pi, 0, 0, { scale: sc, face }); g.restore();
+      // in line: waiting pose · chosen: points forward · ready: weapon to the sky
       if (a > 0.5) glowAt(x, y - 110, 120 * sc, hero.color, 0.3 * a);
-      heroSpr(h, fr, x, y, { scale: sc, face, alpha: 0.6 + a * 0.4, skin: sel ? sel[0][1].skin || 0 : 0 });
+      poseSpr(h, pi, x, y, { scale: sc, face, alpha: 0.6 + a * 0.4, skin: sel ? sel[0][1].skin || 0 : 0 });
       if (ready && a > 0.9) glowAt(x, y - 120, 150, hero.color, 0.25 + Math.sin(t * 10) * 0.15);
       // player markers above the head
       (sel || []).forEach(([i, s], k) => {
@@ -927,7 +926,7 @@ function frame(ts) {
 Input.init();
 Touch.init();
 const IMAGES = [
-  ['fighters', 'assets/sprites/fighters.png'], ['bosses', 'assets/sprites/bosses.png'], ['titans', 'assets/sprites/titans.png'], ['giants', 'assets/sprites/giants.png'], ['extra', 'assets/sprites/extra.png'], ['bosses2', 'assets/sprites/bosses2.png'], ['heroes2', 'assets/sprites/heroes2.png'], ['mentors', 'assets/sprites/mentors.png'], ['pad_ps', 'assets/ui/pad_ps.png'], ['extra2', 'assets/sprites/extra2.png'], ['grabs', 'assets/sprites/grabs.png'], ['base', 'assets/bg/base.jpg'],
+  ['fighters', 'assets/sprites/fighters.png'], ['bosses', 'assets/sprites/bosses.png'], ['titans', 'assets/sprites/titans.png'], ['giants', 'assets/sprites/giants.png'], ['extra', 'assets/sprites/extra.png'], ['bosses2', 'assets/sprites/bosses2.png'], ['heroes2', 'assets/sprites/heroes2.png'], ['mentors', 'assets/sprites/mentors.png'], ['pad_ps', 'assets/ui/pad_ps.png'], ['extra2', 'assets/sprites/extra2.png'], ['grabs', 'assets/sprites/grabs.png'], ['faces', 'assets/sprites/faces.png'], ['poses', 'assets/sprites/poses.png'], ['base', 'assets/bg/base.jpg'],
   ['cine_run', 'assets/bg/cine_run.jpg'], ['cine_duel', 'assets/bg/cine_duel.jpg'], ['cine_rex', 'assets/bg/cine_rex.jpg'], ['cine_cavern', 'assets/bg/cine_cavern.jpg'], ['cine_cockpit', 'assets/bg/cine_cockpit.jpg'], ['cine_dawn', 'assets/bg/cine_dawn.jpg'],
   ['items', 'assets/sprites/items.png'], ['people', 'assets/sprites/people.png'],
   ['port', 'assets/bg/port.jpg'], ['harbor', 'assets/bg/harbor.jpg'], ['rail', 'assets/bg/rail.jpg'], ['park', 'assets/bg/park.jpg'],

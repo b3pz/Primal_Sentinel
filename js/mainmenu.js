@@ -103,11 +103,11 @@ function drawMenuHeroes(k) {
   const n = Game.heroCount ? Game.heroCount() : CORE_HEROES;
   const spots = [[0, 175, 700, 1.45, 1], [1, 300, 650, 1.2, 1], [2, 80, 640, 1.15, 1], [3, 1105, 700, 1.45, -1], [4, 985, 650, 1.25, -1], [5, 1215, 640, 1.2, -1]];
   spots.filter(([h]) => h < n).sort((a, b) => a[2] - b[2]).forEach(([h, x, y, s, f]) => {
-    const ph = (k * 0.45 + h * 0.37) % 3;
-    const pose = ph < 1.2 ? 10 : ph < 2.4 ? 8 : 0;
-    glowAt(x, y - 120 * s, 110 * s, HEROES[h].color, (pose === 8 ? 0.34 : 0.2) + Math.sin(k * 2 + h) * 0.05);
+    const ph = (k * 0.35 + h * 0.37) % 3;
+    const pose = ph < 1.3 ? 0 : ph < 2.2 ? 1 : 2;
+    glowAt(x, y - 120 * s, 110 * s, HEROES[h].color, (pose === 1 ? 0.34 : 0.2) + Math.sin(k * 2 + h) * 0.05);
     drawShadow(x, y, 40 * s);
-    heroSpr(h, pose, x, y, { scale: s, face: f });
+    poseSpr(h, pose, x, y, { scale: s * 0.92, face: f });
   });
 }
 
@@ -154,5 +154,5 @@ function drawMainMenu(M) {
   const desc = it.id === 'diff' ? (DIFF.desc || '').toUpperCase() : it.desc;
   ptxt(desc, W / 2, 646, 9, '#9fe8ff', 'center');
   ptxt(Touch.on ? 'TOCCA UNA VOCE' : '▲ ▼ SCEGLI · INVIO / ' + padName(0) + ' CONFERMA', W / 2, 690, 8, '#6f8aa2', 'center');
-  ptxt('IDEATO E SVILUPPATO DA b3pZ · V1.9.1', W - 20, H - 12, 7, '#56687a', 'right');
+  ptxt('IDEATO E SVILUPPATO DA b3pZ · V1.9.2', W - 20, H - 12, 7, '#56687a', 'right');
 }
