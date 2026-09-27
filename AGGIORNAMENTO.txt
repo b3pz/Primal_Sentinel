@@ -1,26 +1,15 @@
-AGGIORNAMENTO da Primal_Sentinels_V1_9_2_PC.zip a Primal_Sentinels_V1_10_PC.zip
+AGGIORNAMENTO da Primal_Sentinels_V1_10_PC.zip a Primal_Sentinels_V1_11_PC.zip
 
 Copia la cartella primal-sentinels di questo ZIP sopra quella che hai già
 (sostituisci i file quando te lo chiede).
 
 File cambiati o nuovi:
   primal-sentinels/sw.js
-  primal-sentinels/style.css
-  primal-sentinels/assets/fonts/OFL-Exo2.txt
-  primal-sentinels/assets/fonts/Exo2-600.woff2
-  primal-sentinels/assets/fonts/Exo2-800.woff2
   primal-sentinels/tools/build_sw.py
+  primal-sentinels/PROMPT_IMMAGINI.md
   primal-sentinels/LEGGIMI.md
-  primal-sentinels/js/extra.js
-  primal-sentinels/js/modes.js
-  primal-sentinels/js/sim.js
-  primal-sentinels/js/chapters.js
-  primal-sentinels/js/core.js
-  primal-sentinels/js/cinema.js
   primal-sentinels/js/render.js
-  primal-sentinels/js/fonts.js
-  primal-sentinels/js/mech.js
-  primal-sentinels/js/data.js
+  primal-sentinels/js/giant.js
+  primal-sentinels/js/howto.js
   primal-sentinels/js/main.js
   primal-sentinels/js/mainmenu.js
-  primal-sentinels/js/music.js

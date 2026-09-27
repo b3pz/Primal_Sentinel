@@ -191,7 +191,7 @@ const HOWTO = [
     },
   },
   {
-    title: 'DUELLI TRA GIGANTI', cap: (k) => `TIENI ${k.dodge}: PARATA · ${k.punch}: PUGNO · ${k.shoot}: COLPO PESANTE · SBILANCIA IL MOSTRO E PREMI ${k.special}: ARMA FINALE`,
+    title: 'DUELLI TRA GIGANTI', cap: (k) => `${k.punch}×3: COMBO · ${k.shoot}: CODATA (INTERROMPE) · ${k.dodge} AL MOMENTO GIUSTO: PARATA PERFETTA · ${k.jump}: SALTO · SCONTRO: PREMI ${k.punch} VELOCE · SBILANCIALO E ${k.special}: ARMA FINALE`,
     run(t) {
       let lit = [], guard = false, px = 380, beam = 0, stagger = false;
       if (t > 0.6 && t < 1.6) { guard = true; lit = ['dodge']; }

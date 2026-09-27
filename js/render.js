@@ -653,6 +653,19 @@ function drawHUD(h, t) {
     if (h.boss.br && Math.floor(t * 6) % 2) ptxt('GUARDIA ROTTA! ATTACCA!', W / 2, by - 20, 11, '#ffd35a', 'center');
   } else HUDFX.boss = undefined;
   drawExtraHud(h, t);
+  // SCONTRO: tug-of-war bar
+  if (h.cl >= 0) {
+    const bx = W / 2 - 360, by = 150;
+    panel(bx - 20, by - 44, 760, 110, '#ffd35a', 0.92);
+    ptitle('SCONTRO! PREMI ATTACCO!', W / 2, by - 12, 22, '#ffffff', Math.floor(t * 8) % 2 ? '#ffd35a' : '#ff6a3a');
+    g.fillStyle = '#ff5a3a'; g.fillRect(bx, by + 10, 720, 30);
+    g.fillStyle = '#58e0a0'; g.fillRect(bx, by + 10, 720 * h.cl, 30);
+    g.fillStyle = '#ffffff'; g.fillRect(bx + 720 * h.cl - 4, by + 4, 8, 42);
+    ptxt(h.tn, bx, by + 60, 9, '#58e0a0'); ptxt(h.en, bx + 720, by + 60, 9, '#ff9a7a', 'right');
+  }
+  if (h.cm >= 2) ptitle(`COMBO ×${h.cm}`, 300, 170, h.cm === 3 ? 30 : 22, '#ffffff', h.cm === 3 ? '#ffb03a' : '#ffd35a');
+  if (h.ct && Math.floor(t * 8) % 2) ptitle('CONTRATTACCO!', 300, 210, 20, '#ffffff', '#58e0a0');
+  if (h.fu) { ptxt('FURIA', W - 60, 132, 10, Math.floor(t * 6) % 2 ? '#ff5a3a' : '#ffb0a0', 'right'); }
   if (h.ban && h.ban.k > 0) {
     const a = clamp(Math.min(h.ban.k * 3, (h.ban.e || 0) * 4), 0, 1);
     const slide = (1 - clamp((h.ban.e || 0) * 5, 0, 1)) * W;
@@ -770,9 +783,12 @@ function renderGiant(v) {
     g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.35 + Math.sin(t * 25) * 0.25;
     g.fillStyle = E.wn === 'beam' ? '#c07bff' : '#ff6a4a';
     g.beginPath(); g.arc(E.x - 60, 380, 120, 0, 7); g.fill(); g.restore();
-    ptitle(E.wn === 'beam' ? 'RAGGIO! PARA!' : E.wn === 'charge' ? 'CARICA! PARA!' : E.wn === 'stomp' ? 'ONDA SISMICA! PARA!' : E.wn === 'rain' ? 'PIOGGIA DEL VELO!' : 'ATTACCO! PARA!', E.x - 60, 170, 18, '#ffffff', '#ff6a4a');
+    const WARN = { beam: ['RAGGIO!', 'PARATA PERFETTA ALL\'ULTIMO ISTANTE'], charge: ['CARICA!', '◀ + SALTO: SCHIVA · CODATA: INTERROMPI'], stomp: ['ONDA SISMICA!', 'SALTA!'], rain: ['PIOGGIA OSCURA!', 'SPOSTATI!'], grapple: ['PRESA!', 'PREPARATI A PREMERE ATTACCO!'], swipe: ['ARTIGLIATA!', 'PARA AL MOMENTO GIUSTO'] }[E.wn] || ['ATTACCO!', 'PARA'];
+    ptitle(WARN[0], E.x - 60, 165, 22, '#ffffff', '#ff6a4a');
+    txt(WARN[1], E.x - 60, 196, 16, '#ffe0c0', 'center', 800);
   }
   spr('giants', E.f, E.x, E.y, { scale: E.sc, face: -1, flash: E.fl ? 0.7 : 0, alpha: E.a });
+  if (E.bk) { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.45 + Math.sin(t * 16) * 0.15; g.strokeStyle = '#ffd0a0'; g.lineWidth = 10; g.beginPath(); g.ellipse(E.x - 200, 400, 70, 260, 0, Math.PI - 1.3, Math.PI + 1.3); g.stroke(); g.restore(); }
   if (E.st) { g.save(); g.globalAlpha = 0.5 + Math.sin(t * 20) * 0.4; txt('✦ ✦ ✦', E.x, 170, 36, '#fff1a6', 'center', 900); g.restore(); }
   // titan
   const T = TITAN_KINDS[P.k];
@@ -816,9 +832,22 @@ function drawGiantHUD(h, t) {
   segBar(W - 528, 54, 496, 16, ev, HUDFX.ge, '#ff6a3a', 16);
   ptxt('EQUILIBRIO', W - 528, 96, 8, '#f0c0a0');
   segBar(W - 430, 88, 250, 8, h.bal / 100, 0, h.stg ? '#fff1a6' : '#f0a05a', 5);
-  panel(W / 2 - 470, H - 50, 940, 36, '#6fd8d3', 0.8);
+  panel(W / 2 - 590, H - 50, 1180, 36, '#6fd8d3', 0.8);
   const k = (a) => keyName(Game.players[0] && Game.players[0].device, a);
-  ptxt(`${k('punch')} ${h.moves[0]} · ${k('shoot')} ${h.moves[1]} · TIENI ${k('dodge')} PARATA · ${k('jump')} PASSO · ${k('special')} ${h.stg ? h.moves[2] : 'COLPO TITANICO'}`, W / 2, H - 27, 9, h.stg && Math.floor(t * 6) % 2 ? '#fff1a6' : '#c8d6e4', 'center');
+  ptxt(`${k('punch')}×3 ${h.moves[0]} · ${k('shoot')} ${h.moves[1]} · ${k('dodge')} PARATA (AL MOMENTO GIUSTO = PERFETTA) · ${k('jump')} SALTO · ◀+${k('jump')} SCHIVA · ${k('special')} ${h.stg ? h.moves[2] : 'COLPO TITANICO'}`, W / 2, H - 27, 8, h.stg && Math.floor(t * 6) % 2 ? '#fff1a6' : '#c8d6e4', 'center');
+  // SCONTRO: tug-of-war bar
+  if (h.cl >= 0) {
+    const bx = W / 2 - 360, by = 150;
+    panel(bx - 20, by - 44, 760, 110, '#ffd35a', 0.92);
+    ptitle('SCONTRO! PREMI ATTACCO!', W / 2, by - 12, 22, '#ffffff', Math.floor(t * 8) % 2 ? '#ffd35a' : '#ff6a3a');
+    g.fillStyle = '#ff5a3a'; g.fillRect(bx, by + 10, 720, 30);
+    g.fillStyle = '#58e0a0'; g.fillRect(bx, by + 10, 720 * h.cl, 30);
+    g.fillStyle = '#ffffff'; g.fillRect(bx + 720 * h.cl - 4, by + 4, 8, 42);
+    ptxt(h.tn, bx, by + 60, 9, '#58e0a0'); ptxt(h.en, bx + 720, by + 60, 9, '#ff9a7a', 'right');
+  }
+  if (h.cm >= 2) ptitle(`COMBO ×${h.cm}`, 300, 170, h.cm === 3 ? 30 : 22, '#ffffff', h.cm === 3 ? '#ffb03a' : '#ffd35a');
+  if (h.ct && Math.floor(t * 8) % 2) ptitle('CONTRATTACCO!', 300, 210, 20, '#ffffff', '#58e0a0');
+  if (h.fu) { ptxt('FURIA', W - 60, 132, 10, Math.floor(t * 6) % 2 ? '#ff5a3a' : '#ffb0a0', 'right'); }
   if (h.ban && h.ban.k > 0) {
     const a = clamp(Math.min(h.ban.k * 3, (h.ban.e || 0) * 4), 0, 1);
     g.save(); g.globalAlpha = a;

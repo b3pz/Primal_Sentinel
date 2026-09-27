@@ -86,6 +86,18 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.11 — duelli tra giganti
+- **Combo**: ATTACCO ×3, il terzo colpo spinge indietro il mostro. Se schiacci sempre lo stesso tasto
+  il mostro **si protegge** e contrattacca: la CODATA gli sfonda la guardia.
+- **Parata perfetta**: PARATA premuta un attimo prima del colpo = nessun danno, il mostro barcolla e per
+  1,2 secondi i vostri colpi fanno di più (CONTRATTACCO). Parata tenuta a lungo = parata normale (35% del danno,
+  il raggio passa al 60%).
+- **Salto** (sopra l'onda sismica) e **schivata** (◀ + SALTO: invulnerabile, evita artigliate e cariche).
+- **Interrompere**: la CODATA durante la carica del mostro lo blocca.
+- **SCONTRO**: la nuova PRESA del mostro fa partire un braccio di ferro, tutti i piloti premono ATTACCO.
+  Se vincete lo proiettate lontano, se perdete vi respinge.
+- **FURIA** sotto metà vita: attacchi più rapidi e più prese. Avvisi più chiari su cosa fare per ogni attacco.
+
 ## Novità della 1.10 — la storia
 - **Storia riscritta** (sceneggiatura completa nel documento condiviso): i Sentinels hanno un nome e un mestiere
   (Ciusky, Beps, Kathy, Kiki, Dilik), Kharon è **Sirio**, il primo pilota dei titani; il mentore è **ArMV3z**,

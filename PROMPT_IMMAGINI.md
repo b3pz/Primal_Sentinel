@@ -144,3 +144,47 @@ Griglia 1 riga x 3 colonne, stessa scala, piedi alla stessa altezza, rivolto ver
 3) scelto: posa di battaglia, un braccio teso in avanti che indica, l'altro con l'arma dietro.
 Contorno scuro, luce da sinistra in alto, niente testo, niente ombra per terra.
 ```
+
+---
+
+# Terza serie (1.11): il convoglio del capitolo 2
+
+Allega a ogni prompt lo sfondo della stazione merci del gioco (`assets/bg/rail.jpg`) e, per lo stile dei nemici,
+`fighters.png`. Il treno appartiene alla Dimensione Oscura: metallo nero-grafite, corazze rosso scuro sulla
+locomotiva, bande e luci viola, sbarre alle finestre.
+
+## 8. Il convoglio fermo in stazione → `convoglio.png`
+```
+Sprite sheet di pixel art HD a 16 bit da picchiaduro arcade anni '90, sfondo trasparente, vista laterale
+perfetta (nessuna prospettiva), luce da sinistra in alto, contorno scuro. Soggetto: un treno blindato
+della Dimensione Oscura, stesso stile e stessi colori notturni dell'immagine allegata.
+Tre pezzi separati in una sola riga, stessa scala, stessa altezza delle ruote:
+1) un VAGONE PRIGIONE: metallo nero-grafite con rivetti, una banda viola luminosa lungo il fianco,
+   tre finestre con sbarre spesse illuminate da una luce arancione, dietro le sbarre sagome di persone
+   con le mani aggrappate, ruote e carrelli scuri;
+2) lo stesso vagone con la porta laterale scorrevole aperta e l'interno vuoto illuminato;
+3) la LOCOMOTIVA: più alta e lunga del vagone, corazza rosso scuro a piastre, muso inclinato con un
+   grande faro giallo, cabina con vetro viola luminoso, due ciminiere che fumano, strisce gialle e nere di
+   pericolo in basso, sei ruote grandi.
+Proporzioni: il vagone è lungo circa due volte e mezza la sua altezza. Niente testo, niente ombra per terra.
+```
+
+## 9. Il tetto del treno in corsa → `treno_tetto.jpg`
+```
+Fondale di pixel art HD a 16 bit, formato 16:9 (1920x1080), per un picchiaduro a scorrimento anni '90,
+stesso stile e stessa palette notturna dell'immagine allegata. Inquadratura: di lato e leggermente
+dall'alto, sul TETTO di un treno blindato in corsa di notte. La metà inferiore dell'immagine (dal 64%
+dell'altezza in giù) è il tetto su cui si combatte: lamiere grigio-blu con rivetti, nervature per il
+lungo, bordo con luci arancioni; deve essere uniforme e ripetibile in orizzontale (il bordo sinistro
+continua nel destro). Nella metà superiore: campagna e periferia industriale che scorrono veloci con
+scie di movimento, tralicci, capannoni con finestre accese, e in lontananza sopra il mare uno squarcio
+viola nel cielo (il varco verso la Dimensione Oscura). Nessun personaggio, nessun testo.
+```
+
+## 10. Il tetto della locomotiva → `locomotiva_tetto.jpg`
+```
+Stesso fondale del prompt precedente (stessa inquadratura, stesso cielo e paesaggio in corsa, stessa
+altezza del pavimento al 64%), ma il pavimento è il tetto della LOCOMOTIVA: piastre di corazza rosso
+scuro, griglie di raffreddamento incandescenti arancioni, due ciminiere che escono dal tetto e fumano
+all'indietro, strisce gialle e nere sui bordi. Ripetibile in orizzontale. Nessun personaggio, nessun testo.
+```
