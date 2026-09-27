@@ -1,15 +1,16 @@
-AGGIORNAMENTO da Primal_Sentinels_V1_10_PC.zip a Primal_Sentinels_V1_11_PC.zip
+AGGIORNAMENTO da Primal_Sentinels_V1_11_PC.zip a Primal_Sentinels_V1_11_1_PC.zip
 
 Copia la cartella primal-sentinels di questo ZIP sopra quella che hai già
 (sostituisci i file quando te lo chiede).
 
 File cambiati o nuovi:
   primal-sentinels/sw.js
+  primal-sentinels/assets/sprites/train.png
+  primal-sentinels/tools/build_all.py
+  primal-sentinels/tools/build_v111.py
   primal-sentinels/tools/build_sw.py
-  primal-sentinels/PROMPT_IMMAGINI.md
   primal-sentinels/LEGGIMI.md
+  primal-sentinels/js/atlas.js
   primal-sentinels/js/render.js
-  primal-sentinels/js/giant.js
-  primal-sentinels/js/howto.js
   primal-sentinels/js/main.js
   primal-sentinels/js/mainmenu.js

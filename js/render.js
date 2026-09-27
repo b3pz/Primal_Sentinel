@@ -445,6 +445,20 @@ const CONVOY = { wagon: 390, gap: 18, n: 4 };
 function drawConvoy(cam, t, a = 1, speed = 0) {
   const L = LEVELS[1]; if (!L || !L.train) return;
   const base = HORIZON + 14, x0 = L.train - 1300 - cam;
+  if (frameOf('train', 'wagon')) {
+    // 1.11: the painted convoy (wagons with the prisoners behind bars, one open, the locomotive at the head)
+    g.save(); g.globalAlpha = a;
+    const seq = ['wagon', 'wagon', 'wagon_open', 'wagon', 'loco'];
+    let x = x0 - 300;
+    const jig = speed ? Math.sin(t * 40) * 1.5 : 0;
+    for (const k of seq) {
+      const f = frameOf('train', k);
+      if (x < W + 40 && x + f[2] > -40) spr('train', k, x, base + 6 + jig, { scale: 1 });
+      x += f[2] - 6;
+    }
+    g.restore();
+    return;
+  }
   g.save(); g.globalAlpha = a;
   const wheel = (x, y) => { g.fillStyle = '#07090e'; g.beginPath(); g.arc(x, y, 17, 0, 7); g.fill(); g.strokeStyle = '#4a5260'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, 11, t * speed * 0.05, t * speed * 0.05 + 4.5); g.stroke(); };
   for (let i = 0; i < CONVOY.n; i++) {

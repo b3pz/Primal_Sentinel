@@ -86,6 +86,10 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.11.1
+- Il **convoglio disegnato** (la tua tavola `convoglio.png`) in stazione e nella scena della partenza:
+  vagoni prigione con le sbarre, un vagone aperto e la locomotiva rossa con il fumo viola.
+
 ## Novità della 1.11 — duelli tra giganti
 - **Combo**: ATTACCO ×3, il terzo colpo spinge indietro il mostro. Se schiacci sempre lo stesso tasto
   il mostro **si protegge** e contrattacca: la CODATA gli sfonda la guardia.

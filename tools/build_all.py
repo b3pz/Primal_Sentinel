@@ -41,3 +41,4 @@ exec(open('build_mentors.py').read())
 # 1.8: drago verde, scooter, emblemi, prese, fondale della base
 exec(open('build_v18.py').read())
 exec(open('build_v19.py').read())
+exec(open('build_v111.py').read())

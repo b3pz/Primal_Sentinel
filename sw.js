@@ -1,5 +1,5 @@
 /* Primal Sentinels — service worker (generato da tools/build_sw.py) */
-const CACHE = 'ps-1.11';
+const CACHE = 'ps-1.11.1';
 const FILES = [
 "./",
 "index.html",
@@ -41,6 +41,7 @@ const FILES = [
 "assets/sprites/people.png",
 "assets/sprites/poses.png",
 "assets/sprites/titans.png",
+"assets/sprites/train.png",
 "assets/bg/base.jpg",
 "assets/bg/cine_cavern.jpg",
 "assets/bg/cine_cockpit.jpg",
