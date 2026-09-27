@@ -86,6 +86,10 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.11.2
+- **Tetto del treno e della locomotiva dipinti** (le tue tavole): il paesaggio scorre veloce, il tetto segue la
+  telecamera, dall'ultimo tratto si combatte sul tetto rosso della locomotiva con le ciminiere.
+
 ## Novità della 1.11.1
 - Il **convoglio disegnato** (la tua tavola `convoglio.png`) in stazione e nella scena della partenza:
   vagoni prigione con le sbarre, un vagone aperto e la locomotiva rossa con il fumo viola.

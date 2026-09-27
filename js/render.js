@@ -344,7 +344,64 @@ function trainAmount(v) {
   if (!L || !L.train) return 0;
   return clamp((v.cam - (L.train - 700)) / 220, 0, 1);
 }
+/* 1.11.2: painted roof backgrounds (train_roof / loco_roof): the sky half rushes past, the roof half moves with the camera */
+const ROOF_SPLIT = 436, ROOF_OY = 22;
+function tileRows(img, off, sy, sh, dy) {
+  const tw = img.width;
+  for (let i = Math.floor(off / tw); i * tw - off < W; i++) {
+    const x = Math.round(i * tw - off);
+    g.save();
+    if (i % 2) { g.translate(x + tw, 0); g.scale(-1, 1); g.drawImage(img, 0, sy, tw, sh, 0, dy, tw, sh); }
+    else g.drawImage(img, 0, sy, tw, sh, x, dy, tw, sh);
+    g.restore();
+  }
+}
+function drawTrainPainted(cam, t, a, portal) {
+  const img = IMG.train_roof, loco = IMG.loco_roof, L = LEVELS[1];
+  g.save(); g.globalAlpha = a;
+  // sky and landscape
+  g.save(); g.beginPath(); g.rect(0, 0, W, ROOF_OY + ROOF_SPLIT); g.clip();
+  const soff = cam * 0.35 + t * 620;
+  tileRows(img, soff, 0, ROOF_SPLIT, ROOF_OY);
+  g.fillStyle = '#0b1336'; g.fillRect(0, 0, W, ROOF_OY + 1);
+  g.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 18; i++) {
+    const y = 260 + (i * 37) % 180, len = 120 + (i * 53) % 260;
+    const x = W - ((t * (900 + (i % 5) * 180) + i * 211) % (W + len + 200));
+    g.fillStyle = `rgba(255,${190 - (i % 3) * 40},120,${0.06 + (i % 4) * 0.02})`; g.fillRect(x, y, len, 2);
+  }
+  g.globalCompositeOperation = 'source-over';
+  if (portal > 0) { rift(1060, 180, clamp(portal * 2, 0.35, 1), t); glowAt(1060, 180, (40 + portal * 260) * 1.4, '#9a3aff', 0.25 + portal * 0.35); }
+  g.restore();
+  // the roof: wagons, then the locomotive from L.loco on
+  const lx = L.loco ? L.loco - cam - 80 : W + 1;
+  g.save(); g.beginPath(); g.rect(0, ROOF_OY + ROOF_SPLIT, Math.max(0, Math.min(W, lx)), H); g.clip();
+  tileRows(img, cam, ROOF_SPLIT, img.height - ROOF_SPLIT, ROOF_OY + ROOF_SPLIT); g.restore();
+  if (lx < W && loco) {
+    g.save(); g.beginPath(); g.rect(Math.max(0, lx), 0, W, H); g.clip();
+    tileRows(loco, cam - (L.loco - 80) % loco.width, ROOF_SPLIT - 120, loco.height - ROOF_SPLIT + 120, ROOF_OY + ROOF_SPLIT - 120); g.restore();
+  }
+  // open gaps between the wagons (same geometry as the simulation)
+  const top = HORIZON, h = H - HORIZON;
+  for (let wx = Math.floor(cam / WAGON) * WAGON - WAGON; wx < cam + W + WAGON; wx += WAGON) {
+    if (!trainOn(L, wx + 60) || (L.loco && wx + 60 > L.loco - 80)) continue;
+    const x = wx - cam + 40;
+    const poly = () => { g.beginPath(); g.moveTo(x, top); g.lineTo(x + GAP_W, top); g.lineTo(x + GAP_W - GAP_SLANT, H); g.lineTo(x - GAP_SLANT, H); g.closePath(); };
+    g.save(); poly(); g.clip();
+    g.fillStyle = '#0a0806'; g.fillRect(x - 80, top, GAP_W + 120, h);
+    for (let yy = top + ((t * 1400) % 26); yy < H; yy += 26) { g.fillStyle = 'rgba(110,80,50,.55)'; g.fillRect(x - 80, yy, GAP_W + 120, 8); }
+    g.fillStyle = '#2a2a30'; g.fillRect(x - 60, top + 118, GAP_W + 80, 14);
+    g.restore();
+    g.fillStyle = '#1a212c'; g.beginPath(); g.moveTo(x, top); g.lineTo(x + 12, top); g.lineTo(x - GAP_SLANT + 12, H); g.lineTo(x - GAP_SLANT, H); g.fill();
+    g.fillStyle = '#39465a'; g.beginPath(); g.moveTo(x + GAP_W - 10, top); g.lineTo(x + GAP_W, top); g.lineTo(x + GAP_W - GAP_SLANT, H); g.lineTo(x + GAP_W - GAP_SLANT - 10, H); g.fill();
+    g.fillStyle = '#e0b020';
+    for (let k = 0; k < 8; k++) { const yy = top + k * 32; const off = (yy - top) / h * GAP_SLANT; g.fillRect(x - 14 - off, yy + 4, 12, 14); g.fillRect(x + GAP_W + 2 - off, yy + 4, 12, 14); }
+  }
+  g.restore();
+  if (a > 0.5 && t - TRAIN.lastT > 0.46) { TRAIN.lastT = t; Audio.noise(0.04, 0.05, 900); Audio.noise(0.04, 0.045, 900, 0.09); }
+}
 function drawTrain(cam, t, a, portal) {
+  if (IMG.train_roof) { drawTrainPainted(cam, t, a, portal); return; }
   g.save();
   g.globalAlpha = a;
   // landscape rushing past (the far layer of the station art, scrolled fast)
@@ -546,7 +603,7 @@ function renderStage(v) {
   if (FX.shake) g.translate(rand(-1, 1) * FX.shake, rand(-1, 1) * FX.shake);
   if (tr < 1) drawStageBackdrop(v.bg, cam);
   if (tr < 1 && LEVELS[v.lv] && LEVELS[v.lv].train) drawConvoy(cam, t, 1 - tr);
-  if (tr > 0) { drawTrain(cam, t, tr, v.hud.portal || 0); if (tr >= 1) drawLocoRoof(cam, t); g.translate(Math.sin(t * 23) * tr * 1.2, Math.abs(Math.sin(t * 11)) * tr * 1.5); }
+  if (tr > 0) { drawTrain(cam, t, tr, v.hud.portal || 0); if (tr >= 1 && !IMG.train_roof) drawLocoRoof(cam, t); g.translate(Math.sin(t * 23) * tr * 1.2, Math.abs(Math.sin(t * 11)) * tr * 1.5); }
   if (v.hud.tun) drawTunnelBack(t, v.hud.tun);
   if (v.hud.esc !== undefined) drawCollapseBack(cam, t, v.hud.esc);
   if (FX.team && FX.team.arena) { const k = FX.team.t, fade = clamp(Math.min(k * 4, (TEAM_LEN - k) * 4), 0, 1); g.fillStyle = `rgba(4,6,14,${0.5 * fade})`; g.fillRect(-20, -20, W + 40, H + 40); }
