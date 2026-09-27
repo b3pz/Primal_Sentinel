@@ -861,7 +861,7 @@ function drawPlatform(o, x, y, t) {
     const key = o.pf;
     const f = frameOf('extra', key);
     if (o.pf === 'rock') { glowAt(x, y - h / 2, 120, '#9a3aff', 0.25 + Math.sin(t * 3) * 0.08); }
-    spr('extra', key, x, y + (o.pf === 'rock' ? 10 : 6), { scale: w / f[2], sy: (h + d * 0.9) / (f[3] * w / f[2]) });
+    spr('extra', key, x, y + (o.pf === 'rock' ? 10 : 6), o.pf === 'car' ? { scale: w / f[2] } : { scale: w / f[2], sy: (h + d * 0.9) / (f[3] * w / f[2]) });
     g.restore();
     return;
   }

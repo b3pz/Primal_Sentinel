@@ -269,7 +269,7 @@ function stepPlayer(S, p, c, dt) {
       if (!gr) p.pushT = 0;
       if (c.pressed.team && S.team >= 100) { teamAttack(S, p); break; }
       if (c.pressed.special) { special(S, p); break; }
-      if (c.pressed.jump) { p.st = 'jump'; p.t = 0; p.vz = LOW_GRAVITY.includes(S.lvl) && !S.L.bonus ? 600 : 560; p.jdx = dx * (p.run ? 1.35 : 1); p.jdy = dy; sfx(S, 'jump'); break; }
+      if (c.pressed.jump) { p.st = 'jump'; p.t = 0; p.vz = LOW_GRAVITY.includes(S.lvl) && !S.L.bonus ? 650 : 620; p.jdx = dx * (p.run ? 1.35 : 1); p.jdy = dy; sfx(S, 'jump'); break; }
       if (c.pressed.dodge) { p.st = 'dodge'; p.t = 0; p.inv = 0.38; p.ddir = dx || -p.face; sfx(S, 'dodge'); break; }
       if (c.pressed.shoot) { p.aim = c.u ? 1 : 0; shoot(S, p); break; }
       if (c.pressed.punch) {
@@ -1103,9 +1103,23 @@ function stepItems(S, dt) {
 }
 
 /* ---------------- civilians ---------------- */
+/* civilians walk around cars, dumpsters, shelters and big props instead of through them */
+function blockedFor(S, x, y) {
+  for (const p of S.plats) if (x > p.x - p.w / 2 - 30 && x < p.x + p.w / 2 + 30 && y > p.y - p.d - 10 && y <= p.y + 12) return p;
+  for (const o of S.props) if (o.hp > 0 && Math.abs(x - o.x) < (SOLID[o.type] ? SOLID[o.type][0] + 20 : 44) && Math.abs(y - o.y) < 24) return { y: o.y, d: 0 };
+  return null;
+}
+function freeSpot(S, x, y) {
+  for (let k = 0; k < 8 && blockedFor(S, x, y); k++) x += 90;
+  return x;
+}
 function stepCivs(S, dt) {
   for (const c of S.civs) {
     c.t += dt;
+    if (c.mode === 'flee' || c.mode === 'leave') {
+      const ob = blockedFor(S, c.x + c.face * 150, c.y) || blockedFor(S, c.x + c.face * 40, c.y);
+      if (ob) { const ty = Math.min(FLOOR_BOTTOM, ob.y + 18); c.y += Math.sign(ty - c.y) * Math.min(Math.abs(ty - c.y), 160 * dt); }
+    }
     if (c.mode === 'flee') c.x += c.face * c.speed * dt;
     if (c.mode === 'saved') {
       // freed hostages stand up, thank the heroes, then walk away calmly
@@ -1146,7 +1160,7 @@ function stepZones(S, dt) {
         sfx(S, 'siren');
       } else {
         spawnWave(S, z, 0);
-        for (const [i, cv] of (z.c || []).entries()) S.civs.push({ ...makeCiv(cv, S.camLock + 260 + i * 520, FLOOR_TOP + 4 + (i % 2) * 10, 'cower'), face: i % 2 ? -1 : 1, caged: !!(L.train && z.x >= L.train) });
+        for (const [i, cv] of (z.c || []).entries()) { const cy = FLOOR_TOP + 4 + (i % 2) * 10; S.civs.push({ ...makeCiv(cv, freeSpot(S, S.camLock + 260 + i * 520, cy), cy, 'cower'), face: i % 2 ? -1 : 1, caged: !!(L.train && z.x >= L.train) }); }
       }
     }
     return;

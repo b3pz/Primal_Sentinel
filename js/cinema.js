@@ -247,6 +247,13 @@ function drawIntro(t) {
         g.restore();
       }
     }
+    // after the story is finished Kharon, the first pilot, joins the Sentinels
+    const kh = typeof Game !== 'undefined' && Game.unlocks && Game.unlocks().story;
+    if (kh && k > 8.3) {
+      const kk = k - 8.3, x = 950, y = 630;
+      if (kk < 0.5) { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = Math.sin(kk / 0.5 * Math.PI); g.fillStyle = '#b77dff'; g.beginPath(); g.ellipse(x, y - 90, 70, 130, 0, 0, 7); g.fill(); g.restore(); }
+      if (kk > 0.25) { drawShadow(x, y, 40); heroSpr(5, kk < 0.9 ? 10 : 0, x, y, { scale: HERO_SCALE * 1.05, face: -1 }); }
+    }
     if (k > 7 && k < 7.3) { g.fillStyle = `rgba(255,255,255,${(7.3 - k) * 2})`; g.fillRect(0, 0, W, H); }
     if (k > 9.2) {
       // coloured explosion + title

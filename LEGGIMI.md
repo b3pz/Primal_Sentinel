@@ -66,6 +66,17 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.6.4
+- **Colonna sonora nuova**, originale e generata dal gioco (niente file, niente licenze): 12 brani a 4 canali
+  (melodia, basso, arpeggio, batteria) con strofa e ritornello — sigla, un tema per ognuno degli 8 capitoli,
+  boss, duelli dei titani e finale (`js/music.js`). Gli MP3 in `assets/music` restano facoltativi e hanno la precedenza.
+- **Kharon nell'intro**: dopo aver finito la storia compare accanto ai Sentinels nella scena della trasformazione,
+  sul titolo e nel menu.
+- **Oggetti in scala**: l'auto è grande come una vera citycar accanto ai personaggi, cassonetti e pensiline
+  più grandi; il salto è un po' più alto per salirci sopra.
+- **I civili non attraversano più** auto, cassonetti, pensiline e oggetti: li aggirano, e gli ostaggi non
+  compaiono più sopra una piattaforma o un oggetto.
+
 ## Novità della 1.6.3
 - **Kharon giocabile con la sua tavola**: 16 pose come gli altri eroi (pugno, calcio, affondo, fendente viola, colpo
   dalla mano con la pistola, salto, caduta, vittoria). `tools/build_kharon.py` la rigenera.

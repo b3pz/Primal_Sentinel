@@ -74,7 +74,7 @@ const Game = {
         <button id="howto">COME SI GIOCA</button>
         <button id="options">OPZIONI</button>
       </nav>
-      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.6.3</div>`, 'menu');
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.6.4</div>`, 'menu');
     UI.on('#play', () => { this.modeKind = 'campaign'; this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
     UI.on('#extras', () => this.extras());
@@ -805,7 +805,7 @@ function frame(ts) {
       drawStageBackdrop('port', 300);
       g.fillStyle = 'rgba(3,8,16,.35)'; g.fillRect(0, 0, W, H);
       const k = Game.menuT;
-      HEROES.slice(0, CORE_HEROES).forEach((h, i) => { const x = 700 + i * 110, y = 620 + (i % 2) * 30; drawShadow(x, y, 36); spr('fighters', `${h.id}_${Math.floor(k * 1.5 + i) % 7 === 0 ? 4 : 0}`, x, y, { scale: 1.0, face: -1 }); });
+      HEROES.slice(0, Game.heroCount ? Game.heroCount() : CORE_HEROES).forEach((h, i) => { const x = 700 + i * 105, y = 620 + (i % 2) * 30; drawShadow(x, y, 36); heroSpr(i, Math.floor(k * 1.5 + i) % 7 === 0 ? 4 : 0, x, y, { scale: 1.0, face: -1 }); });
     }
   } else {
     Game.gatherInputs();
@@ -873,11 +873,13 @@ function drawTitle(t) {
   grd.addColorStop(0, 'rgba(3,6,16,.75)'); grd.addColorStop(0.6, 'rgba(3,6,16,.35)'); grd.addColorStop(1, 'rgba(3,6,16,.85)');
   g.fillStyle = grd; g.fillRect(0, 0, W, H);
   // heroes line-up with coloured back-lights
-  HEROES.slice(0, CORE_HEROES).forEach((h, i) => {
-    const x = 240 + i * 200, y = 700;
+  const lineup = HEROES.slice(0, Game.heroCount ? Game.heroCount() : CORE_HEROES);
+  const gap = lineup.length > 5 ? 175 : 200, x0 = W / 2 - gap * (lineup.length - 1) / 2;
+  lineup.forEach((h, i) => {
+    const x = x0 + i * gap, y = 700;
     glowAt(x, y - 80, 150, h.color, 0.25 + 0.1 * Math.sin(t * 2 + i));
     drawShadow(x, y, 40);
-    spr('fighters', `${h.id}_${Math.floor(t * 1.2 + i * 1.7) % 9 === 0 ? 4 : 0}`, x, y, { scale: 1.05, face: i < 2 ? 1 : i === 2 ? 1 : -1 });
+    heroSpr(i, Math.floor(t * 1.2 + i * 1.7) % 9 === 0 ? 4 : 0, x, y, { scale: 1.05, face: i <= lineup.length / 2 - 0.5 ? 1 : -1 });
   });
   // logo drops in with a bounce, then a flash
   const k = clamp(t / 0.8, 0, 1);

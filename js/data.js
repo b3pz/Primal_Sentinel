@@ -303,9 +303,10 @@ let DIFF = DIFFS.normal;
    drones: ondate extra di droni per zona {zona: numero}
    ------------------------------------------------------------ */
 const PLATS = {
-  car: { w: 200, d: 46, h: 58 },
-  dumpster: { w: 116, d: 42, h: 74 },
-  shelter: { w: 230, d: 40, h: 128 },
+  // real proportions next to a 142 px adult: a small car ≈ 1.55 m, a dumpster ≈ 1.3 m, a bus shelter ≈ 2.4 m
+  car: { w: 212, d: 40, h: 108 },
+  dumpster: { w: 150, d: 50, h: 92 },
+  shelter: { w: 300, d: 48, h: 180 },
   rock: { w: 180, d: 44, h: 110 },
 };
 const LEVEL_EXTRAS = [
