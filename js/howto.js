@@ -255,9 +255,37 @@ function padGlyph(i, x, y, r, col) {
 const PS_COL = ['#7fa8ff', '#ff5a5a', '#ff8ad8', '#4fe0b0'], XB_COL = ['#58e0a0', '#ff4a3d', '#3f86ff', '#f2c230'];
 const ACT_SHORT = { punch: 'ATTACCO', shoot: 'PISTOLA', jump: 'SALTO', special: 'SPECIALE', dodge: 'SCHIVATA', team: 'SQUADRA', start: 'PAUSA' };
 function padAct(i) { return Object.keys(PADMAP).find((a) => (PADMAP[a] || []).includes(i)); }
+/* PlayStation: the controller picture (assets/ui/pad_ps.png) with the pressed buttons lighting up */
+const PS_PAD_AT = { 0: [295, 131, 17], 1: [324, 102, 17], 2: [266, 102, 17], 3: [295, 72, 17], 4: [88, 16, 22], 5: [295, 16, 22], 8: [170, 122, 12], 9: [212, 122, 12],
+  up: [88, 79, 14], down: [88, 122, 14], left: [65, 101, 14], right: [108, 101, 14] };
+function drawPadPS(x, y, lit, color) {
+  const L = (a) => lit.includes(a), img = IMG.pad_ps, sc = 1.2, ox = x + 2, oy = y + 10;
+  g.drawImage(img, ox, oy, img.width * sc, img.height * sc);
+  const glow = (k, col) => {
+    const [px, py, r] = PS_PAD_AT[k], X = ox + px * sc, Y = oy + py * sc;
+    g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.3 + Math.sin(performance.now() / 90) * 0.1;
+    g.fillStyle = col; g.beginPath(); g.arc(X, Y, r * sc * 1.6, 0, 7); g.fill(); g.restore();
+    g.save(); g.strokeStyle = '#ffffff'; g.lineWidth = 3; g.beginPath(); g.arc(X, Y, r * sc * 1.25, 0, 7); g.stroke(); g.restore();
+    if (typeof k === 'number' && k < 4) padGlyph(k, X, Y, 7 * sc, '#ffffff');
+  };
+  for (const d of ['up', 'down', 'left', 'right']) if (L(d)) glow(d, color);
+  for (const i of [0, 1, 2, 3, 4, 5, 8, 9]) { const a = padAct(i); if (a && L(a)) glow(i, i < 4 ? PS_COL[i] : color); }
+  // what the shoulder buttons do
+  const nm = (i) => ACT_SHORT[padAct(i)] || '';
+  ptxt(nm(4), ox + 88 * sc, oy - 6, 8, '#dfe8f0', 'center'); ptxt(nm(5), ox + 295 * sc, oy - 6, 8, '#dfe8f0', 'center');
+  // legend under the picture
+  const ly = oy + img.height * sc + 22;
+  ptxt('CROCE: MUOVI', ox + 20, ly, 8, '#dfe8f0');
+  [2, 3, 0, 1].forEach((i, k) => {
+    const gx = ox + 140 + (k % 2) * 115, gy = ly + Math.floor(k / 2) * 20;
+    padGlyph(i, gx - 10, gy - 4, 5, PS_COL[i]); ptxt(nm(i) || '—', gx, gy, 8, '#dfe8f0');
+  });
+  if (padAct(9)) ptxt('START ' + nm(9), ox + 20, ly + 20, 8, '#dfe8f0');
+}
 function drawPad(x, y, lit, color) {
   const L = (a) => lit.includes(a);
   const ps = padStyle() === 'ps';
+  if (ps && IMG.pad_ps) { drawPadPS(x, y, lit, color); return; }
   g.save();
   // body
   g.fillStyle = '#05070c';

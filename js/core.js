@@ -468,7 +468,7 @@ function resetKeymaps() {
 }
 /* controller symbols: PlayStation (✕ ○ □ △, L1 R1…) or Xbox (A B X Y, LB RB…).
    OPZIONI → SIMBOLI CONTROLLER: automatico (riconosce il controller collegato), PlayStation o Xbox */
-const PAD_NAMES_PS = ['✕', '○', '□', '△', 'L1', 'R1', 'L2', 'R2', 'CREATE', 'OPTIONS', 'L3', 'R3', '↑', '↓', '←', '→', 'PS'];
+const PAD_NAMES_PS = ['✕', '○', '□', '△', 'L1', 'R1', 'L2', 'R2', 'SELECT', 'START', 'L3', 'R3', '↑', '↓', '←', '→', 'PS'];
 const PAD_NAMES_XB = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'VIEW', 'MENU', 'L3', 'R3', '↑', '↓', '←', '→', 'XBOX'];
 const PAD_STYLE_NAMES = { auto: 'AUTOMATICO', ps: 'PLAYSTATION', xbox: 'XBOX' };
 function padStyleSetting() { try { return localStorage.getItem('primal-padstyle') || 'auto'; } catch (e) { return 'auto'; } }

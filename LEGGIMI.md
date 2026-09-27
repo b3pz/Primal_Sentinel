@@ -86,16 +86,17 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
-## Novità della 1.7.1
+## Novità della 1.7.1 / 1.7.2
 - **Simboli PlayStation**: il gioco mostra ✕ ○ □ △, L1/R1, OPTIONS ovunque (tutorial, suggerimenti in partita,
   scelta dei Sentinels, opzioni). Con un controller Xbox collegato passa da solo ad A B X Y, LB/RB.
   Si può forzare in OPZIONI → SIMBOLI CONTROLLER (Automatico / PlayStation / Xbox).
 - **Mappatura del controller** più facile da trovare: OPZIONI → PULSANTI DEL CONTROLLER. Scegli l'azione,
   premi il pulsante: se era già usato, le due azioni si scambiano. Resta salvata nel browser.
-- Il tutorial disegna il controller giusto (bianco con i simboli colorati per PlayStation) e cosa fa ogni tasto.
+- Il tutorial mostra il controller PlayStation grigio (immagine `assets/ui/pad_ps.png`): i pulsanti da premere
+  si illuminano sul disegno e sotto c'è cosa fa ognuno. Pausa = START, SELECT libero.
 
 Comandi predefiniti PlayStation: □ attacco · △ pistola · ✕ salto · ○ speciale · R1/R2/L2 schivata ·
-L1 squadra · OPTIONS pausa · levetta sinistra o croce per muoversi.
+L1 squadra · START pausa · levetta sinistra o croce per muoversi.
 
 ## Novità della 1.7
 - **Versione mobile**: comandi touch (levetta + pulsanti), app installabile con icona, schermo intero
