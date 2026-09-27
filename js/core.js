@@ -520,8 +520,15 @@ function srcOn(p, s) {
   return false;
 }
 /* the 17 buttons of the standard layout (0 ✕/A · 1 ○/B · 2 □/X · 3 △/Y · 4 L1 · 5 R1 · 6 L2 · 7 R2 · 8 SELECT · 9 START · 12-15 croce) */
+/* known controllers the browser does not lay out by itself (used until the player calibrates their own) */
+const PAD_PRESETS = [
+  // Sony PlayStation Classic controller (SCPH-1000R, USB 054c:0cda): △ ○ ✕ □ · L2 R2 L1 R1 · SELECT START, d-pad on the two axes
+  { test: /054c.*0cda/i, name: 'PLAYSTATION CLASSIC', cal: [{ b: 2 }, { b: 1 }, { b: 3 }, { b: 0 }, { b: 6 }, { b: 7 }, { b: 4 }, { b: 5 }, { b: 8 }, { b: 9 }, null, null, { a: 1, v: -1 }, { a: 1, v: 1 }, { a: 0, v: -1 }, { a: 0, v: 1 }, null] },
+];
+function padPreset(p) { return p.mapping === 'standard' ? null : PAD_PRESETS.find((q) => q.test.test(p.id || '')) || null; }
 function padButtons(p) {
-  const cal = PADCAL[p.id];
+  const pre = padPreset(p);
+  const cal = PADCAL[p.id] || (pre && pre.cal);
   const out = [];
   if (cal) { for (let i = 0; i < 17; i++) out[i] = srcOn(p, cal[i]); return out; }
   for (let i = 0; i < 17; i++) out[i] = !!(p.buttons[i] && p.buttons[i].pressed);

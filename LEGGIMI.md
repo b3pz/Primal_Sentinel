@@ -86,7 +86,9 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
-## Novità della 1.8.1
+## Novità della 1.8.1 / 1.8.2
+- **Controller della PlayStation Classic** (Sony, USB, 2018) riconosciuto da solo: ✕ ○ □ △, L1/R1/L2/R2,
+  SELECT, START e croce funzionano senza calibrare.
 - **OPZIONI → PROVA E CALIBRA IL CONTROLLER**: premi i tasti e vedi sul disegno quali riconosce il gioco.
   Se non corrispondono (succede con molti controller USB "tipo PlayStation" e con alcuni browser su Mac),
   premi CALIBRA: il gioco chiede ✕, ○, □, △, L1, R1, L2, R2, SELECT, START e le quattro frecce, e da quel momento

@@ -79,7 +79,7 @@ const Game = {
         <button id="howto">COME SI GIOCA</button>
         <button id="options">OPZIONI</button>
       </nav>
-      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.8.1</div>`, 'menu');
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.8.2</div>`, 'menu');
     UI.on('#play', () => { this.modeKind = 'campaign'; this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
     UI.on('#extras', () => this.extras());
@@ -372,7 +372,7 @@ const Game = {
       });
     }
     ptitle(online ? 'COOPERATIVA ONLINE' : 'SCEGLI IL TUO SENTINEL', W / 2, 64, 34, '#fff6d6', '#ffd35a');
-    if (Input.pads().some((q) => q.mapping !== 'standard' && !PADCAL[q.id]) && Math.floor(t * 1.5) % 2) ptxt('CONTROLLER NON RICONOSCIUTO: SE I TASTI NON CORRISPONDONO VAI IN OPZIONI → PROVA E CALIBRA IL CONTROLLER', W / 2, 596, 8, '#ffb03a', 'center');
+    if (Input.pads().some((q) => q.mapping !== 'standard' && !PADCAL[q.id] && !padPreset(q)) && Math.floor(t * 1.5) % 2) ptxt('CONTROLLER NON RICONOSCIUTO: SE I TASTI NON CORRISPONDONO VAI IN OPZIONI → PROVA E CALIBRA IL CONTROLLER', W / 2, 596, 8, '#ffb03a', 'center');
     if (this.modeKind !== 'campaign') ptxt(MODE_NAMES[this.modeKind] + (this.modeKind === 'timeattack' ? ` · CAPITOLO ${this.taLevel + 1}` : ''), W / 2, 96, 12, '#9fe8ff', 'center');
     // bottom: one card per player with the strengths and weaknesses of the chosen Sentinel
     for (let i = 0; i < 4; i++) {

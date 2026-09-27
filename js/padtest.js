@@ -118,7 +118,7 @@ function drawPadTest(P) {
     const names = []; b.forEach((on, i) => { if (on) names.push(padName(i)); });
     const raw = p.buttons.map((x, i) => (x.pressed ? i : -1)).filter((i) => i >= 0);
     ptxt((p.id || '').slice(0, 70).toUpperCase(), W / 2, y0 + 30, 8, '#9fb4c8', 'center');
-    ptxt(`${p.mapping === 'standard' ? 'SCHEMA STANDARD' : 'SCHEMA NON STANDARD'} · ${PADCAL[p.id] ? 'CALIBRATO' : 'NON CALIBRATO'}`, W / 2, y0 + 50, 9, PADCAL[p.id] || p.mapping === 'standard' ? '#7bf0b1' : '#ffb03a', 'center');
+    ptxt(`${p.mapping === 'standard' ? 'SCHEMA STANDARD' : 'SCHEMA NON STANDARD'} · ${PADCAL[p.id] ? 'CALIBRATO' : padPreset(p) ? 'RICONOSCIUTO: ' + padPreset(p).name : p.mapping === 'standard' ? 'RICONOSCIUTO' : 'NON CALIBRATO'}`, W / 2, y0 + 50, 9, PADCAL[p.id] || padPreset(p) || p.mapping === 'standard' ? '#7bf0b1' : '#ffb03a', 'center');
     ptxt(names.length ? 'IL GIOCO LEGGE: ' + names.join(' ') : 'PREMI UN TASTO DEL CONTROLLER', W / 2, y0 + 84, 14, '#ffffff', 'center');
     ptxt(`(numeri grezzi: ${raw.join(', ') || '—'})`, W / 2, y0 + 106, 8, '#6f8aa2', 'center');
     ptxt('SE IL TASTO ACCESO NON È QUELLO CHE PREMI: CALIBRA (INVIO)', W / 2, y0 + 130, 8, '#ffd35a', 'center');
