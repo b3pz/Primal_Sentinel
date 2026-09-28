@@ -22,9 +22,13 @@ Comandi touch (compaiono solo sui dispositivi touch):
   **tocca un Sentinel** per sceglierlo, toccalo di nuovo per confermare.
 - Se giri il telefono in verticale o esci dall'app, la partita va in pausa da sola.
 - Puoi collegare un controller Bluetooth al telefono: funziona come sul PC.
-- Online dal telefono: sulla rete dati (4G/5G) alcuni operatori bloccano il collegamento diretto;
-  se la stanza non si collega, usa il Wi-Fi. Chi ha un server TURN può aggiungerlo all'indirizzo:
-  `?turn=turn:server:3478&tu=utente&tp=password` (viene ricordato su quel dispositivo).
+- Online dal telefono (dalla 1.12.1): se il collegamento diretto è bloccato (tipico sul 4G/5G), il gioco
+  passa da solo da un **relay gratuito** (Open Relay di metered.ca). Nella stanza vedi "COLLEGAMENTO DIRETTO"
+  o "COLLEGAMENTO RELAY" e il ping. Tocca un Sentinel per sceglierlo, toccalo di nuovo: pronto;
+  l'host tocca **VIA!**; "◀ INDIETRO" in alto a sinistra per uscire.
+- Se il relay gratuito fosse pieno o bloccato: crea un account gratuito su metered.ca e apri una volta
+  `index.html?metered=NOME-APP&mkey=CHIAVE` (viene ricordato su quel dispositivo). Oppure un tuo server TURN:
+  `?turn=turn:server:3478&tu=utente&tp=password`.
 
 ## Modalità
 - **Gioca · 1–4 giocatori su questo PC**: cooperativa locale. Ogni giocatore entra
@@ -85,6 +89,14 @@ Attacco = pugno, pistola = colpo pesante, schivata tenuta = parata, salto = pass
 Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale.
 
 
+
+## Novità della 1.12.1 — online sui telefoni
+- **Relay TURN automatico**: iPhone↔iPhone, iPhone↔Android, telefoni su 4G/5G ora si collegano.
+- **Niente più lag che si accumula**: canale veloce non ordinato per immagini e comandi, coda di invio
+  ridotta da ~2 secondi a pochi fotogrammi, buffer anti-scatti adattivo sul client, pressioni dei tasti
+  ripetute e contate una volta sola, effetti e suoni che non si perdono.
+- Stanza online usabile col touch (tocca per scegliere/pronto, VIA! per l'host, INDIETRO) e indicazione
+  DIRETTO/RELAY + ping. Host e ospiti devono avere entrambi la 1.12.1.
 
 ## Novità della 1.12
 - **Boss a tre fasi** (come Cuphead): a 2/3 e a 1/3 della vita il boss ruggisce, respinge tutti e passa a una
@@ -337,8 +349,11 @@ L1 squadra · START pausa · levetta sinistra o croce per muoversi.
 - Musica e suoni sintetizzati, diversi per ogni capitolo.
 
 ## Cooperativa online: come funziona
-Il PC che crea la stanza esegue la partita; gli altri inviano i comandi e ricevono le immagini
-della partita circa 20 volte al secondo. Il collegamento è diretto tra i browser (WebRTC):
+Il dispositivo che crea la stanza esegue la partita; gli altri inviano i comandi e ricevono le immagini
+della partita 30 volte al secondo (20 con 3–4 giocatori). Dalla 1.12.1 immagini e comandi viaggiano su un
+canale "veloce" che non aspetta i pacchetti persi, e chi si collega mostra le immagini con un piccolo
+ritardo regolato da solo (buffer): niente più scatti o ritardi che si accumulano.
+Se il collegamento diretto non è possibile passa da un relay TURN gratuito. Il collegamento è diretto tra i browser (WebRTC):
 serve Internet solo per l'incontro iniziale tramite il servizio pubblico gratuito di PeerJS.
 Non c'è un server vostro da mantenere, quindi funziona anche da GitHub Pages.
 Su alcune reti aziendali o scolastiche il collegamento diretto può essere bloccato dal firewall.
@@ -354,6 +369,8 @@ Server di incontro personale (facoltativo): `index.html?peer=indirizzo:porta`.
 - Cooperativa locale con due tastiere e con due controller simulati.
 - Cooperativa online tra due browser reali: stanza, lobby, scelta degli eroi, intro, dialoghi,
   livello, duello gigante e uscita di un giocatore.
+- Online con rete simulata cattiva (30% di pacchetti persi e fino a 120 ms di ritardo variabile):
+  movimento fluido sul client, 30/30 effetti sonori arrivati, comandi del client corretti.
 - 1.7: telefono simulato (844×390, touch) e tablet (1024×768): tocco sul titolo, menu, scelta del
   Sentinel toccandolo, partita con levetta (camminata e corsa) e pulsanti, pausa, avviso in verticale,
   tutorial con i comandi touch. Schermate VS dei boss, bottega, nuova scelta dei Sentinels.

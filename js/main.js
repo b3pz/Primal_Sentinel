@@ -79,7 +79,7 @@ const Game = {
         <button id="howto">COME SI GIOCA</button>
         <button id="options">OPZIONI</button>
       </nav>
-      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.12</div>`, 'menu');
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.12.1</div>`, 'menu');
     UI.on('#play', () => { this.modeKind = 'campaign'; this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
     UI.on('#extras', () => this.extras());
@@ -401,13 +401,18 @@ const Game = {
       if (!online && this.skinsUnlocked().length > 1 && !s.ready) ptxt(`▲▼ ${SKINS[s.skin || 0].name}`, x + w - 12, y + 38, 7, '#ffd35a', 'right');
     }
     if (online) {
-      g.fillStyle = 'rgba(4,10,20,.88)'; g.fillRect(0, 110, W, 44);
+      g.fillStyle = 'rgba(4,10,20,.88)'; g.fillRect(0, 110, W, 56);
       if (Net.error) txt(Net.error, W / 2, 140, 16, '#ff9a8a', 'center', 800);
       else if (Net.role === 'host') {
         const allReady = Net.lobby.length > 0 && Net.lobby.every((p) => p.ready);
         ptxt(`CODICE STANZA: ${Net.code || '·····'}`, 40, 140, 14, '#ffcf7a');
         ptxt(allReady ? 'TUTTI PRONTI · START / INVIO PER PARTIRE' : 'SCEGLI E PREMI ATTACCO', W - 40, 140, 10, allReady ? '#7bf0b1' : '#9fb4c8', 'right');
       } else ptxt(Net.status || (Net.myId ? 'CONNESSO ALLA STANZA ' + Net.code + ' · L\'HOST AVVIERÀ LA PARTITA' : ''), W / 2, 140, 10, '#c8d6e4', 'center');
+      if (Net.linkText()) ptxt(Net.linkText(), W / 2, 158, 8, Net.route === 'RELAY' ? '#ffd35a' : '#7bf0b1', 'center');
+      if (Touch.on) {
+        if (Net.role === 'host' && Net.lobby.length && Net.lobby.every((p) => p.ready)) { panel(W / 2 - 150, 505, 300, 66, '#7bf0b1', 0.92); ptitle('TOCCA: VIA!', W / 2, 549, 22, '#ffffff', '#7bf0b1'); }
+        else ptxt('TOCCA UN SENTINEL PER SCEGLIERLO · TOCCALO DI NUOVO: PRONTO', W / 2, 176, 8, '#9fb4c8', 'center');
+      }
     } else ptxt(Touch.on && this.lobbySlots.some((s) => s.dev === 'touch') ? 'TOCCA UN SENTINEL PER SCEGLIERLO · TOCCALO DI NUOVO: PRONTO · INDIETRO: ANNULLA' : '◀ ▶ SCEGLI · ATTACCO: PRONTO · PISTOLA: ANNULLA · ESC: MENU', W / 2, this.modeKind !== 'campaign' ? 118 : 98, 8, '#9fb4c8', 'center');
   },
 
@@ -418,7 +423,7 @@ const Game = {
     const avail = Net.available();
     let name = '';
     try { name = localStorage.getItem('primal-name') || ''; } catch (e) {}
-    UI.show(`<span class="eyebrow">COOPERATIVA ONLINE</span><h2>Gioca con gli amici da un altro PC</h2>
+    UI.show(`<span class="eyebrow">COOPERATIVA ONLINE</span><h2>Gioca con gli amici da un altro PC o telefono</h2>
       <p>Uno crea la stanza e comunica il <b>codice di 5 caratteri</b>; gli altri lo inseriscono. Fino a 4 giocatori. Il collegamento è diretto tra i vostri browser (WebRTC): serve Internet solo per "presentarvi".</p>
       ${avail ? '' : '<p class="warn">La libreria di rete non è stata caricata: verifica che la cartella <b>vendor</b> sia accanto a index.html.</p>'}
       <label class="field">IL TUO NOME<input id="name" maxlength="12" value="${name.replace(/"/g, '')}" placeholder="Es. Marco"></label>
@@ -449,8 +454,25 @@ const Game = {
     const me = Net.lobby.find((p) => p.id === Net.myId);
     const dev = this.lastDevice || 'kb';
     const c = this.lobbyControl(dev.startsWith('kb') ? 'kb' : dev);
-    if (Input.keyEdge.Escape) { Net.leave(); this.online = null; this.menu(); return; }
+    const tap = Touch.on && Touch.tap;
+    const tBack = Touch.on && Touch.read().pressed.shoot && !(me && me.ready);
+    if (Input.keyEdge.Escape || tBack) { Net.leave(); this.online = null; this.menu(); return; }
     if (!me) return;
+    // phones: tap a Sentinel to pick it, tap it again to be ready; the host taps "VIA!" to start
+    if (tap && this.lobbyT > 0.3) {
+      const n = this.heroCount();
+      if (Net.role === 'host' && Net.lobby.every((p) => p.ready) && tap.y > 495 && tap.y < 580 && Math.abs(tap.x - W / 2) < 160) { this.hostStart(); return; }
+      if (tap.y > 250 && tap.y < 600) {
+        const h = [...Array(n).keys()].find((k) => Math.abs(tap.x - lobbyX(k, n)) < LOBBY_SP / 2);
+        if (h !== undefined && !Net.lobby.some((o) => o !== me && o.hero === h)) {
+          if (me.ready && me.hero === h) me.ready = false;
+          else if (!me.ready && me.hero === h) { me.ready = true; Audio.sfx('confirm'); }
+          else if (!me.ready) { me.hero = h; Audio.sfx('select'); }
+          if (Net.role === 'client') Net.sendPick(me.hero, me.ready); else Net.pushLobby();
+          return;
+        }
+      }
+    }
     if (!me.ready) {
       let dir = 0; if (c.pressed.l) dir = -1; if (c.pressed.r) dir = 1;
       if (dir) {
@@ -922,7 +944,7 @@ function frame(ts) {
     if (Game.online === 'host') {
       Game.sendT -= dt;
       if (Game.sendT <= 0 && v) {
-        Game.sendT = 1 / 20;
+        Game.sendT = Net.conns.size > 1 ? 1 / 20 : 1 / 30;
         const out = { ...v, ev: Game.netEv || [] };
         Game.broadcastView(out);
         Game.netEv = [];

@@ -123,6 +123,6 @@ const Touch = {
     const show = !menu && !['title', 'loading', 'menu', 'mmenu', 'cmenu'].includes(m);
     this.root.classList.toggle('hide', !show);
     this.root.classList.toggle('game', ['stage', 'giant', 'client'].includes(m));
-    this.root.classList.toggle('lobby', m === 'lobby');
+    this.root.classList.toggle('lobby', m === 'lobby' || m === 'netlobby');
   },
 };
