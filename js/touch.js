@@ -98,7 +98,7 @@ const Touch = {
   inject() {
     if (!this.on) return false;
     const m = typeof Game !== 'undefined' ? Game.mode : '';
-    if (['stage', 'giant', 'client', 'lobby', 'netlobby', 'shop'].includes(m)) return false;
+    if (['stage', 'giant', 'client', 'lobby', 'netlobby', 'shop', 'inter'].includes(m)) return false;
     const pd = this.prevDirs || {}, K = Input.keyEdge, e = (b) => !!this.hit[b];
     let any = false; const set = (k) => { if (!K[k]) { K[k] = true; any = true; } };
     if (this.dirs.l && !pd.l) set('ArrowLeft'); if (this.dirs.r && !pd.r) set('ArrowRight');
@@ -122,7 +122,7 @@ const Touch = {
     const m = Game.mode;
     const show = !menu && !['title', 'loading', 'menu', 'mmenu', 'cmenu'].includes(m);
     this.root.classList.toggle('hide', !show);
-    this.root.classList.toggle('game', ['stage', 'giant', 'client'].includes(m));
+    this.root.classList.toggle('game', ['stage', 'giant', 'client', 'inter'].includes(m));
     this.root.classList.toggle('lobby', m === 'lobby' || m === 'netlobby');
   },
 };

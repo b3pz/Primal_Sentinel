@@ -79,7 +79,7 @@ const Game = {
         <button id="howto">COME SI GIOCA</button>
         <button id="options">OPZIONI</button>
       </nav>
-      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.13</div>`, 'menu');
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.14</div>`, 'menu');
     UI.on('#play', () => { this.modeKind = 'campaign'; this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
     UI.on('#extras', () => this.extras());
@@ -520,6 +520,7 @@ const Game = {
   /* ---------------- campaign flow ---------------- */
   beginCampaign() {
     UI.hide();
+    this.interBonus = null;
     UPGRADES = null;
     if (this.modeKind && this.modeKind !== 'campaign') { this.beginMode(); return; }
     this.shop = { coins: 0, lv: { hp: 0, en: 0, ammo: 0, team: 0, cr: 0 } }; UPGRADES = this.shop.lv;
@@ -553,6 +554,7 @@ const Game = {
     this.S.credits = this.credits;
     this.S.coinBase = this.shop ? this.shop.coins : 0;
     this.S.summonOK = this.sigilTotal() >= 3;
+    if (!cp && this.interBonus) { if (this.interBonus.team) this.S.team = 100; this.interBonus = null; }
     { const z = LEVELS[idx].zones[cp]; if (cp && z && z.ride === 'end') startRide(this.S); }
     if (!cp) this.chapterCont = 0;
     this.G = null;
@@ -626,7 +628,7 @@ const Game = {
     // an animated cinematic tells what happens between this chapter and the next
     this.playCine(this.levelIdx, () => {
       if (this.levelIdx >= LEVELS.length - 1) { if (this.modeKind === 'campaign' && !this.online) this.clearSave(); this.mode = 'ending'; this.endT = 0; this.unlockMsg = !this.unlocks().story; this.setUnlock('story'); Audio.playSong(8, 'finale'); }
-      else this.chapterStart(this.levelIdx + 1);
+      else this.maybeInterlude(this.levelIdx, () => this.chapterStart(this.levelIdx + 1));
     });
   },
   /* all players down: CONTINUA? 10..0 if there are credits, otherwise GAME OVER */
@@ -776,6 +778,7 @@ const Game = {
         else if (this.G.result === 'lose') { this.G.result = null; this.gameOver('giant'); }
         break;
       }
+      case 'inter': this.tickInter(dt, this.controls()); break;
       case 'howto': this.tickHowto(dt, this.controls()); break;
       case 'cont': this.tickCont(dt, this.controls()); break;
       case 'final': this.tickFinal(dt, this.controls()); break;
@@ -831,6 +834,7 @@ const Game = {
         items: this.shopItems().map((it) => ({ name: it.name, desc: it.desc, lv: this.shop.lv[it.k], max: it.cost.length, cost: it.cost[this.shop.lv[it.k]] ?? null })) }; }
       case 'gallery': return { m: 'gallery', pg: this.gal.pg, i: this.gal.i, t: +this.gal.t.toFixed(2) };
       case 'padtest': return { m: 'padtest' };
+      case 'inter': return this.interView();
       case 'over': return { m: 'over' };
     }
     return null;
@@ -850,6 +854,7 @@ const Game = {
       case 'shop': drawShop(v); break;
       case 'giant': renderGiant(v); break;
       case 'dlg': drawDialog(v); break;
+      case 'inter': drawInter(v); break;
       case 'intro':
         if (this.online === 'client') { introSounds(this._cIntroT || 0, v.t); this._cIntroT = v.t; }
         drawIntro(v.t); break;
@@ -949,7 +954,7 @@ function frame(ts) {
     while (acc >= STEP && n < 5) { Game.step(STEP); acc -= STEP; n++; }
     if (n === 5) acc = 0;
     const v = Game.currentView();
-    if (v && (v.m === 'stage' || v.m === 'giant')) { applyEvents(Game.pendingEv, v.m === 'stage'); }
+    if (v && (v.m === 'stage' || v.m === 'giant' || v.m === 'inter')) { applyEvents(Game.pendingEv, v.m === 'stage'); }
     else if (Game.pendingEv.length) Game.pendingEv.length = 0;
     if (Game.online === 'host') {
       Game.sendT -= dt;

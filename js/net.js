@@ -57,7 +57,7 @@ const Net = {
   options() {
     const q = new URLSearchParams(location.search);
     const custom = q.get('peer');
-    const base = { debug: 1, config: { iceServers: this.iceServers(), iceCandidatePoolSize: 2 } };
+    const base = { debug: 1, config: { iceServers: this.iceServers() } };
     if (custom) {
       const [host, port] = custom.split(':');
       return { ...base, host, port: +(port || 9000), path: q.get('peerpath') || '/', secure: q.get('peersecure') === '1' };
@@ -244,8 +244,12 @@ const Net = {
     this.peer = new Peer(undefined, this.options());
     const slow = setTimeout(() => { if (!this.myId && !this.error) this.status = 'Collegamento in corso (su rete mobile può servire il relay, attendi)…'; }, 7000);
     const timeout = setTimeout(() => { if (!this.myId && !this.error) { this.error = 'Nessuna risposta. Controlla il codice, che l\'host abbia la stanza aperta e riprova (magari con il Wi-Fi).'; this.status = ''; } }, 30000);
-    this.peer.on('open', () => {
+    let tries = 0;
+    const dial = () => {
+      tries++;
       const conn = this.peer.connect(NET_PREFIX + this.code, { reliable: true, serialization: 'json' });
+      // a link that doesn't open in 12 s is dialled again once (ICE sometimes gets stuck)
+      setTimeout(() => { if (this.hostConn === conn && !conn.open && !this.myId && !this.error && tries < 2 && this.peer && !this.peer.destroyed) { dial(); try { conn.close(); } catch (e) {} } }, 12000);
       this.hostConn = conn;
       conn.on('open', () => {
         clearTimeout(slow);
@@ -253,9 +257,10 @@ const Net = {
         conn.send({ k: 'hello', name, hero, ver: NET_VERSION }); this.status = 'Connesso. In attesa dell\'host…';
       });
       conn.on('data', (m) => this.onClientData(m));
-      conn.on('close', () => { clearTimeout(timeout); clearTimeout(slow); if (Game.online === 'client') Game.connectionLost('L\'host ha chiuso la partita.'); else if (this.role === 'client' && !this.error) { this.error = 'Collegamento chiuso dall\'host.'; this.status = ''; } });
+      conn.on('close', () => { if (this.hostConn !== conn) return; clearTimeout(timeout); clearTimeout(slow); if (Game.online === 'client') Game.connectionLost('L\'host ha chiuso la partita.'); else if (this.role === 'client' && !this.error) { this.error = 'Collegamento chiuso dall\'host.'; this.status = ''; } });
       conn.on('error', () => {});
-    });
+    };
+    this.peer.on('open', () => { if (!this.hostConn) dial(); });
     this.peer.on('error', (e) => { clearTimeout(timeout); clearTimeout(slow); this.error = netErrorText(e); this.status = ''; });
     this.peer.on('disconnected', () => { try { if (!this.myId) this.peer.reconnect(); } catch (e) {} });
   },

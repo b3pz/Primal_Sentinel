@@ -188,3 +188,55 @@ altezza del pavimento al 64%), ma il pavimento è il tetto della LOCOMOTIVA: pia
 scuro, griglie di raffreddamento incandescenti arancioni, due ciminiere che escono dal tetto e fumano
 all'indietro, strisce gialle e nere sui bordi. Ripetibile in orizzontale. Nessun personaggio, nessun testo.
 ```
+
+## 11. Gli sfondi degli intervalli in borghese (facoltativi) → `assets/bg/intervallo_*.jpg`
+Basta salvarli con questi nomi nella cartella `assets/bg/`: il gioco li usa da solo al posto degli
+sfondi dei capitoli. Formato 16:9 (1920x1080). Per tutti vale la stessa base:
+```
+Fondale di pixel art HD a 16 bit per un picchiaduro a scorrimento anni '90, stesso stile e palette
+dell'immagine allegata, inquadratura laterale ad altezza d'uomo. Il pavimento occupa la fascia in basso
+(dal 62% dell'altezza in giù) ed è libero: lì staranno i personaggi. Nessun personaggio, nessun testo.
+```
+Poi aggiungi il luogo:
+
+**`intervallo_pizzeria.jpg` — La mattina dopo (dopo il capitolo 2)**
+```
+Interno di una piccola pizzeria sul lungomare di una città di mare del sud Italia, alba (6:40):
+forno a legna a cupola acceso a sinistra con la bocca arancione, bancone di marmo con farina e basilico,
+tavolini con tovaglie a quadri, grandi vetrate sul mare con la luce rosa e dorata dell'alba, pesca
+del giorno appesa, calendario e foto di famiglia alle pareti. Atmosfera calda e tranquilla.
+```
+
+**`intervallo_camera.jpg` — Crepe (dopo il capitolo 4)**
+```
+La Camera dei Cuori sotto un faro: grotta di pietra antica con colonne, al centro una vasca di luce
+azzurra; lungo le pareti sei nicchie con cristalli dei colori rosso, blu, giallo, rosa, nero-argento
+e verde; banchi di lavoro con attrezzi e schermi di un'officina robotica sul lato destro; notte,
+luce fredda e riflessi sul pavimento bagnato. Atmosfera silenziosa, un po' malinconica.
+```
+
+**`intervallo_molo.jpg` — Messaggi a casa (dopo il capitolo 6)**
+```
+Il molo di una città portuale del sud Italia al tramonto: cielo arancione e viola, barche da pesca
+ormeggiate, lampioni che si accendono, a destra l'ingresso di un vecchio bar del porto con l'insegna
+e un cabinato arcade illuminato visibile dalla porta; in lontananza sul mare uno squarcio viola nel
+cielo (il varco). Atmosfera sospesa, la calma prima della tempesta.
+```
+
+**`intervallo_tetti.jpg` — L'ultima ora (dopo il capitolo 7)**
+```
+I tetti di una città di mare del sud Italia un'ora prima dell'alba: terrazze con panni stesi, antenne,
+cupole di chiese; in lontananza la città in fiamme e una fortezza oscura capovolta che galleggia sopra
+il porto; cielo blu profondo con un filo di luce all'orizzonte. Atmosfera solenne.
+```
+
+## 12. Pose tranquille in borghese (facoltative) → `borghese_calmi.png`
+Nelle scene degli intervalli i Sentinels in borghese usano la posa "pronti a combattere". Per scene più
+naturali serve un foglio con pose calme:
+```
+Sprite sheet di pixel art HD a 16 bit, sfondo trasparente, vista laterale di tre quarti, stessi cinque
+ragazzi in abiti civili dell'immagine allegata (giacca rossa, felpa blu con occhiali, top e giacca gialla,
+giacca rosa e gonna bianca, giubbotto di pelle nero). Per ognuno, in una riga: 1) in piedi rilassato con
+le braccia lungo i fianchi, 2) braccia conserte, 3) mano sul cuore, 4) seduto su uno sgabello.
+Stessa altezza e stessa scala per tutti, niente ombra, niente testo.
+```

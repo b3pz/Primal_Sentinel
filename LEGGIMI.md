@@ -90,6 +90,24 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.14 — intervalli in borghese
+Nei quattro momenti chiave della storia i Sentinels si tolgono l'armatura: una scena tranquilla con
+Ciusky, Beps, Kathy, Kiki e Dilik in borghese (chi sono, cosa provano, cosa rischiano) e poi
+un'attività **facoltativa** con un premio per il capitolo dopo:
+- dopo il cap. 2 · **La mattina dopo** (pizzeria sul lungomare) → *Il forno di Ciusky*: sforna ogni pizza
+  al punto giusto; le mance diventano monete per il negozio di Boris.
+- dopo il cap. 4 · **Crepe** (Camera dei Cuori) → *L'allenamento di Boris*: ripetete le sequenze di frecce;
+  con 4 sequenze su 6 si parte dal capitolo 5 con la barra squadra piena.
+- dopo il cap. 6 · **Messaggi a casa** (il molo al tramonto) → *Il cabinato del bar*: 45 secondi di
+  Astro Invaders, il punteggio diventa monete.
+- dopo il cap. 7 · **L'ultima ora** (i tetti prima dell'alba, con Sirio) → *Il giuramento dei Cuori*:
+  premete a tempo con il battito; con il 60% di sintonia tutti hanno una vita in più.
+In co-op ognuno ha il suo forno, la sua astronave e la sua fila di battiti; online funziona uguale.
+START salta le scene, e l'attività si può sempre saltare con "PROSEGUI LA STORIA".
+Sfondi dedicati facoltativi: vedi PROMPT_IMMAGINI.md, sezione 11.
+- Online: tolta un'impostazione che ogni tanto bloccava il collegamento; se la stanza non risponde entro
+  12 secondi il gioco richiama da solo.
+
 ## Novità della 1.13 — salvataggio e pagelle
 - **Salvataggio automatico della storia** (Facile e Normale): il gioco salva all'inizio di ogni capitolo e a ogni
   zona raggiunta (compare "SALVATAGGIO" in basso a destra). **GIOCA → CONTINUA LA STORIA** riparte da lì con
