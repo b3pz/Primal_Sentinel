@@ -90,6 +90,13 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.14.1 — il salto sul treno
+- Capitolo 2: nella scena in cui i Sentinels saltano sul convoglio ora rimpiccioliscono mentre saltano verso
+  il treno (che è più lontano del marciapiede), atterrano davvero sul tetto del vagone e viaggiano con lui.
+  Prima sembravano giganti che entravano nella carrozza.
+- La scena subito dopo ("Tutti a bordo!") non fa più scorrere la locomotiva sotto i piedi dei Sentinels:
+  treno e Sentinels restano fermi insieme e corre solo il paesaggio, come quando si è davvero sul treno.
+
 ## Novità della 1.14 — intervalli in borghese
 Nei quattro momenti chiave della storia i Sentinels si tolgono l'armatura: una scena tranquilla con
 Ciusky, Beps, Kathy, Kiki e Dilik in borghese (chi sono, cosa provano, cosa rischiano) e poi

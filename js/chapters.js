@@ -383,21 +383,30 @@ CHAPTER_CINES.board = [
     } },
   { d: 5, sub: ['', 'I Sentinels corrono lungo il binario e saltano sul tetto dell\'ultimo vagone.'], cues: [[1.2, 'jump'], [1.6, 'jump'], [2.1, 'jump'], [2.8, 'stomp']],
     draw(k, t) {
+      // 1.14: the convoy stands further back than the platform, so the heroes shrink while they jump
+      // "into" the picture and land ON the roof line of the wagon, then ride along with it
       const cam = 1250, dep = 160 + k * 150;
       drawStageBackdrop('rail', cam + k * 60);
       drawConvoy(cam - dep, t, 1, 600);
-      const roof = HORIZON + 14 - 26 - 168;
+      const L = LEVELS[1], wf = frameOf('train', 'wagon');
+      const roof = HORIZON + 14 + 6 - (wf ? wf[5] - 126 : 194);        // top of the painted wagon
+      const trainX0 = L.train - 1300 - (cam - dep);                     // world anchor of the convoy on screen
+      const jig = Math.sin(t * 40) * 1.5;
       ALL5.forEach((i) => {
         const j = clamp((k - 1 - i * 0.25) / 0.9, 0, 1);
-        const x = 180 + i * 80 + j * 60, y = lerp(650, roof + 10, j) - Math.sin(j * Math.PI) * 140;
-        heroAt(i, j > 0 && j < 1 ? 12 : j >= 1 ? 4 : [1, 2, 3, 2][Math.floor(t * 10 + i) % 4], x, y, 0.8, 1);
+        const runX = 150 + i * 80 + k * 90;
+        const onX = trainX0 + 640 + i * 62;                             // spot on the roof, moving with the train
+        const x = lerp(runX, onX, j), y = lerp(650 + (i % 2) * 20, roof + jig, j) - Math.sin(j * Math.PI) * 150;
+        const sc = lerp(0.9, 0.5, j);
+        heroAt(i, j > 0 && j < 1 ? 12 : j >= 1 ? 4 : [1, 2, 3, 2][Math.floor(t * 10 + i) % 4], x, y, sc, 1);
       });
       for (let s = 0; s < 14; s++) { g.fillStyle = 'rgba(255,220,160,.12)'; g.fillRect((s * 97 - t * 900) % W + W, 200 + s * 21, 140, 2); }
     } },
   { d: 4, sub: ['LYRA', '«Tutti a bordo! Adesso tocca a noi.»'], cues: [[0.3, 'confirm']],
     draw(k, t) {
-      drawTrain(1700 + t * 300, t, 1, 0);
-      ALL5.forEach((i) => heroAt(i, i === 2 ? 8 : 0, 330 + i * 150, 640, 1.0, 1));
+      // on the roof the train and the heroes move together: only the landscape rushes by (fixed camera)
+      drawTrain(1760, t, 1, 0);
+      ALL5.forEach((i) => heroAt(i, i === 2 ? 8 : 0, 330 + i * 150, 640 + Math.sin(t * 40 + i) * 1.2, 1.0, 1));
     } },
 ];
 CHAPTER_CINES.union = [
