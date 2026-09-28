@@ -79,7 +79,7 @@ const Game = {
         <button id="howto">COME SI GIOCA</button>
         <button id="options">OPZIONI</button>
       </nav>
-      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.12.1</div>`, 'menu');
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.13</div>`, 'menu');
     UI.on('#play', () => { this.modeKind = 'campaign'; this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
     UI.on('#extras', () => this.extras());
@@ -525,13 +525,19 @@ const Game = {
     this.shop = { coins: 0, lv: { hp: 0, en: 0, ammo: 0, team: 0, cr: 0 } }; UPGRADES = this.shop.lv;
     for (const p of this.players) { p.score = 0; p.lives = 3; }
     this.credits = DIFF.credits;
-    if (this.diffKey() === 'arcade') this.startLevel = 0;
+    if (this.diffKey() === 'arcade') { this.startLevel = 0; this.resumeData = null; }
+    if (this.online) this.resumeData = null;
+    if (this.applyResume()) return;
     this.levelIdx = this.startLevel;
     if (this.startLevel === 0) { this.mode = 'intro'; this.introT = 0; this.prevIntroT = 0; Audio.playSong(8); }
     else this.chapterStart(this.startLevel);
   },
-  chapterStart(idx, checkpoint = 0) {
+  chapterStart(idx, checkpoint = 0, acc = null) {
     this.levelIdx = idx;
+    this.chapAcc = acc || zeroAcc();
+    if (!acc) this.chapterCont = 0;
+    if (!checkpoint) this.writeSave(idx, 0);
+    else this._saveKey = `${idx}:${checkpoint}`;
     const L = LEVELS[idx];
     Audio.playSong(L.music);
     if (checkpoint) { this.enterStage(idx, checkpoint); return; }
@@ -540,6 +546,9 @@ const Game = {
   },
   simPlayers(keepLives) { return this.players.filter((p) => p.device !== 'gone').map((p) => ({ id: p.id, hero: p.hero, skin: p.skin || 0, name: p.name, lives: keepLives ? p.lives : Math.max(3, p.lives), score: p.score })); },
   enterStage(idx, cp) {
+    // restarting a zone (continue / retry): what happened before still counts for the report card
+    if (this.chapAcc && !this.chapAcc.fresh && this.S && this.S.lvl === idx && !this.S.L.bonus) this.chapAcc = addAcc(this.chapAcc, this.S);
+    if (this.chapAcc) this.chapAcc.fresh = false;
     this.S = newStage(idx, this.simPlayers(), cp);
     this.S.credits = this.credits;
     this.S.coinBase = this.shop ? this.shop.coins : 0;
@@ -578,7 +587,8 @@ const Game = {
     this.carryScores(this.S.players);
     if (r === 'bonus') { if (this.shop) this.shop.coins += this.S.coins + (this.S.bonusWin ? 6 : 0); Audio.playSong(8); this.afterClear(); return; }
     const S = this.S;
-    this.stats = { lvl: this.levelIdx, time: S.t + (this.stageTimeBefore || 0), saved: S.saved, sigils: S.sigils.slice(), dmg: S.dmgTaken, cont: (this.chapterCont || 0) + S.contUsed,
+    const acc = this.chapAcc && !this.chapAcc.fresh ? this.chapAcc : zeroAcc();
+    this.stats = { lvl: this.levelIdx, diff: this.diffKey(), time: acc.time + S.t, saved: S.saved, sigils: S.sigils.slice(), dmg: acc.dmg + S.dmgTaken, lives: acc.lives + (S.livesLost || 0), cont: (this.chapterCont || 0) + S.contUsed,
       players: S.players.map((p) => ({ h: p.hero, n: p.name, sc: p.score, ko: p.kos, cb: p.maxCombo })) };
     if (r === 'giant') {
       const duel = () => { this.G = newGiant(this.levelIdx, this.simPlayers()); this.mode = 'giant'; FX.parts = []; Audio.playSong(7, 'titani'); };
@@ -615,7 +625,7 @@ const Game = {
     this.bonusDone = false; this.shopDone = false;
     // an animated cinematic tells what happens between this chapter and the next
     this.playCine(this.levelIdx, () => {
-      if (this.levelIdx >= LEVELS.length - 1) { this.mode = 'ending'; this.endT = 0; this.unlockMsg = !this.unlocks().story; this.setUnlock('story'); Audio.playSong(8, 'finale'); }
+      if (this.levelIdx >= LEVELS.length - 1) { if (this.modeKind === 'campaign' && !this.online) this.clearSave(); this.mode = 'ending'; this.endT = 0; this.unlockMsg = !this.unlocks().story; this.setUnlock('story'); Audio.playSong(8, 'finale'); }
       else this.chapterStart(this.levelIdx + 1);
     });
   },
@@ -659,18 +669,17 @@ const Game = {
   /* end of chapter summary with a rank */
   summary(then) {
     this.mode = 'summary'; this.sumT = 0; this.afterSum = then;
-    const st = this.stats || { time: 0, saved: 0, sigils: [], dmg: 0, cont: 0, players: [] };
-    let pts = 0;
-    pts += st.time < 220 ? 2 : st.time < 320 ? 1 : 0;
-    pts += st.dmg < 120 ? 2 : st.dmg < 350 ? 1 : 0;
-    pts += st.cont === 0 ? 2 : 0;
-    pts += st.sigils.length;
-    st.rank = pts >= 8 ? 'S' : pts >= 6 ? 'A' : pts >= 4 ? 'B' : 'C';
+    const st = this.stats || { lvl: this.levelIdx, time: 0, saved: 0, sigils: [], dmg: 0, lives: 0, cont: 0, players: [] };
+    Object.assign(st, gradeStats(st));
+    if (this.modeKind === 'campaign' && !this.online || this.online === 'host') {
+      st.prevBest = this.bestGrades()[st.lvl] || '';
+      st.best = this.saveBest(st.lvl, st.rank) && !!st.prevBest;
+    }
     this.stats = st;
   },
   tickSummary(dt, ctrls) {
     this.sumT += dt;
-    if (this.sumT > 2.2 && (this.anyPress(ctrls, 'start', 'punch', 'jump') || Input.keyEdge.Enter)) { const t = this.afterSum; this.afterSum = null; t && t(); }
+    if (this.sumT > summaryReadyT(this.stats) && (this.anyPress(ctrls, 'start', 'punch', 'jump') || Input.keyEdge.Enter)) { const t = this.afterSum; this.afterSum = null; t && t(); }
   },
   pause() {
     if (this.online === 'client') return;
@@ -750,6 +759,7 @@ const Game = {
         }
         stepStage(this.S, c, dt);
         this.credits = this.S.credits;
+        this.autoSave();
         this.pendingEv.push(...this.S.events);
         // boss music (assets/music/boss.mp3, if present)
         if (this.S.bossId && this._bossSong !== this.S.bossId && !this.S.L.rush) { this._bossSong = this.S.bossId; Audio.playSong(this.S.L.music, 'boss'); }
@@ -762,7 +772,7 @@ const Game = {
         if (Object.entries(c).some(([id, cc]) => cc.pressed.start && this.players.find((p) => p.id === +id && p.device !== 'remote'))) { this.pause(); break; }
         stepGiant(this.G, c, dt);
         this.pendingEv.push(...this.G.events);
-        if (this.G.result === 'win') { this.G.result = null; this.carryScores(this.G.players); this.levelClear(); }
+        if (this.G.result === 'win') { this.G.result = null; this.carryScores(this.G.players); if (this.stats && this.G.pl) this.stats.duel = { hp: clamp(this.G.pl.hp / (this.G.pl.max || 1), 0, 1), t: Math.round(this.G.t) }; this.levelClear(); }
         else if (this.G.result === 'lose') { this.G.result = null; this.gameOver('giant'); }
         break;
       }
@@ -954,6 +964,7 @@ function frame(ts) {
     Game.pendingEv = [];
     stepFX(dt);
     Game.draw(v);
+    if (v && v.m === 'stage') drawSaveBadge(dt);
   }
   if (Net.role) Net.watchdog();
   Audio.update();

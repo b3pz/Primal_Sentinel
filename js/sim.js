@@ -179,7 +179,7 @@ function canBeRevived(S, p) { return S.players.some((q) => q !== p && !q.out && 
 function goDown(S, p) {
   p.hp = 0;
   if (canBeRevived(S, p)) { p.st = 'ko'; p.t = 0; p.koT = 8; p.rev = 0; floatText(S, p.x, p.y - 150, 'K.O.! AIUTATELO!', '#ffb0a0', 18); sfx(S, 'ko'); }
-  else { p.st = 'dead'; p.t = 0; p.lives--; sfx(S, 'ko'); }
+  else { p.st = 'dead'; p.t = 0; p.lives--; S.livesLost = (S.livesLost || 0) + 1; sfx(S, 'ko'); }
 }
 
 /* ---------------- player ---------------- */
@@ -207,7 +207,7 @@ function stepPlayer(S, p, c, dt) {
     p.koT -= dt;
     if (!p._revving) p.rev = Math.max(0, p.rev - dt * 0.35);
     p._revving = false;
-    if (p.koT <= 0 || !canBeRevived(S, p)) { p.st = 'dead'; p.t = 0; p.lives--; }
+    if (p.koT <= 0 || !canBeRevived(S, p)) { p.st = 'dead'; p.t = 0; p.lives--; S.livesLost = (S.livesLost || 0) + 1; }
     return;
   }
   if (p.riding) return;   // chapter 3: on the back of the Tiranno rosso (see extra.js)
@@ -435,7 +435,7 @@ function stepPlayer(S, p, c, dt) {
         const lo = S.cam + 40, hi = S.camLock !== null ? S.camLock + W - 40 : S.cam + W - 40;
         const left = l - 40, right = l + GAP_W + 40;
         p.x = (p.x - l < GAP_W / 2 && left >= lo) || right > hi ? left : right;
-        if (p.hp <= 0) { p.hp = 0; p.st = 'dead'; p.t = 0; p.lives--; sfx(S, 'ko'); }
+        if (p.hp <= 0) { p.hp = 0; p.st = 'dead'; p.t = 0; p.lives--; S.livesLost = (S.livesLost || 0) + 1; sfx(S, 'ko'); }
         else { p.st = 'drop'; p.t = 0; p.z = 420; p.inv = 1.8; }
       }
       return;
@@ -1332,7 +1332,7 @@ function stepZones(S, dt) {
         sfx(S, 'siren');
       } else {
         spawnWave(S, z, 0);
-        for (const [i, cv] of (z.c || []).entries()) { const cy = FLOOR_TOP + 4 + (i % 2) * 10; let cx = freeSpot(S, S.camLock + 260 + i * (z.c.length > 2 ? 360 : 520), cy); for (let k = 0; k < 4 && inGap(L, cx, cy, -60); k++) cx += 140; S.civs.push({ ...makeCiv(cv, cx, cy, 'cower'), face: i % 2 ? -1 : 1, caged: !!(L.train && z.x >= L.train) }); }
+        S.civTotal = (S.civTotal || 0) + (z.c || []).length; for (const [i, cv] of (z.c || []).entries()) { const cy = FLOOR_TOP + 4 + (i % 2) * 10; let cx = freeSpot(S, S.camLock + 260 + i * (z.c.length > 2 ? 360 : 520), cy); for (let k = 0; k < 4 && inGap(L, cx, cy, -60); k++) cx += 140; S.civs.push({ ...makeCiv(cv, cx, cy, 'cower'), face: i % 2 ? -1 : 1, caged: !!(L.train && z.x >= L.train) }); }
       }
     }
     return;

@@ -32,6 +32,7 @@ Object.assign(Game, {
   mmLabel(it) {
     if (it.id === 'chapters') { const prog = this.progress(); return prog > 0 ? `CAPITOLI · ${prog + 1}/8` : 'CAPITOLI'; }
     if (it.id === 'diff') return `DIFFICOLTÀ: ${DIFF.name}`;
+    if (it.id === 'play' && this.diffKey() !== 'arcade' && this.storySave()) return 'GIOCA · CONTINUA';
     return it.label;
   },
   mmCycleDiff(dir = 1) {
@@ -45,7 +46,7 @@ Object.assign(Game, {
     Audio.sfx('confirm');
     this.mm.flash = 0.25;
     const go = {
-      play: () => { this.modeKind = 'campaign'; this.startLevel = 0; this.lobby(); },
+      play: () => this.playMenu(),
       online: () => this.onlineMenu(),
       extras: () => this.extras(),
       chapters: () => this.chapters(),
@@ -151,10 +152,11 @@ function drawMainMenu(M) {
   });
   // description of the chosen item
   const it = MM_ITEMS[M.i];
-  const desc = it.id === 'diff' ? (DIFF.desc || '').toUpperCase() : it.desc;
+  const sv = it.id === 'play' && Game.diffKey() !== 'arcade' ? Game.storySave() : null;
+  const desc = it.id === 'diff' ? (DIFF.desc || '').toUpperCase() + (Game.diffKey() === 'arcade' ? ' · NIENTE SALVATAGGI' : ' · SALVATAGGIO AUTOMATICO') : sv ? 'SALVATO: ' + Game.saveLabel(sv) : it.desc;
   ptxt(desc, W / 2, 646, 9, '#9fe8ff', 'center');
   ptxt(Touch.on ? 'TOCCA UNA VOCE' : '▲ ▼ SCEGLI · INVIO / ' + padName(0) + ' CONFERMA', W / 2, 690, 8, '#6f8aa2', 'center');
-  ptxt('IDEATO E SVILUPPATO DA b3pZ · V1.12.1', W - 20, H - 12, 7, '#56687a', 'right');
+  ptxt('IDEATO E SVILUPPATO DA b3pZ · V1.13', W - 20, H - 12, 7, '#56687a', 'right');
 }
 
 /* ============================================================
@@ -218,10 +220,11 @@ Object.assign(Game, {
   chapters() {
     const arcade = this.diffKey() === 'arcade', prog = arcade ? 0 : this.progress(), sg = this.sigilsSaved();
     const tot = Object.values(sg).reduce((a, l) => a + l.length, 0);
+    const best = this.bestGrades();
     this.cmenu({ eyebrow: `CAPITOLI · SIGILLI DEI TITANI ${tot}/24`, title: arcade ? 'IN ARCADE SI PARTE DAL CAPITOLO 1' : 'DA DOVE RIPARTIRE', back: () => this.menu(),
       items: [...LEVELS.map((L, i) => ({ label: () => i > prog ? `${L.n} · BLOCCATO` : `${L.n} · ${L.title}`, off: i > prog,
-        desc: `${L.place} · SIGILLI ${'★'.repeat((sg[i] || []).length)}${'☆'.repeat(3 - (sg[i] || []).length)}`,
-        act: () => { this.modeKind = 'campaign'; this.startLevel = i; this.lobby(); } })),
+        desc: `${L.place} · SIGILLI ${'★'.repeat((sg[i] || []).length)}${'☆'.repeat(3 - (sg[i] || []).length)}${best[i] ? ' · MIGLIOR VOTO ' + best[i] : ''}`,
+        act: () => { this.resumeData = null; this.modeKind = 'campaign'; this.startLevel = i; this.lobby(); } })),
       { label: () => 'INDIETRO', act: () => this.menu() }] });
   },
   options(from) {

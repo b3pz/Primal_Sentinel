@@ -90,6 +90,17 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.13 — salvataggio e pagelle
+- **Salvataggio automatico della storia** (Facile e Normale): il gioco salva all'inizio di ogni capitolo e a ogni
+  zona raggiunta (compare "SALVATAGGIO" in basso a destra). **GIOCA → CONTINUA LA STORIA** riparte da lì con
+  monete, potenziamenti, punteggi e crediti. In **Arcade** niente salvataggi: si parte sempre dal capitolo 1.
+  Finita la storia il salvataggio si cancella (i capitoli restano sbloccati).
+- **Pagelle vere** a fine capitolo, come Cuphead: Tempo (con obiettivo per capitolo), Danni subiti (a testa),
+  Vite perse, Continui, Combo massima, Sigilli e — se c'è — il Duello dei Titani. Totale su 100 e voto
+  D · C · C+ · B- · B · B+ · A- · A · A+ · S. La S serve quasi perfetta; in Facile il massimo è A.
+  Il tempo e i danni contano anche per le zone rifatte dopo un CONTINUA. Il miglior voto di ogni capitolo
+  si vede in CAPITOLI.
+
 ## Novità della 1.12.1 — online sui telefoni
 - **Relay TURN automatico**: iPhone↔iPhone, iPhone↔Android, telefoni su 4G/5G ora si collegano.
 - **Niente più lag che si accumula**: canale veloce non ordinato per immagini e comandi, coda di invio
