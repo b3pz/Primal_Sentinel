@@ -1,12 +1,20 @@
-AGGIORNAMENTO da Primal_Sentinels_V1_14_PC.zip a Primal_Sentinels_V1_14_1_PC.zip
+AGGIORNAMENTO da Primal_Sentinels_V1_14_1_PC.zip a Primal_Sentinels_V1_14_2_PC.zip
 
 Copia la cartella primal-sentinels di questo ZIP sopra quella che hai già
 (sostituisci i file quando te lo chiede).
 
 File cambiati o nuovi:
   primal-sentinels/sw.js
+  primal-sentinels/artbook.html
+  primal-sentinels/ART_BIBLE.md
   primal-sentinels/tools/build_sw.py
+  primal-sentinels/ASSET_STATUS.md
   primal-sentinels/LEGGIMI.md
+  primal-sentinels/js/sim.js
   primal-sentinels/js/chapters.js
+  primal-sentinels/js/core.js
+  primal-sentinels/js/cinema.js
+  primal-sentinels/js/data.js
   primal-sentinels/js/main.js
   primal-sentinels/js/mainmenu.js
+  primal-sentinels/js/interlude.js

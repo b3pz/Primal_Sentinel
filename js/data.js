@@ -5,19 +5,19 @@
    ============================================================ */
 
 const HEROES = [
-  { id: 'ignis', name: 'IGNIS', civil: 'Ciusky', role: 'Equilibrato', color: '#ff5b4f', glow: '#ff8a5a', power: 1.0, speed: 250, hp: 120,
+  { id: 'ignis', name: 'CIUSKY', civil: 'Ciusky', role: 'Equilibrato', color: '#ff5b4f', glow: '#ff8a5a', power: 1.0, speed: 250, hp: 120,
     special: 'LAMA DI FUOCO', weapon: 'SPADA ZANNA', specialText: 'Onda di fuoco in avanti (media distanza)', titan: 'Tiranno rosso',
     trait: 'FIAMMA: i colpi di spada incendiano i nemici', pro: 'Equilibrato, danni nel tempo', con: 'Nessun vantaggio in difesa' },
-  { id: 'azur', name: 'AZUR', civil: 'Beps', role: 'Tecnico', color: '#5d9bff', glow: '#8cc4ff', power: 0.95, speed: 262, hp: 115,
+  { id: 'azur', name: 'BEPS', civil: 'Beps', role: 'Tecnico', color: '#5d9bff', glow: '#8cc4ff', power: 0.95, speed: 262, hp: 115,
     special: 'CARICA DEL TRICORNO', weapon: 'LANCIA TRICORNO', specialText: 'Affondo in carica (media distanza)', titan: 'Triceratopo blu',
-    trait: 'PORTATA: la lancia colpisce più lontano', pro: 'Tiene i nemici a distanza', con: 'Meno vita di Ignis' },
-  { id: 'lyra', name: 'LYRA', civil: 'Kathy', role: 'Veloce', color: '#f7d046', glow: '#ffe98a', power: 0.85, speed: 300, hp: 105,
+    trait: 'PORTATA: la lancia colpisce più lontano', pro: 'Tiene i nemici a distanza', con: 'Meno vita di Ciusky' },
+  { id: 'lyra', name: 'KATHY', civil: 'Kathy', role: 'Veloce', color: '#f7d046', glow: '#ffe98a', power: 0.85, speed: 300, hp: 105,
     special: 'DANZA DEI PUGNALI', weapon: 'PUGNALI FELINI', specialText: 'Raffica di fendenti (da vicino)', titan: 'Felino giallo',
     trait: 'DOPPIO SALTO: salta di nuovo in aria', pro: 'La più veloce, agilissima', con: 'Poca vita, colpi leggeri' },
-  { id: 'aura', name: 'AURA', civil: 'Kiki', role: 'Distanza', color: '#ff78bb', glow: '#ffb2da', power: 0.9, speed: 268, hp: 110,
+  { id: 'aura', name: 'KIKI', civil: 'Kiki', role: 'Distanza', color: '#ff78bb', glow: '#ffb2da', power: 0.9, speed: 268, hp: 110,
     special: 'PIOGGIA D\'ALA', weapon: 'ARCO D\'ALA', specialText: 'Tre frecce alate (da lontano)', titan: 'Pterosauro rosa',
     trait: 'PLANATA: tieni SALTO in aria per planare', pro: 'Colpisce da lontano, ottima contro i droni', con: 'Debole nel corpo a corpo' },
-  { id: 'onyx', name: 'ONYX', civil: 'Dilik', role: 'Potente', color: '#b9c6d4', glow: '#e3ecf5', power: 1.25, speed: 222, hp: 140,
+  { id: 'onyx', name: 'DON', civil: 'Don', role: 'Potente', color: '#b9c6d4', glow: '#e3ecf5', power: 1.25, speed: 222, hp: 140,
     special: 'SCURE TELLURICA', weapon: 'ASCIA ZANNA', specialText: 'Colpo d\'ascia che spacca il suolo (da vicino)', titan: 'Mastodonte nero',
     trait: 'CORAZZA: i colpi leggeri non lo fermano', pro: 'Il più forte e resistente', con: 'Il più lento' },
   // sbloccabile: finisci la storia una volta
@@ -146,18 +146,18 @@ const LEVELS = [
     intro: [
       ["NARRATORE", "Porto Aurora, 23:47. Le sirene suonano da dieci minuti e nessuno sa perché."],
       ["ARMV3Z", "Mi sentite? Non abbiate paura della voce nella vostra testa. Sono ArMV3z, il custode dei Cuori che adesso portate addosso."],
-      ["IGNIS", "Un minuto fa sfornavo pizze. Adesso ho un'armatura addosso. Qualcuno mi spiega?"],
+      ["CIUSKY", "Un minuto fa sfornavo pizze. Adesso ho un'armatura addosso. Qualcuno mi spiega?"],
       ["ARMV3Z", "Non c'è tempo. Si è aperto un varco verso la Dimensione Oscura: i Senzavolto cercano i Cuori, e voi li avete. Proteggete la gente, poi vi racconterò tutto."],
       ["ASTRO", "Io sono Astro, lui è Boris, piacere piacere! Radar acceso: civili intrappolati sul lungomare. E tanti, tanti soldati."],
       ["BORIS", "Le armature sono cariche. Non rompetele il primo giorno."],
-      ["IGNIS", "Allora niente spiegazioni. Prima la gente. Andiamo!"],
+      ["CIUSKY", "Allora niente spiegazioni. Prima la gente. Andiamo!"],
     ],
     outro: [
       ["NARRATORE", "Mastice crolla nel fango che lui stesso ha sollevato. Sotto il molo resta un tunnel profondo."],
-      ["AZUR", "Non stava attaccando la città. Scavava. Cercava qualcosa sotto di noi."],
+      ["BEPS", "Non stava attaccando la città. Scavava. Cercava qualcosa sotto di noi."],
       ["ARMV3Z", "Cercava la Camera dei Cuori, e i titani che dormono qui sotto. È ora che sappiate la verità."],
       ["ARMV3Z", "Mille anni fa, nella Dimensione Oscura, una regina di nome Vespera costruì cinque titani per conquistare i mondi. Io li ho portati via da lei e li ho addormentati qui."],
-      ["AURA", "E adesso lei li rivuole."],
+      ["KIKI", "E adesso lei li rivuole."],
       ["ASTRO", "Nuovo allarme! Un treno blindato è partito dalla stazione merci. A bordo ci sono dei prigionieri!"],
     ],
   },
@@ -174,10 +174,10 @@ const LEVELS = [
     intro: [
       ["ASTRO", "Dieci minuti prima che il treno attraversi il portale. Nove e cinquantanove... nove e cinquantotto..."],
       ["BORIS", "Astro. Smetti di contare."],
-      ["AZUR", "Perché proprio quei prigionieri? Vespera non rapisce a caso."],
+      ["BEPS", "Perché proprio quei prigionieri? Vespera non rapisce a caso."],
       ["ARMV3Z", "Tra loro c'è Irene Valli. Vent'anni fa fu lei a scoprire la Camera dei Cuori. Sa dove dormono i titani."],
-      ["LYRA", "Allora la riportiamo a casa. Io salto sul tetto del treno, voi pensate ai vagoni."],
-      ["ONYX", "Occhio alla galleria. Là sotto non si vedrà niente."],
+      ["KATHY", "Allora la riportiamo a casa. Io salto sul tetto del treno, voi pensate ai vagoni."],
+      ["DON", "Occhio alla galleria. Là sotto non si vedrà niente."],
     ],
     outro: [
       ["DOTT.SSA VALLI", "Grazie. Credevo di non rivedere più il mare."],
@@ -185,7 +185,7 @@ const LEVELS = [
       ["ARMV3Z", "Erano i Cuori, Irene. E adesso hanno scelto."],
       ["DOTT.SSA VALLI", "Allora sappiate questo: i Senzavolto volevano da me una cosa sola. Dove dorme il primo titano."],
       ["DOTT.SSA VALLI", "Sotto il vecchio parco preistorico. E gliel'ho detto. Mi dispiace."],
-      ["LYRA", "Non scusarti. Adesso lo sappiamo anche noi. Ci arriviamo prima di loro."],
+      ["KATHY", "Non scusarti. Adesso lo sappiamo anche noi. Ci arriviamo prima di loro."],
     ],
   },
   {
@@ -201,22 +201,22 @@ const LEVELS = [
     giant: { player: 'rex', enemy: 'trivor', bg: 'park' },
     intro: [
       ["DOTT.SSA VALLI", "Il segnale viene da sotto il recinto del tirannosauro. È lui: il Tiranno Rosso."],
-      ["ONYX", "Lo sento anch'io, nel petto. Come se l'armatura riconoscesse casa."],
+      ["DON", "Lo sento anch'io, nel petto. Come se l'armatura riconoscesse casa."],
       ["ARMV3Z", "Se si sveglia, parlategli. Non è una macchina da comandare: è un compagno che deve fidarsi di voi."],
-      ["IGNIS", "E se invece si fida di loro?"],
+      ["CIUSKY", "E se invece si fida di loro?"],
       ["ARMV3Z", "Allora avremo perso il primo dei cinque. Correte."],
     ],
     mid: [
       ["TRIVOR", "La Dimensione Oscura mi dona la sua forza! Schiaccerò i vostri Cuori come gusci d'uovo!"],
       ["NARRATORE", "Trivor cresce fino a sovrastare gli alberi. Dal recinto, il Tiranno Rosso risponde con un ruggito."],
-      ["IGNIS", "Tiranno Rosso... se mi senti, combatti con me!"],
+      ["CIUSKY", "Tiranno Rosso... se mi senti, combatti con me!"],
     ],
     outro: [
       ["VESPERA", "Inginocchiati, mio guardiano."],
       ["NARRATORE", "Per un istante il Tiranno Rosso abbassa la testa davanti alla voce di Vespera. Poi si scuote e ruggisce contro il cielo."],
-      ["AURA", "L'ha riconosciuta. E lei conosce lui."],
+      ["KIKI", "L'ha riconosciuta. E lei conosce lui."],
       ["ARMV3Z", "I titani ricordano ancora la sua voce. Io ho cancellato gli ordini, non le cicatrici."],
-      ["IGNIS", "Allora dobbiamo trovare gli altri quattro prima che li chiami lei."],
+      ["CIUSKY", "Allora dobbiamo trovare gli altri quattro prima che li chiami lei."],
     ],
   },
   {
@@ -229,20 +229,20 @@ const LEVELS = [
     ],
     weapons: [['pipe', 1300, 560]],
     intro: [
-      ["AZUR", "Quelle copie si muovono come noi. Qualcuno ci ha studiati, colpo per colpo."],
+      ["BEPS", "Quelle copie si muovono come noi. Qualcuno ci ha studiati, colpo per colpo."],
       ["ASTRO", "I miei sensori vedono cinque di voi... e poi altri cinque. Non mi piace. Non mi piace per niente!"],
       ["BORIS", "Contali due volte. Quelli veri hanno i Cuori."],
       ["ARMV3Z", "È Mimesi, la ladra di mosse di Vespera. Rompete gli specchi: senza riflessi non può copiarvi."],
-      ["AURA", "E se negli specchi ci fosse qualcosa che dobbiamo vedere?"],
+      ["KIKI", "E se negli specchi ci fosse qualcosa che dobbiamo vedere?"],
       ["ARMV3Z", "...Allora guardate. Ma non dimenticate chi siete."],
     ],
     outro: [
       ["VESPERA", "Guardate, piccoli custodi. Guardate cosa facevano i vostri titani quando erano miei."],
       ["NARRATORE", "Negli specchi infranti scorrono immagini vere: i cinque titani che radono al suolo le città di un altro mondo."],
-      ["LYRA", "Non può essere vero..."],
+      ["KATHY", "Non può essere vero..."],
       ["ARMV3Z", "È vero. Li guidavano piloti obbedienti, e Vespera dava gli ordini. Per questo li ho portati via."],
-      ["ONYX", "Allora quello che portiamo addosso non è un'arma. È una promessa: non torneranno mai più a essere quello."],
-      ["AZUR", "ArMV3z. Cos'altro non ci hai detto?"],
+      ["DON", "Allora quello che portiamo addosso non è un'arma. È una promessa: non torneranno mai più a essere quello."],
+      ["BEPS", "ArMV3z. Cos'altro non ci hai detto?"],
       ["ARMV3Z", "Il nome del loro primo pilota. Kharon. È lui che guida l'assedio di stanotte."],
     ],
   },
@@ -258,7 +258,7 @@ const LEVELS = [
     giant: { player: 'concordia', enemy: 'mastice', bg: 'siege' },
     intro: [
       ["KHARON", "Consegnatemi i Cuori e la città vivrà. Rifiutate, e la guarderete bruciare."],
-      ["IGNIS", "Questa è casa nostra. Non trattiamo con chi la incendia!"],
+      ["CIUSKY", "Questa è casa nostra. Non trattiamo con chi la incendia!"],
       ["KHARON", "Coraggio. Anch'io ne avevo, mille anni fa."],
       ["ARMV3Z", "Kharon... sei davvero tu. Sentinels, fermatelo, ma non odiatelo: non è lui a scegliere."],
       ["ASTRO", "L'antenna del porto regge gli scudi della città. Se cade lei, cade tutto!"],
@@ -267,15 +267,15 @@ const LEVELS = [
     mid: [
       ["KHARON", "Siete più forti di quanto credessi. Ma stanotte non è mia: è sua."],
       ["NARRATORE", "Kharon spezza un cristallo oscuro sui resti di Mastice. Il colosso si rialza dal mare, alto come un palazzo."],
-      ["AURA", "Da soli non basta. Tutti e cinque, insieme!"],
+      ["KIKI", "Da soli non basta. Tutti e cinque, insieme!"],
       ["ARMV3Z", "I cinque Cuori battono all'unisono. Titani, unitevi: CONCORDIA!"],
     ],
     outro: [
       ["NARRATORE", "Il colosso crolla in mare. Nella luce dell'esplosione Kharon abbassa la spada. Poi sparisce nel varco."],
-      ["LYRA", "Avete visto? Ha esitato. Non voleva colpirci."],
+      ["KATHY", "Avete visto? Ha esitato. Non voleva colpirci."],
       ["DOTT.SSA VALLI", "Ho decifrato le incisioni sui resti di Mastice. Portano sotto il porto, a una fabbrica sepolta."],
       ["DOTT.SSA VALLI", "I Senzavolto la chiamano il Cimitero dei Titani."],
-      ["ONYX", "Allora andiamo a vedere cosa ci seppelliscono."],
+      ["DON", "Allora andiamo a vedere cosa ci seppelliscono."],
     ],
   },
   {
@@ -289,19 +289,19 @@ const LEVELS = [
     weapons: [['pipe', 1200, 600], ['pipe', 2300, 640]],
     intro: [
       ["NARRATORE", "Sotto il porto, scheletri di macchine giganti riempiono una caverna senza fine."],
-      ["ONYX", "Sono titani. Decine. Non i nostri... di altri mondi."],
+      ["DON", "Sono titani. Decine. Non i nostri... di altri mondi."],
       ["ASTRO", "Energia dei Cuori al 40%... al 38%... Questo posto vi succhia via tutto!"],
       ["BORIS", "Qui sotto non posso ricaricarvi. Quello che avete, vi deve bastare."],
       ["ARMV3Z", "La Dimensione Oscura qui è troppo vicina... non riesco a... restare con voi..."],
-      ["AZUR", "ArMV3z? ArMV3z!"],
-      ["AURA", "È sparito. Siamo soli. Allora niente sprechi: ogni colpo conta."],
+      ["BEPS", "ArMV3z? ArMV3z!"],
+      ["KIKI", "È sparito. Siamo soli. Allora niente sprechi: ogni colpo conta."],
     ],
     outro: [
       ["KHARON", "Fermi. Non sono qui per combattere."],
       ["KHARON", "Il Custode ricostruiva per Vespera i titani caduti nelle sue guerre. Grazie a voi, adesso è solo ferro."],
       ["KHARON", "Mille anni fa mi chiamavo Sirio. Ero il primo pilota di Vespera. Aiutai ArMV3z a portare via i titani, poi tornai indietro per chiudere il varco."],
       ["KHARON", "Vespera mi prese. Mi tolse il nome e mi chiuse in questa corazza: finché la porto, devo obbedirle."],
-      ["IGNIS", "Allora te la togliamo."],
+      ["CIUSKY", "Allora te la togliamo."],
       ["KHARON", "Si può spezzare solo nella Dimensione Oscura. Vi apro il passaggio. Ma quando arriverete lassù, non avrò scelta: dovrò combattervi."],
       ["ARMV3Z", "Sirio, vecchio amico... il Cuore verde ti aspetta da mille anni."],
     ],
@@ -319,8 +319,8 @@ const LEVELS = [
       ["NARRATORE", "Nella Dimensione Oscura il cielo è sotto i piedi. Le torri sono capovolte e il tempo scorre a scatti."],
       ["ASTRO", "Gravità ridotta! Voi saltate più in alto, io galleggio. Boris, tienimi!"],
       ["BORIS", "Ti tengo. Come sempre."],
-      ["AZUR", "I nemici delle prime notti sono tornati, più forti. Li ricostruisce la Dimensione Oscura."],
-      ["LYRA", "Kharon ci aspetta in cima alla scalinata. Dobbiamo spezzare la corazza, non lui."],
+      ["BEPS", "I nemici delle prime notti sono tornati, più forti. Li ricostruisce la Dimensione Oscura."],
+      ["KATHY", "Kharon ci aspetta in cima alla scalinata. Dobbiamo spezzare la corazza, non lui."],
       ["ARMV3Z", "Mirate alla corazza, non all'uomo. Sotto c'è un amico."],
     ],
     outro: [
@@ -329,7 +329,7 @@ const LEVELS = [
       ["VESPERA", "Che scena commovente. Ma io non ho bisogno di un traditore."],
       ["VESPERA", "Titani... ascoltate la mia voce. Tornate da me."],
       ["NARRATORE", "Uno dopo l'altro, i cinque titani si voltano verso la fortezza di Vespera. E si incamminano."],
-      ["AURA", "No... Non possiamo comandarli. Possiamo solo raggiungerli, e chiedergli di scegliere."],
+      ["KIKI", "No... Non possiamo comandarli. Possiamo solo raggiungerli, e chiedergli di scegliere."],
     ],
   },
   {
@@ -349,20 +349,20 @@ const LEVELS = [
       ["ARMV3Z", "Dentro la fortezza non posso seguirvi. Ma ogni Cuore porta un pezzo di me."],
       ["BORIS", "Armature riparate. Tutte. Riportatele intere."],
       ["DOTT.SSA VALLI", "Noi evacuiamo la città finché resistete. Non fatevi aspettare."],
-      ["IGNIS", "Sentinels... questa è l'ultima notte della Dimensione Oscura. Facciamola finire."],
+      ["CIUSKY", "Sentinels... questa è l'ultima notte della Dimensione Oscura. Facciamola finire."],
     ],
     mid: [
       ["VESPERA", "Se non posso riavere i miei titani, mi prenderò questo mondo intero!"],
       ["NARRATORE", "Vespera si fonde con il cuore della fortezza. Il cielo diventa nero. Nasce Eclisse."],
-      ["AZUR", "I Cuori rispondono ancora... ma non come prima. Non obbediscono più a nessuno."],
-      ["ONYX", "Allora non diamo ordini. Chiediamo. Titani... volete combattere con noi?"],
+      ["BEPS", "I Cuori rispondono ancora... ma non come prima. Non obbediscono più a nessuno."],
+      ["DON", "Allora non diamo ordini. Chiediamo. Titani... volete combattere con noi?"],
       ["NARRATORE", "Per un lungo istante non succede niente. Poi cinque ruggiti rispondono insieme."],
     ],
     outro: [
       ["NARRATORE", "Eclisse si spezza in mille schegge di luce. Il varco si richiude, per sempre."],
       ["VESPERA", "I titani... mi hanno... abbandonata..."],
       ["SIRIO", "No, Vespera. Hanno scelto. È la sola cosa che non hai mai capito."],
-      ["IGNIS", "Non abbiamo vinto perché li comandavamo. Abbiamo vinto perché si sono fidati di noi."],
+      ["CIUSKY", "Non abbiamo vinto perché li comandavamo. Abbiamo vinto perché si sono fidati di noi."],
       ["ASTRO", "Ce l'abbiamo fatta! Ce l'abbiamo fatta! Posso ballare? Sto già ballando!"],
       ["BORIS", "...Va bene. Oggi balla."],
       ["ARMV3Z", "I titani tornano a dormire sotto la città. Questa volta come custodi, non come armi. E voi con loro."],
@@ -388,15 +388,15 @@ const SIRIO_LINES = [
 ];
 /* Speaker → portrait sprite for dialogue boxes */
 const SPEAKERS = {
-  'IGNIS': ['fighters', 'ignis_0', '#ff5b4f'], 'AZUR': ['fighters', 'azur_0', '#5d9bff'], 'LYRA': ['fighters', 'lyra_0', '#f7d046'],
-  'AURA': ['fighters', 'aura_0', '#ff78bb'], 'ONYX': ['fighters', 'onyx_0', '#b9c6d4'],
+  'CIUSKY': ['fighters', 'ignis_0', '#ff5b4f'], 'BEPS': ['fighters', 'azur_0', '#5d9bff'], 'KATHY': ['fighters', 'lyra_0', '#f7d046'],
+  'KIKI': ['fighters', 'aura_0', '#ff78bb'], 'DON': ['fighters', 'onyx_0', '#b9c6d4'],
   'KHARON': ['bosses', 'kharon_0', '#d24a5a'], 'VESPERA': ['bosses', 'vespera_0', '#b77dff'], 'TRIVOR': ['bosses', 'trivor_0', '#4fc3a8'],
   'DOTT.SSA VALLI': ['people', 'scientist_idle0', '#9fd6ff'], 'NARRATORE': null,
   'ARMV3Z': ['mentors', 'argo_0', '#6fc8ff'], 'ASTRO': ['mentors', 'sette_2', '#ffd35a'], 'BORIS': ['mentors', 'sette_2', '#8fc4ff'],
   'SIRIO': ['heroes2', 'kharon_0', '#3fd06a'],
 };
 /* illustrated dialogue portraits */
-const PORTRAIT = { ARMV3Z: 'mentors:argo_7', ASTRO: 'mentors:sette_2', BORIS: 'mentors:sette_2', SIRIO: 'faces:face_5', IGNIS: 'pt_ignis', AZUR: 'pt_azur', LYRA: 'pt_lyra', AURA: 'pt_aura', ONYX: 'pt_onyx', VESPERA: 'pt_vespera', KHARON: 'pt_kharon', 'DOTT.SSA VALLI': 'pt_valli', MASTICE: 'pt_mastice' };
+const PORTRAIT = { ARMV3Z: 'mentors:argo_7', ASTRO: 'mentors:sette_2', BORIS: 'mentors:sette_2', SIRIO: 'faces:face_5', CIUSKY: 'pt_ignis', BEPS: 'pt_azur', KATHY: 'pt_lyra', KIKI: 'pt_aura', DON: 'pt_onyx', VESPERA: 'pt_vespera', KHARON: 'pt_kharon', 'DOTT.SSA VALLI': 'pt_valli', MASTICE: 'pt_mastice' };
 
 /* ------------------------------------------------------------
    DIFFICOLTÀ · crediti = quante volte la squadra può continuare
