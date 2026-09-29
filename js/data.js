@@ -110,11 +110,16 @@ const ITEMS = {
   sigil: { sigil: true, label: 'SIGILLO DEI TITANI' },
   pipe: { weapon: true, dmg: 1.7, reach: 42, uses: 14, label: 'TUBO D\'ACCIAIO' },
   oar: { weapon: true, dmg: 1.5, reach: 74, uses: 11, label: 'REMO' },
+  // 1.15 / II 0.15: Italian food, found everywhere (the local speciality more often)
+  arancino: { heal: 40, label: 'ARANCINO' },
+  cannolo: { heal: 22, label: 'CANNOLO' },
+  gelato: { heal: 18, label: 'GELATO' },
+  coffee: { heal: 8, boost: 8, label: 'CAFFÈ' },
 };
 
 const PROPS = {
-  crate: { hp: 2, drops: ['pizza', 'can', 'coin', 'energy', 'chicken', 'ammo'] },
-  bin: { hp: 1, drops: ['can', 'coin', 'pizza'] },
+  crate: { hp: 2, drops: ['pizza', 'can', 'coin', 'energy', 'chicken', 'ammo', 'arancino', 'cannolo', 'gelato', 'coffee'] },
+  bin: { hp: 1, drops: ['can', 'coin', 'pizza', 'coffee', 'gelato'] },
   barrel: { hp: 1, explode: true, drops: [] },
   mirror: { hp: 6, drops: ['energy'], sheet: 'extra', sc: 0.9 },
   generator: { hp: 999, drops: [], sheet: 'extra', sc: 0.8 },
@@ -123,6 +128,8 @@ const PROPS = {
 };
 
 /* Walkable band (feet y). Backgrounds have been normalised so the floor starts at 465. */
+/* the speciality of each place: it drops more often there */
+const LOCAL_FOOD = { venezia: 'gelato', roma: 'coffee', stretto: 'arancino', forgia: 'coffee', etna: 'cannolo' };
 const FLOOR_TOP = 492, FLOOR_BOTTOM = 700;
 
 /* civ types available for background civilians */

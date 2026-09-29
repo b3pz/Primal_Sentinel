@@ -90,6 +90,10 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.15 — oggetti nuovi
+- Tutti gli oggetti ridisegnati in HD: cibo, lattina, cella d'energia, moneta, cristallo, caricatore, sigillo, tubo, remo, casse, bidoni e barili.
+- Cibo italiano: arancino, cannolo, gelato e caffè (il caffè cura poco ma per 8 secondi fa correre più veloce).
+
 ## Novità della 1.14.2 — solo i vostri nomi
 - I Sentinels si chiamano solo con i nomi scelti: **Ciusky** (rosso), **Beps** (blu), **Kathy** (gialla),
   **Kiki** (rosa), **Don** (nero), **Sirio** (verde). Spariti i vecchi nomi da
