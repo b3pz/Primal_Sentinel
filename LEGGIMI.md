@@ -90,6 +90,9 @@ Quando la barra "equilibrio" del mostro si svuota, speciale lancia l'arma finale
 
 
 
+## Novità della 1.16 — il tiro a segno
+- Il livello bonus dopo i capitoli 2, 4 e 6 non è più la capsula oscura da distruggere: è un **tiro a segno** di 30 secondi. Ogni giocatore muove il suo mirino con le frecce e spara con ATTACCO o PISTOLA ai soldati di Vespera che spuntano da casse, barili e bidoni. Il drone che attraversa il cielo vale 400 punti; i civili non si toccano (-300). Il punteggio diventa monete per il negozio di Boris.
+
 ## Novità della 1.15 — oggetti nuovi
 - Tutti gli oggetti ridisegnati in HD: cibo, lattina, cella d'energia, moneta, cristallo, caricatore, sigillo, tubo, remo, casse, bidoni e barili.
 - Cibo italiano: arancino, cannolo, gelato e caffè (il caffè cura poco ma per 8 secondi fa correre più veloce).

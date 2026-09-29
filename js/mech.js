@@ -3,7 +3,7 @@
    MECCANICHE DEI CAPITOLI — ogni capitolo ha qualcosa di suo:
    1 traffico di scooter · 4 specchi che generano copie e riflettori
    che cadono · 5 antenna da difendere · 6 generatori e presse ·
-   7-8 gravità ridotta · livello bonus: la capsula oscura.
+   7-8 gravità ridotta. (Il livello bonus ora è il tiro a segno: js/tiro.js)
    ============================================================ */
 const BONUS_AFTER = [1, 3, 5];   // after chapters 2, 4 and 6
 function bonusLevel(idx) {

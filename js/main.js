@@ -79,7 +79,7 @@ const Game = {
         <button id="howto">COME SI GIOCA</button>
         <button id="options">OPZIONI</button>
       </nav>
-      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.15</div>`, 'menu');
+      <div class="footer">IDEATO E SVILUPPATO DA b3pZ · V1.16</div>`, 'menu');
     UI.on('#play', () => { this.modeKind = 'campaign'; this.startLevel = 0; this.lobby(); });
     UI.on('#online', () => this.onlineMenu());
     UI.on('#extras', () => this.extras());
@@ -616,10 +616,9 @@ const Game = {
   },
   afterClear() {
     if (BONUS_AFTER.includes(this.levelIdx) && !this.bonusDone) {
-      // bonus stage: destroy Vespera's capsule in 30 seconds
+      // 1.16 bonus stage: the shooting gallery (it replaced Vespera's capsule)
       this.bonusDone = true;
-      this.S = newStage(this.levelIdx, this.simPlayers(), 0, bonusLevel(this.levelIdx));
-      this.S.credits = this.credits; this.mode = 'stage'; FX.parts = []; Audio.playSong(3);
+      this.bonusGame(this.levelIdx, () => this.afterClear());
       return;
     }
     // Sette's shop: spend the coins before the next chapter

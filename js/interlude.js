@@ -158,7 +158,7 @@ Object.assign(Game, {
       if (I.i >= list.length) next();
     };
     switch (I.ph) {
-      case 'card': if (I.t > 3 || (I.t > 0.8 && (adv || skip))) { I.ph = 'talk'; I.t = 0; I.i = 0; } break;
+      case 'card': if (I.t > 3 || (I.t > 0.8 && (adv || skip))) { I.ph = D.bonus ? 'play' : 'talk'; I.t = 0; I.i = 0; } break;   // bonus stages go straight to the game
       case 'talk': talk(D.lines, () => { I.ph = 'ask'; I.t = 0; I.sel = 0; }); break;
       case 'ask': {
         if (I.t < 0.4) break;
@@ -176,7 +176,7 @@ Object.assign(Game, {
         if (G.over) { I.ph = 'res'; I.t = 0; I.res = MG_REWARD[D.game](G); this.interApply(I.res); this.interSnd('team'); Audio.playSong(8); }
         break;
       }
-      case 'res': if (I.t > 1.4 && (adv || skip)) { I.ph = 'after'; I.t = 0; I.i = 0; } break;
+      case 'res': if (I.t > 1.4 && (adv || skip)) { if (D.bonus) { const then = this.afterInter; this.afterInter = null; this.I = null; then && then(); break; } I.ph = 'after'; I.t = 0; I.i = 0; } break;
       case 'after': talk(D.after, () => { const then = this.afterInter; this.afterInter = null; this.I = null; then && then(); }); break;
     }
   },
@@ -184,6 +184,7 @@ Object.assign(Game, {
     if (r.coins && this.shop) this.shop.coins += r.coins;
     if (r.team) this.interBonus = { team: true };
     if (r.life) for (const p of this.players) p.lives = Math.max(3, p.lives || 3) + 1;
+    if (r.score) this.players.filter((p) => p.device !== 'gone').forEach((p, i) => { p.score = (p.score || 0) + (r.score[i] || 0); });
   },
   interView() { const I = this.I; if (!I) return null; return { m: 'inter', ...I, t: +I.t.toFixed(2) }; },
 });
@@ -415,6 +416,7 @@ function drawInter(v) {
   if (v.ph === 'talk' || v.ph === 'after') {
     const list = v.ph === 'talk' ? D.lines : D.after;
     const line = list[v.i] || list[list.length - 1];
+    if (!line) return;
     const typing = t * 48 < line[1].length;
     drawInterScene(D, line[0], T, typing);
     ptxt(`INTERVALLO · ${D.title}`, 40, 40, 10, '#ffcf7a');
